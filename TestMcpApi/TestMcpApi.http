@@ -1,0 +1,6 @@
+@TestMcpApi_HostAddress = http://localhost:5299
+
+GET {{TestMcpApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
