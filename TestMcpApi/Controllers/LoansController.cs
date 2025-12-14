@@ -32,9 +32,7 @@ public class LoansController : ControllerBase
     public string GetAgentByLoan(
         [Description("who is the agent responsible for the loan")] LoanTransactionService svc,
         string loanId)
-    {
-        return svc.GetByLoanNumber(loanId)?.AgentName ?? "Not found";
-    }
+        => svc.GetByLoanNumber(loanId)?.AgentName ?? "Not found";
 
     [McpServerTool]
     [Description("Get total number of transactions for an agent (optional filters: year, from, to)")]
@@ -78,12 +76,80 @@ public class LoansController : ControllerBase
         [Description("The name of the agent, and maybe the year")] LoanTransactionService svc,
         bool sortByName = true,
         bool descending = false)
+        => JsonSerializer.Serialize(svc.GetAllAgents(sortByName, descending));
+
+    // LOAN-RELATED TOOLS
+
+    [McpServerTool]
+    [Description("Get subject address by loan number")]
+    [HttpGet("/loans/{loanId}")]
+    public string GetAddressByLoan(
+        [Description("What is the address of the property fo this specific loan")] LoanTransactionService svc,
+        string loanId)
+        => svc.GetSubjectAddress(loanId) ?? "Not found";
+
+
+    [McpServerTool]
+    [Description("List loans in a specific state (optional filters: year, from, to)")]
+    [HttpGet("/loans/{state}")]
+    public string GetLoansByState(
+        [Description("The state")] LoanTransactionService svc,
+        string state,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
-        return JsonSerializer.Serialize(svc.GetAllAgents(sortByName, descending));
+        var data = Filter(svc, null, year, from, to)
+                   .Where(t => t.SubjectState != null && t.SubjectState.Equals(state, StringComparison.OrdinalIgnoreCase));
+        return JsonSerializer.Serialize(data);
     }
 
+    [McpServerTool]
+    [Description("Get lender for a specific loan")]
+    [HttpGet("/loans/{loanId}")]
+    public string GetLender(
+        [Description("Who is the lender for a specific loan")] LoanTransactionService svc,
+        string loanId)
+        => svc.GetLender(loanId) ?? "Not found";
 
 
+    [McpServerTool]
+    [Description("Get LTV of a specific loan")]
+    [HttpGet("/loans/{loanId}")]
+    public string GetLTV(
+        [Description("What is the LTV for a specific loan")] LoanTransactionService svc,
+        string loanId)
+        => svc.GetLTV(loanId)?.ToString() ?? "Not found";
+
+    [McpServerTool]
+    [Description("Get the IDs of loans with a specific status (Active = Submitted / Not Submitted)")]
+    [HttpGet("/loans/{status}")]
+    public string GetLoanIdsByStatus(
+        [Description("The status of loans")] LoanTransactionService svc,
+        string status,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
+    {
+        var loans = Filter(svc, null, year, from, to)
+                    .Where(t => t.Active != null && t.Active.Equals(status, StringComparison.OrdinalIgnoreCase))
+                    .Select(t => t.LoanTransID);
+        return JsonSerializer.Serialize(loans);
+    }
+
+    [McpServerTool]
+    [Description("Get loans that haven't been closed yet")]
+    [HttpGet("/loans/open")]
+    public string GetOpenLoans(
+        [Description("The status of loans")] LoanTransactionService svc,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
+    {
+        var loans = Filter(svc, null, year, from, to)
+                    .Where(t => t.ActualClosedDate == null);
+        return JsonSerializer.Serialize(loans);
+    }
 
 
     //HELPERS
