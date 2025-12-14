@@ -1,6 +1,6 @@
 @TestMcpApi_HostAddress = http://localhost:5299
 
-GET {{TestMcpApi_HostAddress}}/weatherforecast/
+GET {{TestMcpApi_HostAddress}}/loans/
 Accept: application/json
 
 ###

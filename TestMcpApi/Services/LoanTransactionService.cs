@@ -15,45 +15,62 @@ namespace TestMcpApi.Services;
 public class LoanTransactionService
 {
     private readonly List<LoanTransaction> _data = new();
+    public bool IsCsvLoaded = false;
+    public  string ErrorLoadCsv = string.Empty;
     public LoanTransactionService()
     {
-        LoadCsv();
+        ErrorLoadCsv = LoadCsv();
+        IsCsvLoaded = string.IsNullOrEmpty(ErrorLoadCsv);
     }
-    private void LoadCsv()
+    private string LoadCsv()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "LoanTransactionsData.csv");
-        //var path = "LoanTransactionsData.csv";
-
-        if (!File.Exists(path))
-            throw new FileNotFoundException($"CSV file not found at {path}");
-
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            HasHeaderRecord = true,
-            IgnoreBlankLines = true,
-            Delimiter = ","
-        };
-
-        using var reader = new StreamReader(path);
-        using var csv = new CsvReader(reader, config);
-
-        // Setup global nulls for decimals
-        csv.Context.TypeConverterOptionsCache.GetOptions<decimal?>().NullValues.Add("");
-        csv.Context.TypeConverterOptionsCache.GetOptions<decimal?>().NullValues.Add("NULL");
-
-        // Setup global nulls for datetime
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().NullValues.Add("");
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().NullValues.Add("NULL");
-
         try
         {
-            _data.AddRange(csv.GetRecords<LoanTransaction>().ToList());
+            //var path = Path.Combine(@"C:\KAM\LoanTransactionsData.csv");
+            var path = Path.Combine(AppContext.BaseDirectory, "LoanTransactionsData.csv");
+            //var path = "LoanTransactionsData.csv";
+
+            if (!File.Exists(path))
+            {
+                return $"CSV file not found at {path}";
+            }
+
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+                IgnoreBlankLines = true,
+                Delimiter = ","
+            };
+
+            using var reader = new StreamReader(path);
+            using var csv = new CsvReader(reader, config);
+
+            // Setup global nulls for decimals
+            csv.Context.TypeConverterOptionsCache.GetOptions<decimal?>().NullValues.Add("");
+            csv.Context.TypeConverterOptionsCache.GetOptions<decimal?>().NullValues.Add("NULL");
+
+            // Setup global nulls for datetime
+            csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().NullValues.Add("");
+            csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().NullValues.Add("NULL");
+
+            try
+            {
+                _data.AddRange(csv.GetRecords<LoanTransaction>().ToList());
+            }
+            catch (Exception ex)
+            {
+                return string.Concat("Failed to parse CSV file. " +
+                                    "Make sure the headers match the LoanTransaction properties.", ex);
+            }
+
+            return string.Empty; // No error
         }
         catch (Exception ex)
         {
-            throw new Exception("Failed to parse CSV file. " +
-                                "Make sure the headers match the LoanTransaction properties.", ex);
+            return $"Error loading CSV file: {ex.Message}";
         }
+
+
     }
 
     public Task<List<LoanTransaction>> GetLoanTransactions()

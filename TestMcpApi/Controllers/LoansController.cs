@@ -9,7 +9,57 @@ using TestMcpApi.Services;
 [ApiController] // Use ApiController attributes if integrating into an existing Web API
 public class LoansController : ControllerBase
 {
+    private readonly LoanTransactionService svc;
+    public LoansController()
+    {
+        svc = new LoanTransactionService();
+    }
     // AGENT-RELATED TOOLS
+    // Mark a method as an MCP tool with a clear description
+    [McpServerTool]
+    [Description("Gets the current weather for a specific city")]
+    [HttpGet("/weather/{city}")] // Can be a standard web API endpoint too
+    public string GetCurrentWeather(
+        [Description("The name of the city, e.g., 'San Diego'")] string city)
+    {
+        // In a real scenario, you would call an external API or service
+        return $"It is sunny and 90°F in {city}.";
+    }
+
+    [McpServerTool]
+    [Description("Get top agents ranked by number of transactions")]
+    [HttpGet("/top-agents")]
+    public string GetTopAgents(
+    [Description("who are the top agents for KAM")] int top = 5,
+    int? year = null,
+    DateTime? from = null,
+    DateTime? to = null)
+    {
+        //return $"the top agent for KAM is Khaled El Henawy";
+
+        string names = "";
+        //LoanTransactionService svc = new LoanTransactionService();
+        if (!svc.IsCsvLoaded)
+        {
+            names =  "not availabale right now";
+        }
+        var data = Filter(svc, null, year, from, to);
+
+        var result = data.GroupBy(t => t.AgentName)
+                        .OrderByDescending(g => g.Count())
+                        .Take(top)
+                        .Select(g => new { Agent = g.Key, Transactions = g.Count() });
+
+        List<TopAgentResult> results = JsonSerializer.Deserialize<List<TopAgentResult>>(JsonSerializer.Serialize(result));
+
+        names = results.Select(r => r.Agent + " with " + r.Transactions + " transactions").Aggregate((a, b) => a + ", " + b);
+        return $"The top {top} agents for KAM are: {names}";
+    }
+    public class TopAgentResult
+    {
+        public string Agent { get; set; }
+        public int Transactions { get; set; }
+    }
 
     [McpServerTool]
     [Description("List transactions by agent name")]
@@ -47,26 +97,6 @@ public class LoansController : ControllerBase
         var agents = new[] { agent };
         var count = Filter(svc, agents, year, from, to).Count();
         return count.ToString();
-    }
-
-    [McpServerTool]
-    [Description("Get top agents ranked by number of transactions")]
-    [HttpGet("/top-agents")]
-    public string GetTopAgents(
-        [Description("who are the top agents")] LoanTransactionService svc,
-        int top = 10,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
-    {
-        var data = Filter(svc, null, year, from, to);
-
-        var result = data.GroupBy(t => t.AgentName)
-                         .OrderByDescending(g => g.Count())
-                         .Take(top)
-                         .Select(g => new { Agent = g.Key, Transactions = g.Count() });
-
-        return JsonSerializer.Serialize(result);
     }
 
     [McpServerTool]
