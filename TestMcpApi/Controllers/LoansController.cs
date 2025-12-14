@@ -354,8 +354,76 @@ public class LoansController : ControllerBase
         return loans.Any() ? loans.Min().ToString("F2") : "N/A";
     }
 
+    // ESCROW-RELATED TOOLS
 
+    [McpServerTool]
+    [Description("Number of loans for a specific escrow company ")]
+    [HttpGet("/loans/total/{escrowCompany}")]
+    public string GetLoansByEscrow(
+    [Description("What are the loans for a specific escrow company")] LoanTransactionService svc,
+        string escrowCompany,
+        string? agent = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
+    {
+        var loans = Filter(svc, new[] { agent! }, year, from, to)
+                    .Where(t => t.ActualClosedDate == null);
+        return JsonSerializer.Serialize(loans);
+    }
 
+    [McpServerTool]
+    [Description("Get all Escrow Companies")]
+    [HttpGet("/escrow-cpmanies")]
+    public string GetAllEscrowCompanies(
+        [Description("What are the names of all escrow companies")] LoanTransactionService svc)
+        => JsonSerializer.Serialize(svc.GetLoanTransactions().Result
+                                    .Select(t => t.EscrowCompany)
+                                    .Where(c => !string.IsNullOrEmpty(c))
+                                    .Distinct());
+
+    [McpServerTool]
+    [Description("Get transactions for a specific Escrow Company")]
+    [HttpGet("/loans/{escrowCompany}")]
+    public string GetTransactionsByEscrowCompany(
+        [Description("list the transactions made by a specific escrow company")] LoanTransactionService svc, string escrowCompany)
+        => JsonSerializer.Serialize(svc.GetByEscrowCompany(escrowCompany));
+
+    [McpServerTool]
+    [Description("Get top Escrow Companies ranked by number of transactions")]
+    [HttpGet("/top-escrow-companies")]
+    public string GetTopEscrowCompanies(
+        [Description("What are the top escrow companies")] LoanTransactionService svc, int top = 10)
+    {
+        var result = svc.GetLoanTransactions().Result
+                        .Where(t => !string.IsNullOrEmpty(t.EscrowCompany))
+                        .GroupBy(t => t.EscrowCompany)
+                        .OrderByDescending(g => g.Count())
+                        .Take(top)
+                        .Select(g => new { EscrowCompany = g.Key, Transactions = g.Count() });
+
+        return JsonSerializer.Serialize(result);
+    }
+
+    [McpServerTool]
+    [Description("Get Escrow Company statistics (total loans, average, highest, lowest loan amounts)")]
+    [HttpGet("/loans/statistics/{escrowCompany}")]
+    public string GetEscrowCompanyStats(
+        [Description("Get the statistics of loan amounts for a specific escrow company")] LoanTransactionService svc, string escrowCompany)
+    {
+        var loans = svc.GetByEscrowCompany(escrowCompany).Where(t => t.LoanAmount.HasValue).ToList();
+        if (!loans.Any())
+            return JsonSerializer.Serialize(new { TotalLoans = 0, AverageLoanAmount = 0, HighestLoanAmount = 0, LowestLoanAmount = 0 });
+
+        var amounts = loans.Select(t => t.LoanAmount!.Value);
+        return JsonSerializer.Serialize(new
+        {
+            TotalLoans = loans.Count,
+            AverageLoanAmount = amounts.Average(),
+            HighestLoanAmount = amounts.Max(),
+            LowestLoanAmount = amounts.Min()
+        });
+    }
 
 
 
