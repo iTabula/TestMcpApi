@@ -21,15 +21,12 @@ public class LoanTransactionService
     }
     private void LoadCsv()
     {
-        Console.WriteLine("Loading Loan Transactions from CSV...");
         var path = Path.Combine(AppContext.BaseDirectory, "LoanTransactionsData.csv");
         //var path = "LoanTransactionsData.csv";
 
-        Console.WriteLine($"Looking for CSV file at: {Path.GetFullPath(path)}");
         if (!File.Exists(path))
             throw new FileNotFoundException($"CSV file not found at {path}");
 
-        Console.WriteLine("Parsing CSV file...");
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
@@ -37,14 +34,10 @@ public class LoanTransactionService
             Delimiter = ","
         };
 
-        Console.WriteLine("Reading records...");
         using var reader = new StreamReader(path);
-
-        Console.WriteLine("Creating CSV reader...");
         using var csv = new CsvReader(reader, config);
 
         // Setup global nulls for decimals
-        Console.WriteLine("Configuring CSV type converters...");
         csv.Context.TypeConverterOptionsCache.GetOptions<decimal?>().NullValues.Add("");
         csv.Context.TypeConverterOptionsCache.GetOptions<decimal?>().NullValues.Add("NULL");
 
@@ -52,7 +45,6 @@ public class LoanTransactionService
         csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().NullValues.Add("");
         csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().NullValues.Add("NULL");
 
-        Console.WriteLine("Getting records...");
         try
         {
             _data.AddRange(csv.GetRecords<LoanTransaction>().ToList());
