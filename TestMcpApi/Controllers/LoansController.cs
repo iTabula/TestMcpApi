@@ -278,6 +278,88 @@ public class LoansController : ControllerBase
         => GetMostPopularValueFiltered(svc, t => t.EscrowCompany, new[] { agent! }, year, from, to);
 
 
+    // LOAN AMOUNT STATISTICS
+
+    [McpServerTool]
+    [Description("Average loan amount (overall, by agent or by year)")]
+    [HttpGet("/loans/average")]
+    public string GetAverageLoanAmount(
+        [Description("What is the average loan amount")] LoanTransactionService svc,
+        string? agent = null,
+        int? year = null)
+    {
+        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.LoanAmount.HasValue).Select(t => t.LoanAmount!.Value);
+        return loans.Any() ? loans.Average().ToString("F2") : "N/A";
+    }
+
+    [McpServerTool]
+    [Description("Highest loan amount (overall, by agent or by year)")]
+    [HttpGet("/loans/max")]
+    public string GetHighestLoanAmount(
+        [Description("What is the highest loan amount")] LoanTransactionService svc,
+        string? agent = null,
+        int? year = null)
+    {
+        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.LoanAmount.HasValue).Select(t => t.LoanAmount!.Value);
+        return loans.Any() ? loans.Max().ToString("F2") : "N/A";
+    }
+
+    [McpServerTool]
+    [Description("Lowest loan amount (overall, by agent or by year)")]
+    [HttpGet("/loans/min")]
+    public string GetLowestLoanAmount(
+        [Description("What is the lowest loan amount")] LoanTransactionService svc,
+        string? agent = null,
+        int? year = null)
+    {
+        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.LoanAmount.HasValue).Select(t => t.LoanAmount!.Value);
+        return loans.Any() ? loans.Min().ToString("F2") : "N/A";
+    }
+
+    // CREDIT SCORE STATISTICS
+
+    [McpServerTool]
+    [Description("Average credit score (overall, by agent or by year)")]
+    [HttpGet("/credit-score/average")]
+    public string GetAverageCreditScore(
+        [Description("What is the average credit score")] LoanTransactionService svc,
+        string? agent = null,
+        int? year = null)
+    {
+        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.CreditScore.HasValue).Select(t => t.CreditScore!.Value);
+        return loans.Any() ? loans.Average().ToString("F2") : "N/A";
+    }
+
+    [McpServerTool]
+    [Description("Highest credit score (overall, by agent or by year)")]
+    [HttpGet("/credit-score/max")]
+    public string GetHighestCreditScore(
+        [Description("What is the highest credit score")] LoanTransactionService svc,
+        string? agent = null,
+        int? year = null)
+    {
+        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.CreditScore.HasValue).Select(t => t.CreditScore!.Value);
+        return loans.Any() ? loans.Max().ToString("F2") : "N/A";
+    }
+
+    [McpServerTool]
+    [Description("Lowest credit score (overall, by agent or by year)")]
+    [HttpGet("/credit-score/min")]
+    public string GetLowestCreditScore(
+        [Description("What is the lowest credit score")] LoanTransactionService svc,
+        string? agent = null,
+        int? year = null)
+    {
+        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.CreditScore.HasValue).Select(t => t.CreditScore!.Value);
+        return loans.Any() ? loans.Min().ToString("F2") : "N/A";
+    }
+
+
+
+
+
+
+
 
     //HELPERS
     private static IEnumerable<LoanTransaction> Filter(
@@ -300,6 +382,21 @@ public class LoansController : ControllerBase
 
         if (to.HasValue)
             data = data.Where(t => t.DateAdded.HasValue && t.DateAdded.Value <= to.Value);
+
+        return data;
+    }
+
+    private static IEnumerable<LoanTransaction> FilterByAgentAndYear(
+    LoanTransactionService svc,
+    string? agent = null,
+    int? year = null)
+    {
+        var data = svc.GetLoanTransactions().Result.AsEnumerable();
+        if (!string.IsNullOrEmpty(agent))
+            data = data.Where(t => t.AgentName != null && t.AgentName.Equals(agent, StringComparison.OrdinalIgnoreCase));
+
+        if (year.HasValue)
+            data = data.Where(t => t.DateAdded.HasValue && t.DateAdded.Value.Year == year.Value);
 
         return data;
     }
