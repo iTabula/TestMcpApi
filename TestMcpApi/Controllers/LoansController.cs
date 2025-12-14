@@ -425,6 +425,73 @@ public class LoansController : ControllerBase
         });
     }
 
+    // OTHER TOOLS
+
+    [McpServerTool]
+    [Description("Get total number of transactions for a lender")]
+    [HttpGet("/loans/total/{lender}")]
+    public string GetTotalTransactionsByLender(
+        [Description("What are the number of transactions made by this lender")] LoanTransactionService svc,
+        string lender,
+        string? agent = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
+    {
+        var count = Filter(svc, new[] { agent! }, year, from, to)
+                    .Count(t => t.LenderName != null && t.LenderName.Equals(lender, StringComparison.OrdinalIgnoreCase));
+        return count.ToString();
+    }
+
+    [McpServerTool]
+    [Description("Get all Title Companies")]
+    [HttpGet("/title-companies")]
+    public string GetAllTitleCompanies(
+        [Description("give a list of all title companies")] LoanTransactionService svc)
+        => JsonSerializer.Serialize(svc.GetAllTitleCompanies());
+
+    [McpServerTool]
+    [Description("Get transactions of a specific Title Company")]
+    [HttpGet("/loans/{titleCompany}")]
+    public string GetTransactionsByTitleCompany(
+        [Description("List all transactions made by this title company")] LoanTransactionService svc,
+        string titleCompany,
+        string? agent = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
+    {
+        var data = Filter(svc, new[] { agent! }, year, from, to)
+                   .Where(t => t.TitleCompany != null && t.TitleCompany.Equals(titleCompany, StringComparison.OrdinalIgnoreCase));
+        return JsonSerializer.Serialize(data);
+    }
+
+    [McpServerTool]
+    [Description("Get 1099 for an agent for a specific year")]
+    [HttpGet("/1099/{agent}/{year}")]
+    public string GetAgent1099(
+        [Description("What is the 1099 for this agent for a specific year")] LoanTransactionService svc,
+        string agent,
+        int year)
+        => svc.GetAgent1099(agent, year).ToString("F2");
+
+    [McpServerTool]
+    [Description("Get lender statistics (total loans, average, highest, lowest loan amounts)")]
+    [HttpGet("/loans/statistics/{lender}")]
+    public string GetLenderStats(
+        [Description("What are the loan statistics of this lender")] LoanTransactionService svc,
+        string lender)
+    {
+        var stats = svc.GetLenderStats(lender);
+        return JsonSerializer.Serialize(new
+        {
+            TotalLoans = stats.totalLoans,
+            AverageLoanAmount = stats.avgAmount,
+            HighestLoanAmount = stats.maxAmount,
+            LowestLoanAmount = stats.minAmount
+        });
+    }
+
 
 
 
