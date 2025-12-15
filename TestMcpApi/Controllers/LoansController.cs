@@ -90,9 +90,17 @@ public class LoansController : ControllerBase
     [Description("Get Agent responsible for a specific loan")]
     [HttpGet("/loans/{loanId}")]
     public string GetAgentByLoan(
-        [Description("who is the agent responsible for the loan")]
+    [Description("who is the agent responsible for the loan")]
         string loanId)
-        => svc.GetByLoanNumber(loanId)?.AgentName ?? "Not found";
+    {
+        string agent = "";
+        if (!svc.IsCsvLoaded)
+        {
+            agent = "not availabale right now";
+        }
+        string result = svc.GetByLoanNumber(loanId)?.AgentName ?? "Not found";
+        return $"The agent responsible for the loan #{loanId} is {result}";
+    }
 
     [McpServerTool]
     [Description("Get total number of transactions for an agent")]
