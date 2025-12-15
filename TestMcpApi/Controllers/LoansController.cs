@@ -10,9 +10,13 @@ using TestMcpApi.Services;
 public class LoansController : ControllerBase
 {
     private readonly LoanTransactionService svc;
+    private readonly IConfiguration _configuration;
+    private readonly string connectionString = string.Empty;
+
     public LoansController()
     {
         svc = new LoanTransactionService();
+        connectionString = _configuration.GetConnectionString("DefaultConnection");
     }
     // AGENT-RELATED TOOLS
     // Mark a method as an MCP tool with a clear description
@@ -41,7 +45,7 @@ public class LoansController : ControllerBase
         //LoanTransactionService svc = new LoanTransactionService();
         if (!svc.IsCsvLoaded)
         {
-            names =  "not availabale right now";
+            names = "not availabale right now";
         }
         var data = Filter(svc, null, year, from, to);
 
