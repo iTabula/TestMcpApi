@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text.Json;
+using TestMcpApi.Classes;
 using TestMcpApi.Services;
 
 // Mark the class as a collection of MCP tools
@@ -16,7 +18,7 @@ public class LoansController : ControllerBase
     public LoansController()
     {
         svc = new LoanTransactionService();
-        connectionString = _configuration.GetConnectionString("DefaultConnection");
+        connectionString = _configuration.GetConnectionString("DefaultConnection")!;
     }
     // AGENT-RELATED TOOLS
     // Mark a method as an MCP tool with a clear description
@@ -54,37 +56,41 @@ public class LoansController : ControllerBase
                         .Take(top)
                         .Select(g => new { Agent = g.Key, Transactions = g.Count() });
 
-        List<TopAgentResult> results = JsonSerializer.Deserialize<List<TopAgentResult>>(JsonSerializer.Serialize(result));
+        List<TopAgentResult> results = JsonSerializer.Deserialize<List<TopAgentResult>>(JsonSerializer.Serialize(result))!;
 
         names = results.Select(r => r.Agent + " with " + r.Transactions + " transactions").Aggregate((a, b) => a + ", " + b);
         return $"The top {top} agents for KAM are: {names}";
-    }
-    public class TopAgentResult
-    {
-        public string Agent { get; set; }
-        public int Transactions { get; set; }
     }
 
     [McpServerTool]
     [Description("List transactions by agent name")]
     [HttpGet("/loans/{agent}")]
     public string GetTransactionsByAgent(
-        [Description("The name of the agent, and maybe the year")] LoanTransactionService svc,
+        [Description("List the transactions made by the agent, during the year")]
         string agent,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
+        string transactions = "";
+        if (!svc.IsCsvLoaded)
+        {
+            transactions = "not availabale right now";
+        }
         var agents = new[] { agent };
-        var data = Filter(svc, agents, year, from, to);
-        return JsonSerializer.Serialize(data);
+        var data = Filter(svc, agents, year, from, to).Select(g => new { ID = g.LoanTransID, LoanAmount = g.LoanAmount, LoanType = g.LoanType, LoanTerm = g.LoanTerm });
+        List<TransactionsResult> results = JsonSerializer.Deserialize<List<TransactionsResult>>(JsonSerializer.Serialize(data))!;
+
+        transactions = results.Select(r => "Loan #" + r.ID + ", Loan Amount: " + r.LoanAmount + ", Loan Type: " + r.LoanType + ", Loan Term: " + r.LoanTerm)
+            .Aggregate((a, b) => a + ", " + b);
+        return $"The transactions made by {agent}, during the year {year} are: {transactions}";
     }
 
     [McpServerTool]
     [Description("Get Agent responsible for a specific loan")]
     [HttpGet("/loans/{loanId}")]
     public string GetAgentByLoan(
-        [Description("who is the agent responsible for the loan")] LoanTransactionService svc,
+        [Description("who is the agent responsible for the loan")]
         string loanId)
         => svc.GetByLoanNumber(loanId)?.AgentName ?? "Not found";
 
