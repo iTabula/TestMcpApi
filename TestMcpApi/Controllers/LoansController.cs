@@ -876,11 +876,36 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get transactions for a specific Escrow Company")]
+    [Description("Get transactions for a specific escrow company")]
     [HttpGet("/loans/{escrowCompany}")]
     public string GetTransactionsByEscrowCompany(
-        [Description("list the transactions made by a specific escrow company")] LoanTransactionService svc, string escrowCompany)
-        => JsonSerializer.Serialize(svc.GetByEscrowCompany(escrowCompany));
+        [Description("List the transactions made by a specific escrow company")] string escrowCompany)
+    {
+        string result = "";
+
+        if (!svc.IsCsvLoaded)
+        {
+            result = "not available right now";
+        }
+        else
+        {
+            var transactions = svc.GetByEscrowCompany(escrowCompany)
+                                  .Select(t => new EscrowTransactionDto
+                                  {
+                                      LoanTransID = t.LoanTransID,
+                                      AgentName = t.AgentName,
+                                      LoanAmount = t.LoanAmount,
+                                      SubjectCity = t.SubjectCity,
+                                      SubjectState = t.SubjectState
+                                  }).ToList();
+
+            result = transactions.Any()
+                ? JsonSerializer.Serialize(transactions)
+                : "no transactions found";
+        }
+
+        return $"The transactions for {escrowCompany} are: {result}";
+    }
 
     [McpServerTool]
     [Description("Get top Escrow Companies ranked by number of transactions")]

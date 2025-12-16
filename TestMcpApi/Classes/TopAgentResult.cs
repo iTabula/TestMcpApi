@@ -67,4 +67,12 @@
         public string EscrowCompany { get; set; }
         public int Transactions { get; set; }
     }
+    public class EscrowTransactionDto
+    {
+        public string LoanTransID { get; set; }
+        public string AgentName { get; set; }
+        public decimal? LoanAmount { get; set; }
+        public string SubjectCity { get; set; }
+        public string SubjectState { get; set; }
+    }
 }
