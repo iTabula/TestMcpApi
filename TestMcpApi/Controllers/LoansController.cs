@@ -494,15 +494,37 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Most popular brokering type")]
+    [Description("Get most popular brokering type")]
     [HttpGet("/top-brokering-type")]
     public string GetMostPopularBrokeringType(
-        [Description("What is the most popular brokering type")] LoanTransactionService svc,
-        string? agent = null,
+        [Description("What is the most popular brokering type?")] string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
-        => GetMostPopularValueFiltered(svc, t => t.BrokeringType, new[] { agent! }, year, from, to);
+    {
+        string type = "";
+        if (!svc.IsCsvLoaded)
+        {
+            type = "not available right now";
+        }
+        else
+        {
+            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
+            var data = Filter(svc, agentsArray, year, from, to);
+
+            var result = data.GroupBy(t => t.BrokeringType)
+                             .OrderByDescending(g => g.Count())
+                             .Take(1)
+                             .Select(g => new { BrokeringType = g.Key, Transactions = g.Count() });
+
+            List<TopBrokeringTypeResult> results = JsonSerializer.Deserialize<List<TopBrokeringTypeResult>>(JsonSerializer.Serialize(result))!;
+
+            type = results.Select(r => r.BrokeringType + " with " + r.Transactions + " transactions")
+                          .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The most popular brokering type is: {type}";
+    }
 
     [McpServerTool]
     [Description("Most popular loan type")]

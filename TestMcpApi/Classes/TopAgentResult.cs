@@ -42,4 +42,9 @@
         public string MortgageType { get; set; }
         public int Transactions { get; set; }
     }
+    public class TopBrokeringTypeResult
+    {
+        public string BrokeringType { get; set; }
+        public int Transactions { get; set; }
+    }
 }
