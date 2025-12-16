@@ -906,21 +906,35 @@ public class LoansController : ControllerBase
 
         return $"The transactions for {escrowCompany} are: {result}";
     }
-
     [McpServerTool]
     [Description("Get top Escrow Companies ranked by number of transactions")]
     [HttpGet("/top-escrow-companies")]
     public string GetTopEscrowCompanies(
-        [Description("What are the top escrow companies")] LoanTransactionService svc, int top = 10)
+        [Description("What are the top escrow companies")] int top = 10)
     {
-        var result = svc.GetLoanTransactions().Result
-                        .Where(t => !string.IsNullOrEmpty(t.EscrowCompany))
-                        .GroupBy(t => t.EscrowCompany)
-                        .OrderByDescending(g => g.Count())
-                        .Take(top)
-                        .Select(g => new { EscrowCompany = g.Key, Transactions = g.Count() });
+        string names = "";
 
-        return JsonSerializer.Serialize(result);
+        if (!svc.IsCsvLoaded)
+        {
+            names = "not available right now";
+        }
+        else
+        {
+            var data = svc.GetLoanTransactions().Result
+                          .Where(t => !string.IsNullOrEmpty(t.EscrowCompany));
+
+            var result = data.GroupBy(t => t.EscrowCompany)
+                             .OrderByDescending(g => g.Count())
+                             .Take(top)
+                             .Select(g => new { EscrowCompany = g.Key, Transactions = g.Count() });
+
+            List<TopEscrowCompanyResult> results = JsonSerializer.Deserialize<List<TopEscrowCompanyResult>>(JsonSerializer.Serialize(result))!;
+
+            names = results.Select(r => r.EscrowCompany + " with " + r.Transactions + " transactions")
+                           .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The top {top} escrow companies are: {names}";
     }
 
     [McpServerTool]
