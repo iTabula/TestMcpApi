@@ -335,15 +335,28 @@ public class LoansController : ControllerBase
     //POPULARITY TOOLS
 
     [McpServerTool]
-    [Description("GetMostPopularZip")]
+    [Description("Get the most popular ZIP code")]
     [HttpGet("/loans/zips")]
     public string GetMostPopularZip(
-        [Description("The status of loans")] LoanTransactionService svc,
-        string? agent = null,
+        [Description("Which ZIP code appears most frequently in the loans?")] string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
-        => GetMostPopularValueFiltered(svc, t => t.SubjectPostalCode, new[] { agent! }, year, from, to);
+    {
+        string result = "";
+        if (!svc.IsCsvLoaded)
+        {
+            result = "not available right now";
+        }
+        else
+        {
+            var zip = GetMostPopularValueFiltered(svc, t => t.SubjectPostalCode, string.IsNullOrEmpty(agent) ? null : new[] { agent }, year, from, to);
+            result = string.IsNullOrEmpty(zip) ? "N/A" : zip;
+        }
+
+        return $"The most popular ZIP code is: {result}";
+    }
+
 
     [McpServerTool]
     [Description("Get top cities")]
