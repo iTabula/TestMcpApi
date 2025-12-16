@@ -47,4 +47,24 @@
         public string BrokeringType { get; set; }
         public int Transactions { get; set; }
     }
+    public class TopLoanTypeResult
+    {
+        public string LoanType { get; set; }
+        public int Transactions { get; set; }
+    }
+    public class TopEscrowMethodResult
+    {
+        public string EscrowMethod { get; set; }
+        public int Transactions { get; set; }
+    }
+    public class TopTitleCompanyResult
+    {
+        public string TitleCompany { get; set; }
+        public int Transactions { get; set; }
+    }
+    public class TopEscrowCompanyResult
+    {
+        public string EscrowCompany { get; set; }
+        public int Transactions { get; set; }
+    }
 }

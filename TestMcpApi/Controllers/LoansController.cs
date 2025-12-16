@@ -527,48 +527,135 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Most popular loan type")]
+    [Description("Get most popular loan type")]
     [HttpGet("/top-loan-type")]
     public string GetMostPopularLoanType(
-        [Description("What is the most popular loan type")] LoanTransactionService svc,
-        string? agent = null,
+        [Description("What is the most popular loan type?")] string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
-        => GetMostPopularValueFiltered(svc, t => t.LoanType, new[] { agent! }, year, from, to);
+    {
+        string type = "";
+        if (!svc.IsCsvLoaded)
+        {
+            type = "not available right now";
+        }
+        else
+        {
+            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
+            var data = Filter(svc, agentsArray, year, from, to);
+
+            var result = data.GroupBy(t => t.LoanType)
+                             .OrderByDescending(g => g.Count())
+                             .Take(1)
+                             .Select(g => new { LoanType = g.Key, Transactions = g.Count() });
+
+            List<TopLoanTypeResult> results = JsonSerializer.Deserialize<List<TopLoanTypeResult>>(JsonSerializer.Serialize(result))!;
+            type = results.Select(r => r.LoanType + " with " + r.Transactions + " transactions")
+                          .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The most popular loan type is: {type}";
+    }
+
 
     [McpServerTool]
-    [Description("Most popular escrow method send type")]
+    [Description("Get most popular escrow method send type")]
     [HttpGet("/top-escrow-send-type")]
     public string GetMostPopularEscrowMethod(
-        [Description("What is the most popular escrow method send type")] LoanTransactionService svc,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
-        => GetMostPopularValueFiltered(svc, t => t.EscrowMethodSendType, new[] { agent! }, year, from, to);
+    [Description("What is the most popular escrow method send type?")] string? agent = null,
+    int? year = null,
+    DateTime? from = null,
+    DateTime? to = null)
+    {
+        string method = "";
+        if (!svc.IsCsvLoaded)
+        {
+            method = "not available right now";
+        }
+        else
+        {
+            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
+            var data = Filter(svc, agentsArray, year, from, to);
+
+            var result = data.GroupBy(t => t.EscrowMethodSendType)
+                             .OrderByDescending(g => g.Count())
+                             .Take(1)
+                             .Select(g => new { EscrowMethod = g.Key, Transactions = g.Count() });
+
+            List<TopEscrowMethodResult> results = JsonSerializer.Deserialize<List<TopEscrowMethodResult>>(JsonSerializer.Serialize(result))!;
+            method = results.Select(r => r.EscrowMethod + " with " + r.Transactions + " transactions")
+                            .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The most popular escrow method send type is: {method}";
+    }
+
 
     [McpServerTool]
-    [Description("Most popular title company")]
+    [Description("Get most popular title company")]
     [HttpGet("/top-title-company")]
     public string GetMostPopularTitleCompany(
-        [Description("What is the most popular title company")] LoanTransactionService svc,
-        string? agent = null,
+        [Description("What is the most popular title company?")] string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
-        => GetMostPopularValueFiltered(svc, t => t.TitleCompany, new[] { agent! }, year, from, to);
+    {
+        string company = "";
+        if (!svc.IsCsvLoaded)
+        {
+            company = "not available right now";
+        }
+        else
+        {
+            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
+            var data = Filter(svc, agentsArray, year, from, to);
+
+            var result = data.GroupBy(t => t.TitleCompany)
+                             .OrderByDescending(g => g.Count())
+                             .Take(1)
+                             .Select(g => new { TitleCompany = g.Key, Transactions = g.Count() });
+
+            List<TopTitleCompanyResult> results = JsonSerializer.Deserialize<List<TopTitleCompanyResult>>(JsonSerializer.Serialize(result))!;
+            company = results.Select(r => r.TitleCompany + " with " + r.Transactions + " transactions")
+                             .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The most popular title company is: {company}";
+    }
+
 
     [McpServerTool]
-    [Description("Most popular escrow company")]
+    [Description("Get most popular escrow company")]
     [HttpGet("/top-escrow-company")]
     public string GetMostPopularEscrowCompany(
-        [Description("What is the most popular escrow company")] LoanTransactionService svc,
-        string? agent = null,
+        [Description("What is the most popular escrow company?")] string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
-        => GetMostPopularValueFiltered(svc, t => t.EscrowCompany, new[] { agent! }, year, from, to);
+    {
+        string company = "";
+        if (!svc.IsCsvLoaded)
+        {
+            company = "not available right now";
+        }
+        else
+        {
+            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
+            var data = Filter(svc, agentsArray, year, from, to);
+
+            var result = data.GroupBy(t => t.EscrowCompany)
+                             .OrderByDescending(g => g.Count())
+                             .Take(1)
+                             .Select(g => new { EscrowCompany = g.Key, Transactions = g.Count() });
+
+            List<TopEscrowCompanyResult> results = JsonSerializer.Deserialize<List<TopEscrowCompanyResult>>(JsonSerializer.Serialize(result))!;
+            company = results.Select(r => r.EscrowCompany + " with " + r.Transactions + " transactions")
+                             .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The most popular escrow company is: {company}";
+    }
 
 
     // LOAN AMOUNT STATISTICS
