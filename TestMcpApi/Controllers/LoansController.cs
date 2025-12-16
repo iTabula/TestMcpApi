@@ -394,15 +394,37 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Most popular property type")]
+    [Description("Get most popular property type")]
     [HttpGet("/top-property-type")]
     public string GetMostPopularPropType(
-        [Description("What is the most popular property type")] LoanTransactionService svc,
-        string? agent = null,
+        [Description("What is the most popular property type?")] string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
-        => GetMostPopularValueFiltered(svc, t => t.PropType, new[] { agent! }, year, from, to);
+    {
+        string type = "";
+        if (!svc.IsCsvLoaded)
+        {
+            type = "not available right now";
+        }
+        else
+        {
+            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
+            var data = Filter(svc, agentsArray, year, from, to);
+
+            var result = data.GroupBy(t => t.PropType)
+                             .OrderByDescending(g => g.Count())
+                             .Take(1)
+                             .Select(g => new { PropType = g.Key, Transactions = g.Count() });
+
+            List<TopPropertyTypeResult> results = JsonSerializer.Deserialize<List<TopPropertyTypeResult>>(JsonSerializer.Serialize(result))!;
+
+            type = results.Select(r => r.PropType + " with " + r.Transactions + " transactions")
+                          .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The most popular property type is: {type}";
+    }
 
 
     [McpServerTool]
