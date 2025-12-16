@@ -128,15 +128,31 @@ public class LoansController : ControllerBase
         return $"The total number of transactions made by {agent} is {count}.";
     }
 
-
     [McpServerTool]
     [Description("Get all agent names, optionally sorted")]
     [HttpGet("/agents")]
     public string GetAllAgents(
-        [Description("The name of the agent, and maybe the year")] LoanTransactionService svc,
+        [Description("List all agent names, sorted")]
         bool sortByName = true,
         bool descending = false)
-        => JsonSerializer.Serialize(svc.GetAllAgents(sortByName, descending));
+    {
+        if (!svc.IsCsvLoaded)
+        {
+            return "The agent names are not available right now.";
+        }
+
+        var agents = svc.GetAllAgents(sortByName, descending).ToList();
+
+        if (!agents.Any())
+        {
+            return "There are no agents available.";
+        }
+
+        var names = agents.Aggregate((a, b) => a + ", " + b);
+
+        return $"The agent names are: {names}.";
+    }
+
 
     // LOAN-RELATED TOOLS
 
