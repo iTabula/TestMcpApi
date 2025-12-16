@@ -82,4 +82,11 @@
         public decimal HighestLoanAmount { get; set; }
         public decimal LowestLoanAmount { get; set; }
     }
+    public class TransactionDto
+    {
+        public string LoanTransID { get; set; } = "";
+        public string AgentName { get; set; } = "";
+        public decimal? LoanAmount { get; set; }
+        public DateTime? LoanDate { get; set; }
+    }
 }

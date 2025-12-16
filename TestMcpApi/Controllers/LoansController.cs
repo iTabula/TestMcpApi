@@ -1037,19 +1037,46 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get transactions of a specific Title Company")]
+    [Description("Get transactions for a specific title company")]
     [HttpGet("/loans/{titleCompany}")]
     public string GetTransactionsByTitleCompany(
-        [Description("List all transactions made by this title company")] LoanTransactionService svc,
-        string titleCompany,
+        [Description("Which transactions were made by this title company?")] string titleCompany,
         string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
-        var data = Filter(svc, new[] { agent! }, year, from, to)
-                   .Where(t => t.TitleCompany != null && t.TitleCompany.Equals(titleCompany, StringComparison.OrdinalIgnoreCase));
-        return JsonSerializer.Serialize(data);
+        string resultText = "";
+
+        if (!svc.IsCsvLoaded)
+        {
+            resultText = "not available right now";
+        }
+        else
+        {
+            var data = Filter(svc, new[] { agent! }, year, from, to)
+                       .Where(t => t.TitleCompany != null && t.TitleCompany.Equals(titleCompany, StringComparison.OrdinalIgnoreCase))
+                       .Select(t => new TransactionDto
+                       {
+                           LoanTransID = t.LoanTransID,
+                           AgentName = t.AgentName,
+                           LoanAmount = t.LoanAmount,
+                           LoanDate = t.DateAdded
+                       })
+                       .ToList();
+
+            if (!data.Any())
+            {
+                resultText = $"No transactions found for the title company {titleCompany}";
+            }
+            else
+            {
+                var serialized = JsonSerializer.Serialize(data);
+                resultText = $"The transactions for the title company {titleCompany} are: {serialized}";
+            }
+        }
+
+        return resultText;
     }
 
     [McpServerTool]
