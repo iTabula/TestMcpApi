@@ -22,4 +22,14 @@
         public string? LoanType { get; set; }
         public string? DateAdded { get; set; }
     }
+    public class TopCityResult
+    {
+        public string City { get; set; }
+        public int Transactions { get; set; }
+    }
+    public class TopPropertyTypeResult
+    {
+        public string PropType { get; set; }
+        public int Transactions { get; set; }
+    }
 }

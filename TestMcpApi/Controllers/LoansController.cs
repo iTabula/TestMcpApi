@@ -359,26 +359,39 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get top cities")]
+    [Description("Get top cities ranked by number of transactions")]
     [HttpGet("/top-cities")]
     public string GetTopCities(
-        [Description("what are the top cities")] LoanTransactionService svc,
-        int top = 10,
+        [Description("Which cities have the highest number of transactions?")] int top = 10,
         string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
-        var agents = new[] { agent! };
-        var data = Filter(svc, agents, year, from, to);
+        string names = "";
+        if (!svc.IsCsvLoaded)
+        {
+            names = "not available right now";
+        }
+        else
+        {
+            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
+            var data = Filter(svc, agentsArray, year, from, to);
 
-        var result = data.GroupBy(t => t.SubjectCity)
-                        .OrderByDescending(g => g.Count())
-                        .Take(top)
-                        .Select(g => new { City = g.Key, Count = g.Count() });
+            var result = data.GroupBy(t => t.SubjectCity)
+                             .OrderByDescending(g => g.Count())
+                             .Take(top)
+                             .Select(g => new { City = g.Key, Transactions = g.Count() });
 
-        return JsonSerializer.Serialize(result);
+            List<TopCityResult> results = JsonSerializer.Deserialize<List<TopCityResult>>(JsonSerializer.Serialize(result))!;
+
+            names = results.Select(r => r.City + " with " + r.Transactions + " transactions")
+                           .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The {top} cities with the highest number of transactions are: {names}";
     }
+
 
     [McpServerTool]
     [Description("Most popular property type")]
