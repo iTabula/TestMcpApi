@@ -179,19 +179,50 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("List loans in a specific state")]
+    [Description("Get the loans in a specific state")]
     [HttpGet("/loans/{state}")]
     public string GetLoansByState(
-        [Description("The state")] LoanTransactionService svc,
-        string state,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+    [Description("Which state do you want to get loans for?")] string state,
+    int? year = null,
+    DateTime? from = null,
+    DateTime? to = null)
     {
+        string loansText = "";
+
+        if (!svc.IsCsvLoaded)
+        {
+            loansText = $"The loans for state {state} are not available right now.";
+            return loansText;
+        }
+
         var data = Filter(svc, null, year, from, to)
                    .Where(t => t.SubjectState != null && t.SubjectState.Equals(state, StringComparison.OrdinalIgnoreCase));
-        return JsonSerializer.Serialize(data);
+
+        var result = data
+                     .Select(t => new LoanSummaryResult
+                     {
+                         LoanID = t.LoanTransID ?? "N/A",
+                         Agent = t.AgentName,
+                         LoanAmount = t.LoanAmount,
+                         LoanType = t.LoanType,
+                         DateAdded = t.DateAdded?.ToShortDateString()
+                     });
+
+        List<LoanSummaryResult> results = JsonSerializer.Deserialize<List<LoanSummaryResult>>(JsonSerializer.Serialize(result))!;
+
+        if (!results.Any())
+        {
+            loansText = $"There are no loans found for state {state}.";
+            return loansText;
+        }
+
+        loansText = results
+            .Select(r => $"Loan #{r.LoanID}, Agent: {r.Agent}, Amount: {r.LoanAmount}, Type: {r.LoanType}, Date Added: {r.DateAdded}")
+            .Aggregate((a, b) => a + "; " + b);
+
+        return $"The loans in state {state} are: {loansText}";
     }
+
 
     [McpServerTool]
     [Description("Get lender for a specific loan")]
