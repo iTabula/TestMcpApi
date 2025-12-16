@@ -301,15 +301,35 @@ public class LoansController : ControllerBase
     [Description("Get loans that haven't been closed yet")]
     [HttpGet("/loans/open")]
     public string GetOpenLoans(
-        [Description("The status of loans")] LoanTransactionService svc,
-        int? year = null,
+        [Description("Which loans are still open and haven't been closed yet?")] int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
-        var loans = Filter(svc, null, year, from, to)
-                    .Where(t => t.ActualClosedDate == null);
-        return JsonSerializer.Serialize(loans);
+        string result = "";
+        if (!svc.IsCsvLoaded)
+        {
+            result = "not available right now";
+        }
+        else
+        {
+            var loans = Filter(svc, null, year, from, to)
+                        .Where(t => t.ActualClosedDate == null)
+                        .Select(t => new { ID = t.LoanTransID, Agent = t.AgentName, LoanAmount = t.LoanAmount, LoanType = t.LoanType })
+                        .ToList();
+
+            if (!loans.Any())
+                result = "No open loans found";
+            else
+            {
+                result = loans.Select(l =>
+                    $"Loan #{l.ID}, Agent: {l.Agent}, Loan Amount: {l.LoanAmount}, Loan Type: {l.LoanType}")
+                    .Aggregate((a, b) => a + ", " + b);
+            }
+        }
+
+        return $"The open loans are: {result}";
     }
+
 
 
     //POPULARITY TOOLS
