@@ -1009,11 +1009,32 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get all Title Companies")]
+    [Description("What are the names of all title companies?")]
     [HttpGet("/title-companies")]
-    public string GetAllTitleCompanies(
-        [Description("give a list of all title companies")] LoanTransactionService svc)
-        => JsonSerializer.Serialize(svc.GetAllTitleCompanies());
+    public string GetAllTitleCompanies()
+    {
+        string resultText = "";
+
+        if (!svc.IsCsvLoaded)
+        {
+            resultText = "not available right now";
+        }
+        else
+        {
+            var companies = svc.GetAllTitleCompanies();
+            if (companies == null || !companies.Any())
+            {
+                resultText = "No title companies found";
+            }
+            else
+            {
+                resultText = "The names of all title companies are: " + string.Join(", ", companies);
+            }
+        }
+
+        return resultText;
+    }
+
 
     [McpServerTool]
     [Description("Get transactions of a specific Title Company")]
