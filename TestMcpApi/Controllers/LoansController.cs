@@ -739,15 +739,16 @@ public class LoansController : ControllerBase
     }
 
 
-
     // CREDIT SCORE STATISTICS
 
     [McpServerTool]
-    [Description("Average credit score (overall, by agent or by year)")]
+    [Description("Get average credit score (overall, by agent or by year)")]
     [HttpGet("/credit-score/average")]
-    public string GetAverageCreditScore(string? agent = null, int? year = null)
+    public string GetAverageCreditScore(
+        [Description("What is the average credit score for the agent?")] string? agent = null,
+        int? year = null)
     {
-        string result;
+        string result = "";
 
         if (!svc.IsCsvLoaded)
         {
@@ -755,22 +756,24 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var loans = FilterByAgentAndYear(svc, agent, year)
-                        .Where(t => t.CreditScore.HasValue)
-                        .Select(t => t.CreditScore!.Value);
+            var data = FilterByAgentAndYear(svc, agent, year)
+                       .Where(t => t.CreditScore.HasValue)
+                       .Select(t => t.CreditScore!.Value);
 
-            result = loans.Any() ? loans.Average().ToString("F2") : "N/A";
+            result = data.Any() ? data.Average().ToString("F2") : "N/A";
         }
 
         return $"The average credit score is: {result}";
     }
 
     [McpServerTool]
-    [Description("Highest credit score (overall, by agent or by year)")]
+    [Description("Get highest credit score (overall, by agent or by year)")]
     [HttpGet("/credit-score/max")]
-    public string GetHighestCreditScore(string? agent = null, int? year = null)
+    public string GetHighestCreditScore(
+        [Description("What is the highest credit score for the agent?")] string? agent = null,
+        int? year = null)
     {
-        string result;
+        string result = "";
 
         if (!svc.IsCsvLoaded)
         {
@@ -778,22 +781,24 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var loans = FilterByAgentAndYear(svc, agent, year)
-                        .Where(t => t.CreditScore.HasValue)
-                        .Select(t => t.CreditScore!.Value);
+            var data = FilterByAgentAndYear(svc, agent, year)
+                       .Where(t => t.CreditScore.HasValue)
+                       .Select(t => t.CreditScore!.Value);
 
-            result = loans.Any() ? loans.Max().ToString("F2") : "N/A";
+            result = data.Any() ? data.Max().ToString("F2") : "N/A";
         }
 
         return $"The highest credit score is: {result}";
     }
 
     [McpServerTool]
-    [Description("Lowest credit score (overall, by agent or by year)")]
+    [Description("Get lowest credit score (overall, by agent or by year)")]
     [HttpGet("/credit-score/min")]
-    public string GetLowestCreditScore(string? agent = null, int? year = null)
+    public string GetLowestCreditScore(
+        [Description("What is the lowest credit score for the agent?")] string? agent = null,
+        int? year = null)
     {
-        string result;
+        string result = "";
 
         if (!svc.IsCsvLoaded)
         {
@@ -801,15 +806,16 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var loans = FilterByAgentAndYear(svc, agent, year)
-                        .Where(t => t.CreditScore.HasValue)
-                        .Select(t => t.CreditScore!.Value);
+            var data = FilterByAgentAndYear(svc, agent, year)
+                       .Where(t => t.CreditScore.HasValue)
+                       .Select(t => t.CreditScore!.Value);
 
-            result = loans.Any() ? loans.Min().ToString("F2") : "N/A";
+            result = data.Any() ? data.Min().ToString("F2") : "N/A";
         }
 
         return $"The lowest credit score is: {result}";
     }
+
 
 
     // ESCROW-RELATED TOOLS
