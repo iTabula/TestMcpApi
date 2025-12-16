@@ -36,10 +36,10 @@ public class LoansController : ControllerBase
     [Description("Get top agents ranked by number of transactions")]
     [HttpGet("/top-agents")]
     public string GetTopAgents(
-    [Description("who are the top agents for KAM")] int top = 5,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("who are the top agents for KAM")] int top = 5,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         //return $"the top agent for KAM is Khaled El Henawy";
 
@@ -106,16 +106,28 @@ public class LoansController : ControllerBase
     [Description("Get total number of transactions for an agent")]
     [HttpGet("/loans/total/{agent}")]
     public string GetTotalTransactionsByAgent(
-        [Description("The name of the agent, and maybe the year")] LoanTransactionService svc,
+        [Description("How many transactions did the agent make, in the year")]
         string agent,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
+        if (!svc.IsCsvLoaded)
+        {
+            return "The total number of transactions is not available right now.";
+        }
+
         var agents = new[] { agent };
         var count = Filter(svc, agents, year, from, to).Count();
-        return count.ToString();
+
+        if (year.HasValue)
+        {
+            return $"The total number of transactions made by {agent} in {year} is {count}.";
+        }
+
+        return $"The total number of transactions made by {agent} is {count}.";
     }
+
 
     [McpServerTool]
     [Description("Get all agent names, optionally sorted")]
