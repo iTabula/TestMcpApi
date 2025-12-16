@@ -160,9 +160,22 @@ public class LoansController : ControllerBase
     [Description("Get subject address by loan number")]
     [HttpGet("/loans/{loanId}")]
     public string GetAddressByLoan(
-        [Description("What is the address of the property fo this specific loan")] LoanTransactionService svc,
-        string loanId)
-        => svc.GetSubjectAddress(loanId) ?? "Not found";
+        [Description("What is the address of the property for this specific loan?")] string loanId)
+    {
+        if (!svc.IsCsvLoaded)
+        {
+            return "The address of the property is not available right now.";
+        }
+
+        var address = svc.GetSubjectAddress(loanId);
+
+        if (string.IsNullOrEmpty(address))
+        {
+            return $"The address of the property for loan #{loanId} was not found.";
+        }
+
+        return $"The address of the property for loan #{loanId} is {address}.";
+    }
 
 
     [McpServerTool]
