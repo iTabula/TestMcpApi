@@ -664,37 +664,81 @@ public class LoansController : ControllerBase
     [Description("Average loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/average")]
     public string GetAverageLoanAmount(
-        [Description("What is the average loan amount")] LoanTransactionService svc,
+        [Description("What is the average loan amount?")] LoanTransactionService svc,
         string? agent = null,
         int? year = null)
     {
-        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.LoanAmount.HasValue).Select(t => t.LoanAmount!.Value);
-        return loans.Any() ? loans.Average().ToString("F2") : "N/A";
+        string result;
+
+        if (!svc.IsCsvLoaded)
+        {
+            result = "not available right now";
+        }
+        else
+        {
+            var loans = FilterByAgentAndYear(svc, agent, year)
+                        .Where(t => t.LoanAmount.HasValue)
+                        .Select(t => t.LoanAmount!.Value);
+
+            result = loans.Any() ? loans.Average().ToString("F2") : "N/A";
+        }
+
+        return $"The average loan amount is: {result}";
     }
 
     [McpServerTool]
     [Description("Highest loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/max")]
     public string GetHighestLoanAmount(
-        [Description("What is the highest loan amount")] LoanTransactionService svc,
+        [Description("What is the highest loan amount?")] LoanTransactionService svc,
         string? agent = null,
         int? year = null)
     {
-        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.LoanAmount.HasValue).Select(t => t.LoanAmount!.Value);
-        return loans.Any() ? loans.Max().ToString("F2") : "N/A";
+        string result;
+
+        if (!svc.IsCsvLoaded)
+        {
+            result = "not available right now";
+        }
+        else
+        {
+            var loans = FilterByAgentAndYear(svc, agent, year)
+                        .Where(t => t.LoanAmount.HasValue)
+                        .Select(t => t.LoanAmount!.Value);
+
+            result = loans.Any() ? loans.Max().ToString("F2") : "N/A";
+        }
+
+        return $"The highest loan amount is: {result}";
     }
 
     [McpServerTool]
     [Description("Lowest loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/min")]
     public string GetLowestLoanAmount(
-        [Description("What is the lowest loan amount")] LoanTransactionService svc,
+        [Description("What is the lowest loan amount?")] LoanTransactionService svc,
         string? agent = null,
         int? year = null)
     {
-        var loans = FilterByAgentAndYear(svc, agent, year).Where(t => t.LoanAmount.HasValue).Select(t => t.LoanAmount!.Value);
-        return loans.Any() ? loans.Min().ToString("F2") : "N/A";
+        string result;
+
+        if (!svc.IsCsvLoaded)
+        {
+            result = "not available right now";
+        }
+        else
+        {
+            var loans = FilterByAgentAndYear(svc, agent, year)
+                        .Where(t => t.LoanAmount.HasValue)
+                        .Select(t => t.LoanAmount!.Value);
+
+            result = loans.Any() ? loans.Min().ToString("F2") : "N/A";
+        }
+
+        return $"The lowest loan amount is: {result}";
     }
+
+
 
     // CREDIT SCORE STATISTICS
 
