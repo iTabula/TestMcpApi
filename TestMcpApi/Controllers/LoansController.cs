@@ -821,20 +821,32 @@ public class LoansController : ControllerBase
     // ESCROW-RELATED TOOLS
 
     [McpServerTool]
-    [Description("Number of loans for a specific escrow company ")]
+    [Description("Get number of loans for a specific escrow company")]
     [HttpGet("/loans/total/{escrowCompany}")]
     public string GetLoansByEscrow(
-    [Description("What are the loans for a specific escrow company")] LoanTransactionService svc,
-        string escrowCompany,
+        [Description("What are the loans for a specific escrow company?")] string escrowCompany,
         string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
-        var loans = Filter(svc, new[] { agent! }, year, from, to)
-                    .Where(t => t.ActualClosedDate == null);
-        return JsonSerializer.Serialize(loans);
+        string result = "";
+
+        if (!svc.IsCsvLoaded)
+        {
+            result = "not available right now";
+        }
+        else
+        {
+            var data = Filter(svc, new[] { agent! }, year, from, to)
+                       .Where(t => t.EscrowCompany != null && t.EscrowCompany.Equals(escrowCompany, StringComparison.OrdinalIgnoreCase));
+
+            result = data.Any() ? data.Count().ToString() : "0";
+        }
+
+        return $"The number of loans for {escrowCompany} is: {result}";
     }
+
 
     [McpServerTool]
     [Description("Get all Escrow Companies")]
