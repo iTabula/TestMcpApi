@@ -428,15 +428,37 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Most popular transaction type")]
+    [Description("Get most popular transaction type")]
     [HttpGet("/top-transaction-type")]
     public string GetMostPopularTransactionType(
-        [Description("What is the most popular transaction type")] LoanTransactionService svc,
-        string? agent = null,
+        [Description("What is the most popular transaction type?")] string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
-        => GetMostPopularValueFiltered(svc, t => t.TransactionType, new[] { agent! }, year, from, to);
+    {
+        string type = "";
+        if (!svc.IsCsvLoaded)
+        {
+            type = "not available right now";
+        }
+        else
+        {
+            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
+            var data = Filter(svc, agentsArray, year, from, to);
+
+            var result = data.GroupBy(t => t.TransactionType)
+                             .OrderByDescending(g => g.Count())
+                             .Take(1)
+                             .Select(g => new { TransactionType = g.Key, Transactions = g.Count() });
+
+            List<TopTransactionTypeResult> results = JsonSerializer.Deserialize<List<TopTransactionTypeResult>>(JsonSerializer.Serialize(result))!;
+
+            type = results.Select(r => r.TransactionType + " with " + r.Transactions + " transactions")
+                          .Aggregate((a, b) => a + ", " + b);
+        }
+
+        return $"The most popular transaction type is: {type}";
+    }
 
 
     [McpServerTool]

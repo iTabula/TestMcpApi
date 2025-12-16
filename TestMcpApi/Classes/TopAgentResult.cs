@@ -32,4 +32,9 @@
         public string PropType { get; set; }
         public int Transactions { get; set; }
     }
+    public class TopTransactionTypeResult
+    {
+        public string TransactionType { get; set; }
+        public int Transactions { get; set; }
+    }
 }
