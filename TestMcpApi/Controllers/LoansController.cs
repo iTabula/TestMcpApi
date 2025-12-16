@@ -267,19 +267,35 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get the IDs of loans with a specific status (Active = Submitted / Not Submitted)")]
-    [HttpGet("/loans/{status}")]
+    [HttpGet("/loans/status/{status}")]
     public string GetLoanIdsByStatus(
-        [Description("The status of loans")] LoanTransactionService svc,
-        string status,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+    [Description("What are the loan IDs with this status?")] string status,
+    int? year = null,
+    DateTime? from = null,
+    DateTime? to = null)
     {
-        var loans = Filter(svc, null, year, from, to)
-                    .Where(t => t.Active != null && t.Active.Equals(status, StringComparison.OrdinalIgnoreCase))
-                    .Select(t => t.LoanTransID);
-        return JsonSerializer.Serialize(loans);
+        string result = "";
+        if (!svc.IsCsvLoaded)
+        {
+            result = "not available right now";
+        }
+        else
+        {
+            var loans = Filter(svc, null, year, from, to)
+                        .Where(t => t.Active != null && t.Active.Equals(status, StringComparison.OrdinalIgnoreCase))
+                        .Select(t => t.LoanTransID)
+                        .Where(id => !string.IsNullOrEmpty(id))
+                        .ToList();
+
+            if (!loans.Any())
+                result = "No loans found with the specified status";
+            else
+                result = loans.Aggregate((a, b) => a + ", " + b)!;
+        }
+
+        return $"The loan IDs with status '{status}' are: {result}";
     }
+
 
     [McpServerTool]
     [Description("Get loans that haven't been closed yet")]
