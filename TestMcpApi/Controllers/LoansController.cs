@@ -1106,17 +1106,38 @@ public class LoansController : ControllerBase
     [Description("Get lender statistics (total loans, average, highest, lowest loan amounts)")]
     [HttpGet("/loans/statistics/{lender}")]
     public string GetLenderStats(
-        [Description("What are the loan statistics of this lender")] LoanTransactionService svc,
-        string lender)
+        [Description("What are the total loans and loan amount statistics for this lender?")] string lender)
     {
-        var stats = svc.GetLenderStats(lender);
-        return JsonSerializer.Serialize(new
+        string resultText = "";
+
+        if (!svc.IsCsvLoaded)
         {
-            TotalLoans = stats.totalLoans,
-            AverageLoanAmount = stats.avgAmount,
-            HighestLoanAmount = stats.maxAmount,
-            LowestLoanAmount = stats.minAmount
-        });
+            resultText = "not available right now";
+        }
+        else
+        {
+            var statsData = svc.GetLenderStats(lender);
+
+            if (statsData.totalLoans == 0)
+            {
+                resultText = $"The lender {lender} has no loans.";
+            }
+            else
+            {
+                LenderStatsResult stats = new LenderStatsResult
+                {
+                    TotalLoans = statsData.totalLoans,
+                    AverageLoanAmount = statsData.avgAmount,
+                    HighestLoanAmount = statsData.maxAmount,
+                    LowestLoanAmount = statsData.minAmount
+                };
+
+                resultText = $"The lender {lender} has {stats.TotalLoans} loans with an average loan amount of {stats.AverageLoanAmount:F2}, " +
+                             $"highest loan amount of {stats.HighestLoanAmount:F2}, and lowest loan amount of {stats.LowestLoanAmount:F2}.";
+            }
+        }
+
+        return resultText;
     }
 
 
