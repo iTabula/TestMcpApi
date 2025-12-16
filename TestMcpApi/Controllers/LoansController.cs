@@ -984,17 +984,29 @@ public class LoansController : ControllerBase
     [Description("Get total number of transactions for a lender")]
     [HttpGet("/loans/total/{lender}")]
     public string GetTotalTransactionsByLender(
-        [Description("What are the number of transactions made by this lender")] LoanTransactionService svc,
-        string lender,
+        [Description("How many transactions did this lender make?")] string lender,
         string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
-        var count = Filter(svc, new[] { agent! }, year, from, to)
-                    .Count(t => t.LenderName != null && t.LenderName.Equals(lender, StringComparison.OrdinalIgnoreCase));
-        return count.ToString();
+        string resultText = "";
+
+        if (!svc.IsCsvLoaded)
+        {
+            resultText = "not available right now";
+        }
+        else
+        {
+            var count = Filter(svc, new[] { agent! }, year, from, to)
+                        .Count(t => t.LenderName != null && t.LenderName.Equals(lender, StringComparison.OrdinalIgnoreCase));
+
+            resultText = $"The total number of transactions for lender {lender} is: {count}";
+        }
+
+        return resultText;
     }
+
 
     [McpServerTool]
     [Description("Get all Title Companies")]
