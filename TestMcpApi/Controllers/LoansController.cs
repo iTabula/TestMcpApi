@@ -228,9 +228,20 @@ public class LoansController : ControllerBase
     [Description("Get lender for a specific loan")]
     [HttpGet("/loans/{loanId}")]
     public string GetLender(
-        [Description("Who is the lender for a specific loan")] LoanTransactionService svc,
-        string loanId)
-        => svc.GetLender(loanId) ?? "Not found";
+        [Description("Who is the lender for this specific loan?")] string loanId)
+    {
+        string lender = "";
+        if (!svc.IsCsvLoaded)
+        {
+            lender = "not available right now";
+        }
+        else
+        {
+            lender = svc.GetLender(loanId) ?? "Not found";
+        }
+
+        return $"The lender for loan #{loanId} is {lender}";
+    }
 
 
     [McpServerTool]
