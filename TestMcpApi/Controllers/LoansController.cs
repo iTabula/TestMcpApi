@@ -941,20 +941,41 @@ public class LoansController : ControllerBase
     [Description("Get Escrow Company statistics (total loans, average, highest, lowest loan amounts)")]
     [HttpGet("/loans/statistics/{escrowCompany}")]
     public string GetEscrowCompanyStats(
-        [Description("Get the statistics of loan amounts for a specific escrow company")] LoanTransactionService svc, string escrowCompany)
+        [Description("What are the total loans and loan amount statistics for a specific escrow company?")] string escrowCompany)
     {
-        var loans = svc.GetByEscrowCompany(escrowCompany).Where(t => t.LoanAmount.HasValue).ToList();
-        if (!loans.Any())
-            return JsonSerializer.Serialize(new { TotalLoans = 0, AverageLoanAmount = 0, HighestLoanAmount = 0, LowestLoanAmount = 0 });
+        string resultText = "";
 
-        var amounts = loans.Select(t => t.LoanAmount!.Value);
-        return JsonSerializer.Serialize(new
+        if (!svc.IsCsvLoaded)
         {
-            TotalLoans = loans.Count,
-            AverageLoanAmount = amounts.Average(),
-            HighestLoanAmount = amounts.Max(),
-            LowestLoanAmount = amounts.Min()
-        });
+            resultText = "not available right now";
+        }
+        else
+        {
+            var loans = svc.GetByEscrowCompany(escrowCompany)
+                           .Where(t => t.LoanAmount.HasValue)
+                           .ToList();
+
+            if (!loans.Any())
+            {
+                resultText = $"The escrow company {escrowCompany} has no loans.";
+            }
+            else
+            {
+                var amounts = loans.Select(t => t.LoanAmount!.Value);
+                EscrowCompanyStatsResult stats = new EscrowCompanyStatsResult
+                {
+                    TotalLoans = loans.Count,
+                    AverageLoanAmount = amounts.Average(),
+                    HighestLoanAmount = amounts.Max(),
+                    LowestLoanAmount = amounts.Min()
+                };
+
+                resultText = $"The escrow company {escrowCompany} has {stats.TotalLoans} loans with an average loan amount of {stats.AverageLoanAmount:F2}, " +
+                             $"highest loan amount of {stats.HighestLoanAmount:F2}, and lowest loan amount of {stats.LowestLoanAmount:F2}.";
+            }
+        }
+
+        return resultText;
     }
 
     // OTHER TOOLS

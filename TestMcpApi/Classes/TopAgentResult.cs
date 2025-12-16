@@ -75,4 +75,11 @@
         public string SubjectCity { get; set; }
         public string SubjectState { get; set; }
     }
+    public class EscrowCompanyStatsResult
+    {
+        public int TotalLoans { get; set; }
+        public decimal AverageLoanAmount { get; set; }
+        public decimal HighestLoanAmount { get; set; }
+        public decimal LowestLoanAmount { get; set; }
+    }
 }
