@@ -1083,10 +1083,24 @@ public class LoansController : ControllerBase
     [Description("Get 1099 for an agent for a specific year")]
     [HttpGet("/1099/{agent}/{year}")]
     public string GetAgent1099(
-        [Description("What is the 1099 for this agent for a specific year")] LoanTransactionService svc,
-        string agent,
+        [Description("What is the 1099 for this agent for a specific year?")] string agent,
         int year)
-        => svc.GetAgent1099(agent, year).ToString("F2");
+    {
+        string resultText = "";
+
+        if (!svc.IsCsvLoaded)
+        {
+            resultText = "not available right now";
+        }
+        else
+        {
+            var amount = svc.GetAgent1099(agent, year);
+            resultText = $"The 1099 for {agent} for the year {year} is: {amount:F2}";
+        }
+
+        return resultText;
+    }
+
 
     [McpServerTool]
     [Description("Get lender statistics (total loans, average, highest, lowest loan amounts)")]
