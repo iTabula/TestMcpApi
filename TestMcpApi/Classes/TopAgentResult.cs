@@ -37,4 +37,9 @@
         public string TransactionType { get; set; }
         public int Transactions { get; set; }
     }
+    public class TopMortgageTypeResult
+    {
+        public string MortgageType { get; set; }
+        public int Transactions { get; set; }
+    }
 }
