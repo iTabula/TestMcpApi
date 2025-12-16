@@ -248,9 +248,22 @@ public class LoansController : ControllerBase
     [Description("Get LTV of a specific loan")]
     [HttpGet("/loans/{loanId}")]
     public string GetLTV(
-        [Description("What is the LTV for a specific loan")] LoanTransactionService svc,
-        string loanId)
-        => svc.GetLTV(loanId)?.ToString() ?? "Not found";
+        [Description("What is the LTV for this specific loan?")] string loanId)
+    {
+        string ltv = "";
+        if (!svc.IsCsvLoaded)
+        {
+            ltv = "not available right now";
+        }
+        else
+        {
+            var value = svc.GetLTV(loanId);
+            ltv = value.HasValue ? value.Value.ToString("F2") : "Not found";
+        }
+
+        return $"The LTV for loan #{loanId} is {ltv}";
+    }
+
 
     [McpServerTool]
     [Description("Get the IDs of loans with a specific status (Active = Submitted / Not Submitted)")]
