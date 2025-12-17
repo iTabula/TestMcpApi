@@ -3,7 +3,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text.Json;
-using TestMcpApi.Classes;
+using TestMcpApi.Models;
 using TestMcpApi.Services;
 
 // Mark the class as a collection of MCP tools
@@ -11,27 +11,16 @@ using TestMcpApi.Services;
 [ApiController] // Use ApiController attributes if integrating into an existing Web API
 public class LoansController : ControllerBase
 {
-    private readonly LoanTransactionService svc;
+    private readonly ILoanTransactionService svc;
     private readonly IConfiguration _configuration;
     private readonly string connectionString = string.Empty;
 
-    public LoansController()
+    public LoansController(ILoanTransactionService loanTransactionService, IConfiguration configuration)
     {
-        svc = new LoanTransactionService();
+        svc = loanTransactionService;
+        _configuration = configuration;
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
     }
-    // AGENT-RELATED TOOLS
-    // Mark a method as an MCP tool with a clear description
-    [McpServerTool]
-    [Description("Gets the current weather for a specific city")]
-    [HttpGet("/weather/{city}")] // Can be a standard web API endpoint too
-    public string GetCurrentWeather(
-        [Description("The name of the city, e.g., 'San Diego'")] string city)
-    {
-        // In a real scenario, you would call an external API or service
-        return $"It is sunny and 90°F in {city}.";
-    }
-
     [McpServerTool]
     [Description("Get top agents ranked by number of transactions")]
     [HttpGet("/top-agents")]
@@ -45,7 +34,7 @@ public class LoansController : ControllerBase
 
         string names = "";
         //LoanTransactionService svc = new LoanTransactionService();
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             names = "not availabale right now";
         }
@@ -73,7 +62,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string transactions = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             transactions = "not availabale right now";
         }
@@ -94,7 +83,7 @@ public class LoansController : ControllerBase
         string loanId)
     {
         string agent = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             agent = "not availabale right now";
         }
@@ -112,7 +101,7 @@ public class LoansController : ControllerBase
         DateTime? from = null,
         DateTime? to = null)
     {
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The total number of transactions is not available right now.";
         }
@@ -136,7 +125,7 @@ public class LoansController : ControllerBase
         bool sortByName = true,
         bool descending = false)
     {
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The agent names are not available right now.";
         }
@@ -162,7 +151,7 @@ public class LoansController : ControllerBase
     public string GetAddressByLoan(
         [Description("What is the address of the property for this specific loan?")] string loanId)
     {
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The address of the property is not available right now.";
         }
@@ -189,7 +178,7 @@ public class LoansController : ControllerBase
     {
         string loansText = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             loansText = $"The loans for state {state} are not available right now.";
             return loansText;
@@ -231,7 +220,7 @@ public class LoansController : ControllerBase
         [Description("Who is the lender for this specific loan?")] string loanId)
     {
         string lender = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             lender = "not available right now";
         }
@@ -251,7 +240,7 @@ public class LoansController : ControllerBase
         [Description("What is the LTV for this specific loan?")] string loanId)
     {
         string ltv = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             ltv = "not available right now";
         }
@@ -275,7 +264,7 @@ public class LoansController : ControllerBase
     DateTime? to = null)
     {
         string result = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -306,7 +295,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string result = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -335,16 +324,17 @@ public class LoansController : ControllerBase
     //POPULARITY TOOLS
 
     [McpServerTool]
-    [Description("Get the most popular ZIP code")]
+    [Description("Get the most popular ZIP code or get the top zip codes for properties being sold or bought")]
     [HttpGet("/loans/zips")]
     public string GetMostPopularZip(
-        [Description("Which ZIP code appears most frequently in the loans?")] string? agent = null,
+        [Description("Which ZIP code appears most frequently in the loans or what are the top zip codes for properties being sold or bought?")] int top = 1, 
+        string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
         string result = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -369,7 +359,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string names = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             names = "not available right now";
         }
@@ -403,7 +393,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string type = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             type = "not available right now";
         }
@@ -437,7 +427,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string type = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             type = "not available right now";
         }
@@ -470,7 +460,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string type = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             type = "not available right now";
         }
@@ -503,7 +493,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string type = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             type = "not available right now";
         }
@@ -536,7 +526,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string type = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             type = "not available right now";
         }
@@ -569,7 +559,7 @@ public class LoansController : ControllerBase
     DateTime? to = null)
     {
         string method = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             method = "not available right now";
         }
@@ -602,7 +592,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string company = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             company = "not available right now";
         }
@@ -635,7 +625,7 @@ public class LoansController : ControllerBase
         DateTime? to = null)
     {
         string company = "";
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             company = "not available right now";
         }
@@ -670,7 +660,7 @@ public class LoansController : ControllerBase
     {
         string result;
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -696,7 +686,7 @@ public class LoansController : ControllerBase
     {
         string result;
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -722,7 +712,7 @@ public class LoansController : ControllerBase
     {
         string result;
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -750,7 +740,7 @@ public class LoansController : ControllerBase
     {
         string result = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -775,7 +765,7 @@ public class LoansController : ControllerBase
     {
         string result = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -800,7 +790,7 @@ public class LoansController : ControllerBase
     {
         string result = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -832,7 +822,7 @@ public class LoansController : ControllerBase
     {
         string result = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -856,7 +846,7 @@ public class LoansController : ControllerBase
     {
         string result = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -883,7 +873,7 @@ public class LoansController : ControllerBase
     {
         string result = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             result = "not available right now";
         }
@@ -914,7 +904,7 @@ public class LoansController : ControllerBase
     {
         string names = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             names = "not available right now";
         }
@@ -945,7 +935,7 @@ public class LoansController : ControllerBase
     {
         string resultText = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             resultText = "not available right now";
         }
@@ -992,7 +982,7 @@ public class LoansController : ControllerBase
     {
         string resultText = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             resultText = "not available right now";
         }
@@ -1015,7 +1005,7 @@ public class LoansController : ControllerBase
     {
         string resultText = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             resultText = "not available right now";
         }
@@ -1048,7 +1038,7 @@ public class LoansController : ControllerBase
     {
         string resultText = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             resultText = "not available right now";
         }
@@ -1088,7 +1078,7 @@ public class LoansController : ControllerBase
     {
         string resultText = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             resultText = "not available right now";
         }
@@ -1110,7 +1100,7 @@ public class LoansController : ControllerBase
     {
         string resultText = "";
 
-        if (!svc.IsCsvLoaded)
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             resultText = "not available right now";
         }
@@ -1146,7 +1136,7 @@ public class LoansController : ControllerBase
 
     //HELPERS
     private static IEnumerable<LoanTransaction> Filter(
-        LoanTransactionService svc,
+        ILoanTransactionService svc,
         IEnumerable<string>? agents = null,
         int? year = null,
         DateTime? from = null,
@@ -1170,7 +1160,7 @@ public class LoansController : ControllerBase
     }
 
     private static IEnumerable<LoanTransaction> FilterByAgentAndYear(
-    LoanTransactionService svc,
+    ILoanTransactionService svc,
     string? agent = null,
     int? year = null)
     {
@@ -1185,7 +1175,7 @@ public class LoansController : ControllerBase
     }
 
     private static string GetMostPopularValueFiltered(
-        LoanTransactionService svc,
+        ILoanTransactionService svc,
         Func<LoanTransaction, string?> selector,
         IEnumerable<string>? agents = null,
         int? year = null,

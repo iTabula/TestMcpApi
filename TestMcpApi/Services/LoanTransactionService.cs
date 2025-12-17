@@ -5,72 +5,49 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using Microsoft.Extensions.Http;
-using CsvHelper;
-using CsvHelper.Configuration;
-using System.Globalization;
-using CsvHelper.TypeConversion;
+using Dapper;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using System.Data;
+using TestMcpApi.Models;
 
-namespace TestMcpApi.Services;
+namespace TestMcpApi.Services;      
 
-public class LoanTransactionService
+public class LoanTransactionService : ILoanTransactionService
 {
     private readonly List<LoanTransaction> _data = new();
-    public bool IsCsvLoaded = false;
-    public  string ErrorLoadCsv = string.Empty;
+    private string _errorLoadCsv = string.Empty;
+
+    public string ErrorLoadCsv => _errorLoadCsv;
+
     public LoanTransactionService()
     {
-        ErrorLoadCsv = LoadCsv();
-        IsCsvLoaded = string.IsNullOrEmpty(ErrorLoadCsv);
+        _errorLoadCsv = LoadData();
     }
-    private string LoadCsv()
+    private string LoadData()
     {
         try
         {
-            //var path = Path.Combine(@"C:\KAM\LoanTransactionsData.csv");
-            var path = Path.Combine(AppContext.BaseDirectory, "LoanTransactionsData.csv");
-            //var path = "LoanTransactionsData.csv";
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
 
-            if (!File.Exists(path))
-            {
-                return $"CSV file not found at {path}";
-            }
+            var configuration = builder.Build();
+            var connStr = configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connStr))
+                return "Connection string 'DefaultConnection' not found in appsettings.json";
 
-            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                HasHeaderRecord = true,
-                IgnoreBlankLines = true,
-                Delimiter = ","
-            };
+            using SqlConnection db = new SqlConnection(connStr);
+            const string sql = "SELECT * FROM LoanTransactionsView ORDER BY 1 DESC";
+            var list = db.Query<LoanTransaction>(sql).AsList();
+            _data.AddRange(list);
 
-            using var reader = new StreamReader(path);
-            using var csv = new CsvReader(reader, config);
-
-            // Setup global nulls for decimals
-            csv.Context.TypeConverterOptionsCache.GetOptions<decimal?>().NullValues.Add("");
-            csv.Context.TypeConverterOptionsCache.GetOptions<decimal?>().NullValues.Add("NULL");
-
-            // Setup global nulls for datetime
-            csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().NullValues.Add("");
-            csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().NullValues.Add("NULL");
-
-            try
-            {
-                _data.AddRange(csv.GetRecords<LoanTransaction>().ToList());
-            }
-            catch (Exception ex)
-            {
-                return string.Concat("Failed to parse CSV file. " +
-                                    "Make sure the headers match the LoanTransaction properties.", ex);
-            }
-
-            return string.Empty; // No error
+            return string.Empty;
         }
         catch (Exception ex)
         {
-            return $"Error loading CSV file: {ex.Message}";
+            return $"Error loading data from database: {ex.Message}";
         }
-
-
     }
 
     public Task<List<LoanTransaction>> GetLoanTransactions()
@@ -197,65 +174,6 @@ public class LoanTransactionService
     }
 }
 
-public partial class LoanTransaction
-{
-    public string? LoanTransID { get; set; }
-    public DateTime? ActualClosedDate { get; set; }
-    public DateTime? DateAdded { get; set; }
-    public string? AgentName { get; set; }
-    public string? AddedBy { get; set; }
-    public string? BorrowerFirstName { get; set; }
-    public string? BorrowerLastName { get; set; }
-    public string? BorrowerPhone { get; set; }
-    public string? BorrowerEmail { get; set; }
-    public string? SubjectAddress { get; set; }
-    public string? SubjectCity { get; set; }
-    public string? SubjectState { get; set; }
-    public string? SubjectPostalCode { get; set; }
-    public string? PropType { get; set; }
-    public string? TransactionType { get; set; }
-    public string? MortgageType { get; set; }
-    public string? BrokeringType { get; set; }
-    public string? LoanType { get; set; }
-    public decimal? LoanTerm { get; set; }
-    public decimal? LoanAmount { get; set; }
-    public string? LenderName { get; set; }
-    public decimal? AppraisedValue { get; set; }
-    public string? AppraisalCompany { get; set; }
-    public string? AppraisalCoPhone { get; set; }
-    public decimal? LTV { get; set; }
-    public decimal? InterestRate { get; set; }
-    public string? TitleCompany { get; set; }
-    public string? TitleCoPhone { get; set; }
-    public decimal? CreditScore { get; set; }
-    public string? EscrowCompany { get; set; }
-    public string? EscrowCoPhone { get; set; }
-    public string? EscrowOfficer { get; set; }
-    public string? EscrowOfficerEmail { get; set; }
-    public string? EscrowOfficerPhone { get; set; }
-    public string? EscrowNumber { get; set; }
-    public string? EscrowMethodSendType { get; set; }
-    public DateTime? CommReceivedDate { get; set; }
-    public decimal? ActualCommKamFromEscrow { get; set; }
-    public decimal? KamBrokerFee { get; set; }
-    public string? CommPaidMethod { get; set; }
-    public DateTime? CommPaidDate { get; set; }
-    public string? IncomingBank { get; set; }
-    public string? OutgoingBank { get; set; }
-    public decimal? AmountRetainedByKam { get; set; }
-    public decimal? AmountPaidToKamAgent { get; set; }
-    public decimal? OtherFee { get; set; }
-    public decimal? DirectDepositFee { get; set; }
-    public string? Active { get; set; }
-    public string? AppraisalDone { get; set; }
-    public string? CreditReportRan { get; set; }
-    public string? WhoPaidForCreditReport { get; set; }
-    public string? WhoPulledCreditReport { get; set; }
-}
 
 
-[JsonSerializable(typeof(List<LoanTransaction>))]
-internal sealed partial class LoanTransactionContext : JsonSerializerContext
-{
-
-}
+   

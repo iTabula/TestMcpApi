@@ -1,4 +1,4 @@
-﻿namespace TestMcpApi.Classes
+﻿namespace TestMcpApi.Models
 {
     public class TopAgentResult
     {
