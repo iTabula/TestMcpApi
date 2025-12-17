@@ -15,12 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="LoanTransactionsData.csv">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Classes\" />
   </ItemGroup>
 
