@@ -57,6 +57,7 @@ public class LoansController : ControllerBase
     public string GetTransactionsByAgent(
         [Description("List the transactions made by the agent, during the year")]
         string agent,
+        int top = 10,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -67,7 +68,7 @@ public class LoansController : ControllerBase
             transactions = "not availabale right now";
         }
         var agents = new[] { agent };
-        var data = Filter(svc, agents, year, from, to).Select(g => new { ID = g.LoanTransID, LoanAmount = g.LoanAmount, LoanType = g.LoanType, LoanTerm = g.LoanTerm });
+        var data = Filter(svc, agents, year, from, to).Take(top).Select(g => new { ID = g.LoanTransID, LoanAmount = g.LoanAmount, LoanType = g.LoanType, LoanTerm = g.LoanTerm });
         List<TransactionsResult> results = JsonSerializer.Deserialize<List<TransactionsResult>>(JsonSerializer.Serialize(data))!;
 
         transactions = results.Select(r => "Loan #" + r.ID + ", Loan Amount: " + r.LoanAmount + ", Loan Type: " + r.LoanType + ", Loan Term: " + r.LoanTerm)
@@ -79,7 +80,7 @@ public class LoansController : ControllerBase
     [Description("Get Agent responsible for a specific loan")]
     [HttpGet("/loans/{loanId}")]
     public string GetAgentByLoan(
-    [Description("who is the agent responsible for the loan")]
+        [Description("who is the agent responsible for the loan")]
         string loanId)
     {
         string agent = "";
@@ -171,10 +172,11 @@ public class LoansController : ControllerBase
     [Description("Get the loans in a specific state")]
     [HttpGet("/loans/{state}")]
     public string GetLoansByState(
-    [Description("Which state do you want to get loans for?")] string state,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("Which state do you want to get loans for?")] string state,
+        int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         string loansText = "";
 
@@ -187,7 +189,7 @@ public class LoansController : ControllerBase
         var data = Filter(svc, null, year, from, to)
                    .Where(t => t.SubjectState != null && t.SubjectState.Equals(state, StringComparison.OrdinalIgnoreCase));
 
-        var result = data
+        var result = data.Take(top)
                      .Select(t => new LoanSummaryResult
                      {
                          LoanID = t.LoanTransID ?? "N/A",
@@ -259,6 +261,7 @@ public class LoansController : ControllerBase
     [HttpGet("/loans/status/{status}")]
     public string GetLoanIdsByStatus(
     [Description("What are the loan IDs with this status?")] string status,
+    int top = 10,
     int? year = null,
     DateTime? from = null,
     DateTime? to = null)
@@ -272,6 +275,7 @@ public class LoansController : ControllerBase
         {
             var loans = Filter(svc, null, year, from, to)
                         .Where(t => t.Active != null && t.Active.Equals(status, StringComparison.OrdinalIgnoreCase))
+                        .Take(top)
                         .Select(t => t.LoanTransID)
                         .Where(id => !string.IsNullOrEmpty(id))
                         .ToList();
@@ -290,7 +294,9 @@ public class LoansController : ControllerBase
     [Description("Get loans that haven't been closed yet")]
     [HttpGet("/loans/open")]
     public string GetOpenLoans(
-        [Description("Which loans are still open and haven't been closed yet?")] int? year = null,
+        [Description("Which loans are still open and haven't been closed yet?")]
+        int top = 10,
+        int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
@@ -303,6 +309,7 @@ public class LoansController : ControllerBase
         {
             var loans = Filter(svc, null, year, from, to)
                         .Where(t => t.ActualClosedDate == null)
+                        .Take(top)
                         .Select(t => new { ID = t.LoanTransID, Agent = t.AgentName, LoanAmount = t.LoanAmount, LoanType = t.LoanType })
                         .ToList();
 
@@ -310,7 +317,7 @@ public class LoansController : ControllerBase
                 result = "No open loans found";
             else
             {
-                result = loans.Select(l =>
+                result = loans.Take(top).Select(l =>
                     $"Loan #{l.ID}, Agent: {l.Agent}, Loan Amount: {l.LoanAmount}, Loan Type: {l.LoanType}")
                     .Aggregate((a, b) => a + ", " + b);
             }
@@ -327,7 +334,7 @@ public class LoansController : ControllerBase
     [Description("Get the most popular ZIP code or get the top zip codes for properties being sold or bought")]
     [HttpGet("/loans/zips")]
     public string GetMostPopularZip(
-        [Description("Which ZIP code appears most frequently in the loans or what are the top zip codes for properties being sold or bought?")] int top = 1, 
+        [Description("Which ZIP code appears most frequently in the loans or what are the top zip codes for properties being sold or bought?")] int top = 1,
         string? agent = null,
         int? year = null,
         DateTime? from = null,
@@ -869,7 +876,9 @@ public class LoansController : ControllerBase
     [Description("Get transactions for a specific escrow company")]
     [HttpGet("/loans/{escrowCompany}")]
     public string GetTransactionsByEscrowCompany(
-        [Description("List the transactions made by a specific escrow company")] string escrowCompany)
+        [Description("List the transactions made by a specific escrow company")]
+        string escrowCompany,
+        int top = 10)
     {
         string result = "";
 
@@ -880,6 +889,7 @@ public class LoansController : ControllerBase
         else
         {
             var transactions = svc.GetByEscrowCompany(escrowCompany)
+                                  .Take(top)
                                   .Select(t => new EscrowTransactionDto
                                   {
                                       LoanTransID = t.LoanTransID,
@@ -1031,6 +1041,7 @@ public class LoansController : ControllerBase
     [HttpGet("/loans/{titleCompany}")]
     public string GetTransactionsByTitleCompany(
         [Description("Which transactions were made by this title company?")] string titleCompany,
+        int top = 10,
         string? agent = null,
         int? year = null,
         DateTime? from = null,
@@ -1046,6 +1057,7 @@ public class LoansController : ControllerBase
         {
             var data = Filter(svc, new[] { agent! }, year, from, to)
                        .Where(t => t.TitleCompany != null && t.TitleCompany.Equals(titleCompany, StringComparison.OrdinalIgnoreCase))
+                       .Take(top)
                        .Select(t => new TransactionDto
                        {
                            LoanTransID = t.LoanTransID,
