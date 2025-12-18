@@ -108,6 +108,26 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
+    [Description("Get Agent responsible for a specific property address")]
+    [HttpGet("/loans/agent/{address}")]
+    public string GetAgentByAddress(
+        [Description("Who is the agent responsible for this property address?")]
+        string address)
+    {
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+            return "The data is not available right now.";
+
+        var loan = svc.GetLoanTransactions().Result
+                      .FirstOrDefault(t =>
+                          !string.IsNullOrEmpty(t.SubjectAddress) &&
+                          t.SubjectAddress.Equals(address, StringComparison.OrdinalIgnoreCase));
+
+        var agent = loan?.AgentName ?? "Not found";
+
+        return $"The agent responsible for the property at '{address}' is: {agent}";
+    }
+
+    [McpServerTool]
     [Description("Get total number of transactions for an agent")]
     [HttpGet("/loans/total/{agent}")]
     public string GetTotalTransactionsByAgent(
@@ -251,6 +271,26 @@ public class LoansController : ControllerBase
         return $"The lender for loan #{loanId} is {lender}";
     }
 
+    [McpServerTool]
+    [Description("Get lender for a specific property address")]
+    [HttpGet("/loans/lender/{address}")]
+    public string GetLenderByAddress(
+        [Description("Who is the lender for this specific property address?")]
+        string address)
+    {
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+            return "The data is not available right now.";
+
+        var loan = svc.GetLoanTransactions().Result
+                      .FirstOrDefault(t =>
+                          !string.IsNullOrEmpty(t.SubjectAddress) &&
+                          t.SubjectAddress.Equals(address, StringComparison.OrdinalIgnoreCase));
+
+        var lender = loan?.LenderName ?? "Not found";
+
+        return $"The lender for the property at '{address}' is: {lender}";
+    }
+
 
     [McpServerTool]
     [Description("Get LTV of a specific loan")]
@@ -270,6 +310,29 @@ public class LoansController : ControllerBase
         }
 
         return $"The LTV for loan #{loanId} is {ltv}";
+    }
+
+    [McpServerTool]
+    [Description("Get LTV of a specific property address")]
+    [HttpGet("/loans/address/ltv/{address}")]
+    public string GetLTVByAddress(
+        [Description("What is the LTV for this property address?")]
+        string address)
+    {
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+            return "The data is not available right now.";
+
+        var loan = svc.GetLoanTransactions().Result
+                      .FirstOrDefault(t =>
+                          !string.IsNullOrEmpty(t.SubjectAddress) &&
+                          t.SubjectAddress.Equals(address, StringComparison.OrdinalIgnoreCase));
+
+        if (loan == null)
+            return $"The LTV for the property at '{address}' is: Not found";
+
+        var ltv = loan.LTV?.ToString("F2") ?? "Not found";
+
+        return $"The LTV for the property at '{address}' is: {ltv}";
     }
 
 
