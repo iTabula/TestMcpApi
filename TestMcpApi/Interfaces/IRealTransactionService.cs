@@ -9,6 +9,8 @@ namespace TestMcpApi.Services
     {
         string ErrorLoadCsv { get; }
 
+
+        //GENERAL
         Task<List<RealTransaction>> GetRealTransactions();
         Task<RealTransaction?> GetRealTransactionById(string realTransID);
 
@@ -40,6 +42,8 @@ namespace TestMcpApi.Services
 
         (int totalTransactions, decimal avgAmount, decimal maxAmount, decimal minAmount) GetLenderStats(string lender);
 
+
+        //REAL-ESTATE SPECIFIC
         IEnumerable<RealTransaction> GetByTransType(string transType);
         IEnumerable<RealTransaction> GetByPartyPresented(string partyPresented);
         IEnumerable<RealTransaction> GetByClientType(string clientType);
@@ -57,6 +61,8 @@ namespace TestMcpApi.Services
         IEnumerable<RealTransaction> GetByPayableTo(string payableTo);
         IEnumerable<RealTransaction> GetByRoutingNumber(string routingNumber);
 
+
+        //GETTING SPECIFIC REAL-ESTATE FIELDS
         string? GetTransType(string subjectAddress);
         string? GetPartyPresented(string subjectAddress);
         decimal? GetPrice(string subjectAddress);
@@ -65,10 +71,14 @@ namespace TestMcpApi.Services
         int? GetCARForms(string subjectAddress);
         string? GetNMLSNumber(string subjectAddress);
 
+
+        //STATS
         (decimal min, decimal max, decimal avg) GetPriceStats();
         (decimal min, decimal max, decimal avg) GetTCFeesStats();
         (decimal min, decimal max, decimal avg) GetRealAmountStats();
 
+
+        //GETTING INFO OF SPECIFIC PROPERTY 
         HomeInspectionInfo? GetHomeInspectionInfo(string subjectAddress);
         PestInspectionInfo? GetPestInspectionInfo(string subjectAddress);
         TCInfo? GetTCInfo(string subjectAddress);
