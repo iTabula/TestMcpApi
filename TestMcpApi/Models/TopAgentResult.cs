@@ -96,5 +96,36 @@
         public decimal HighestLoanAmount { get; set; }
         public decimal LowestLoanAmount { get; set; }
     }
+    public class HomeInspectionInfo
+    {
+        public string? Name { get; set; }
+        public string? Done { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class PestInspectionInfo
+    {
+        public string? Name { get; set; }
+        public string? Done { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class TCInfo
+    {
+        public string? Flag { get; set; }
+        public int? Number { get; set; }
+        public decimal? Fees { get; set; }
+    }
+
+    public class PaymentInfo
+    {
+        public string? PayableTo { get; set; }
+        public string? RoutingNumber { get; set; }
+    }
+
 
 }
