@@ -126,6 +126,15 @@
         public string? PayableTo { get; set; }
         public string? RoutingNumber { get; set; }
     }
-
+    public class RealTransactionDto
+    {
+        public string? RealTransID { get; set; }
+        public string? ClientFullName { get; set; }
+        public string? AgentName { get; set; }
+        public string? SubjectAddress { get; set; }
+        public string? TransactionType { get; set; }
+        public decimal? RealAmount { get; set; }
+        public DateTime? ActualClosedDate { get; set; }
+    }
 
 }
