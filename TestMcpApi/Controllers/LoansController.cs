@@ -42,7 +42,7 @@ public class LoansController : ControllerBase
         }
         var data = Filter(svc, null, year, from, to).Where(t => !string.IsNullOrWhiteSpace(t.AgentName)); ;
 
-        var result = data.GroupBy(t => t.AgentName)
+        var result = data.GroupBy(t => t.AgentName, StringComparer.OrdinalIgnoreCase)
                         .OrderByDescending(g => g.Count())
                         .Take(top)
                         .Select(g => new { Agent = g.Key, Transactions = g.Count() });
@@ -393,7 +393,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.SubjectCity));
 
-            var result = data.GroupBy(t => t.SubjectCity)
+            var result = data.GroupBy(t => t.SubjectCity, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(top)
                              .Select(g => new { City = g.Key, Transactions = g.Count() });
@@ -428,7 +428,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.PropType));
 
-            var result = data.GroupBy(t => t.PropType)
+            var result = data.GroupBy(t => t.PropType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { PropType = g.Key, Transactions = g.Count() });
@@ -463,7 +463,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.TransactionType));
 
-            var result = data.GroupBy(t => t.TransactionType)
+            var result = data.GroupBy(t => t.TransactionType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { TransactionType = g.Key, Transactions = g.Count() });
@@ -497,7 +497,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.MortgageType));
 
-            var result = data.GroupBy(t => t.MortgageType)
+            var result = data.GroupBy(t => t.MortgageType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { MortgageType = g.Key, Transactions = g.Count() });
@@ -531,7 +531,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.BrokeringType));
 
-            var result = data.GroupBy(t => t.BrokeringType)
+            var result = data.GroupBy(t => t.BrokeringType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { BrokeringType = g.Key, Transactions = g.Count() });
@@ -565,7 +565,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.LoanType));
 
-            var result = data.GroupBy(t => t.LoanType)
+            var result = data.GroupBy(t => t.LoanType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { LoanType = g.Key, Transactions = g.Count() });
@@ -599,7 +599,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.EscrowMethodSendType));
 
-            var result = data.GroupBy(t => t.EscrowMethodSendType)
+            var result = data.GroupBy(t => t.EscrowMethodSendType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { EscrowMethod = g.Key, Transactions = g.Count() });
@@ -633,7 +633,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.TitleCompany));
 
-            var result = data.GroupBy(t => t.TitleCompany)
+            var result = data.GroupBy(t => t.TitleCompany, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { TitleCompany = g.Key, Transactions = g.Count() });
@@ -667,7 +667,7 @@ public class LoansController : ControllerBase
             var data = Filter(svc, agentsArray, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.EscrowCompany));
 
-            var result = data.GroupBy(t => t.EscrowCompany)
+            var result = data.GroupBy(t => t.EscrowCompany, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { EscrowCompany = g.Key, Transactions = g.Count() });
@@ -954,7 +954,7 @@ public class LoansController : ControllerBase
             var data = svc.GetLoanTransactions().Result
                           .Where(t => !string.IsNullOrEmpty(t.EscrowCompany));
 
-            var result = data.GroupBy(t => t.EscrowCompany)
+            var result = data.GroupBy(t => t.EscrowCompany, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(top)
                              .Select(g => new { EscrowCompany = g.Key, Transactions = g.Count() });
@@ -1230,7 +1230,7 @@ public class LoansController : ControllerBase
                    .Where(t => !string.IsNullOrEmpty(selector(t)))
                    .Where(t => selector(t) != "NULL");
 
-        var key = data.GroupBy(selector)
+        var key = data.GroupBy(selector, StringComparer.OrdinalIgnoreCase)
                       .OrderByDescending(g => g.Count())
                       .FirstOrDefault()?.Key ?? "N/A";
 
