@@ -1223,14 +1223,14 @@ public class LoansController : ControllerBase
             {
                 LenderStatsResult stats = new LenderStatsResult
                 {
-                    TotalLoans = statsData.totalLoans,
-                    AverageLoanAmount = statsData.avgAmount,
-                    HighestLoanAmount = statsData.maxAmount,
-                    LowestLoanAmount = statsData.minAmount
+                    TotalTransactions = statsData.totalLoans,
+                    AvgAmount = statsData.avgAmount,
+                    MaxAmount = statsData.maxAmount,
+                    MinAmount = statsData.minAmount
                 };
 
-                resultText = $"The lender {lender} has {stats.TotalLoans} loans with an average loan amount of {stats.AverageLoanAmount:F2}, " +
-                             $"highest loan amount of {stats.HighestLoanAmount:F2}, and lowest loan amount of {stats.LowestLoanAmount:F2}.";
+                resultText = $"The lender {lender} has {stats.TotalTransactions} loans with an average loan amount of {stats.AvgAmount:F2}, " +
+                             $"highest loan amount of {stats.MaxAmount:F2}, and lowest loan amount of {stats.MinAmount:F2}.";
             }
         }
 
