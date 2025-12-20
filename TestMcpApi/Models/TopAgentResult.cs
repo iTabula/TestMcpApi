@@ -91,10 +91,10 @@
     }
     public class LenderStatsResult
     {
-        public int TotalLoans { get; set; }
-        public decimal AverageLoanAmount { get; set; }
-        public decimal HighestLoanAmount { get; set; }
-        public decimal LowestLoanAmount { get; set; }
+        public int TotalTransactions { get; set; }
+        public decimal AvgAmount { get; set; }
+        public decimal MaxAmount { get; set; }
+        public decimal MinAmount { get; set; }
     }
     public class HomeInspectionInfo
     {
@@ -117,14 +117,21 @@
     public class TCInfo
     {
         public string? Flag { get; set; }
-        public int? Number { get; set; }
+        public int? TC { get; set; }
         public decimal? Fees { get; set; }
     }
 
     public class PaymentInfo
     {
+        public DateTime? ExpectedDate { get; set; }
         public string? PayableTo { get; set; }
+        public string? AgentAddress { get; set; }
+        public decimal? ProcessorAmount { get; set; }
+        public decimal? CheckAmount { get; set; }
+        public decimal? MailingFee { get; set; }
         public string? RoutingNumber { get; set; }
+        public string? Notes { get; set; }
+        public DateTime? ClearDate { get; set; }
     }
     public class RealTransactionDto
     {
@@ -135,6 +142,37 @@
         public string? TransactionType { get; set; }
         public decimal? RealAmount { get; set; }
         public DateTime? ActualClosedDate { get; set; }
+    }
+    public class EscrowInfo
+    {
+        public string? Company { get; set; }
+        public string? Phone { get; set; }
+        public string? Officer { get; set; }
+        public string? OfficerEmail { get; set; }
+        public string? OfficerPhone { get; set; }
+        public string? EscrowNumber { get; set; }
+        public string? MethodSendType { get; set; }
+    }
+    public class TitleCompanyInfo
+    {
+        public string? Company { get; set; }
+        public string? Phone { get; set; }
+    }
+    public class AppraisalCompanyInfo
+    {
+        public string? Company { get; set; }
+        public string? Phone { get; set; }
+    }
+    public class BankInfo
+    {
+        public string? IncomingBank { get; set; }
+        public string? OutgoingBank { get; set; }
+        public string? BankName { get; set; }
+        public string? AccountName { get; set; }
+        public string? RoutingNumber { get; set; }
+        public string? AccountNumber { get; set; }
+        public decimal? AmountRetainedByKam { get; set; }
+        public decimal? AmountPaidToKamAgent { get; set; }
     }
 
 }
