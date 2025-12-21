@@ -324,7 +324,7 @@ public class RealTransactionService : IRealTransactionService
         return new TCInfo
         {
             Flag = t.TCFlag,
-            Number = t.TC,
+            TC = t.TC,
             Fees = t.TCFees
         };
     }
