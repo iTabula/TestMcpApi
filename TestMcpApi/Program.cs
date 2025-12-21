@@ -12,6 +12,8 @@ builder.Services
     .WithToolsFromAssembly(); // Scans your assembly for decorated classes and methods
 
 builder.Services.AddSingleton<ILoanTransactionService, LoanTransactionService>();
+builder.Services.AddSingleton<IRealTransactionService, RealTransactionService>();
+
 
 var app = builder.Build();
 

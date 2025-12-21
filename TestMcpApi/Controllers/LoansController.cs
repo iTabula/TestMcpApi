@@ -25,7 +25,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get top agents ranked by number of transactions")]
-    [HttpGet("/top-agents")]
+    [HttpGet("/loans/top-agents")]
+    // TESTED https://localhost:44352/loans/agents?sortByName=true&descending=false
     public string GetTopAgents(
         [Description("who are the top agents for KAM")] int top = 5,
         int? year = null,
@@ -57,7 +58,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by agent name")]
-    [HttpGet("/loans/{agent}")]
+    [HttpGet("/loans/agent/{agent}")]
+    // TESTED https://localhost:44352/loans/top-agents?top=5&year=2023
     public string GetTransactionsByAgent(
         [Description("List the transactions made by the agent, during the year")]
         string agent,
@@ -71,14 +73,13 @@ public class LoansController : ControllerBase
         {
             transactions = "not availabale right now";
         }
-        var agents = new[] { agent };
-        var data = Filter(svc, agents, year, from, to)
+        var data = Filter(svc, agent, year, from, to)
             .Where(t => !string.IsNullOrWhiteSpace(t.LoanTransID))
             .Where(t => t.LoanAmount.HasValue)
             .Take(top)
             .Select(g => new { ID = g.LoanTransID, LoanAmount = g.LoanAmount, LoanType = g.LoanType, LoanTerm = g.LoanTerm });
 
-        if (data.Count() == 0)
+        if (data == null || data.Count() == 0)
             return $"No transactions found for agent {agent} using the selected filters.";
 
         List<TransactionsResult> results = JsonSerializer.Deserialize<List<TransactionsResult>>(JsonSerializer.Serialize(data))!;
@@ -90,7 +91,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get Agent responsible for a specific loan")]
-    [HttpGet("/loans/{loanId}")]
+    [HttpGet("/loans/agent-by-id/{loanId}")]
+    // TESTED https://localhost:44352/loans/agent-by-id/17
     public string GetAgentByLoan(
         [Description("who is the agent responsible for the loan")]
         string loanId)
@@ -109,7 +111,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get Agent responsible for a specific property address")]
-    [HttpGet("/loans/agent/{address}")]
+    [HttpGet("/loans/agent-by-address/{address}")]
+    // TESTED https://localhost:44352/loans/agent-by-address/123%20Main%20Street
     public string GetAgentByAddress(
         [Description("Who is the agent responsible for this property address?")]
         string address)
@@ -129,7 +132,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get total number of transactions for an agent")]
-    [HttpGet("/loans/total/{agent}")]
+    [HttpGet("/loans/total-for-agent/{agent}")]
+    // TESTED https://localhost:44352/loans/total-for-agent/Maya%20Haffar?year=2019
     public string GetTotalTransactionsByAgent(
         [Description("How many transactions did the agent make, in the year")]
         string agent,
@@ -142,8 +146,7 @@ public class LoansController : ControllerBase
             return "The total number of transactions is not available right now.";
         }
 
-        var agents = new[] { agent };
-        var count = Filter(svc, agents, year, from, to).Count();
+        var count = Filter(svc, agent, year, from, to).Count();
 
         if (year.HasValue)
         {
@@ -155,7 +158,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get all agent names, optionally sorted")]
-    [HttpGet("/agents")]
+    [HttpGet("/loans/agents")]
+    // TESTED https://localhost:44352/loans/agents?sortByName=true&descending=false
     public string GetAllAgents(
         [Description("List all agent names, sorted")]
         bool sortByName = true,
@@ -184,7 +188,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get subject address by loan number")]
-    [HttpGet("/loans/{loanId}")]
+    [HttpGet("/loans/address-by-id/{loanId}")]
+    // TESTED https://localhost:44352/loans/address-by-id/17
     public string GetAddressByLoan(
         [Description("What is the address of the property for this specific loan?")] string loanId)
     {
@@ -206,7 +211,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get the loans in a specific state")]
-    [HttpGet("/loans/{state}")]
+    [HttpGet("/loans/state/{state}")]
+    // TESTED https://localhost:44352/loans/state/CA?top=10&year=2024
     public string GetLoansByState(
         [Description("Which state do you want to get loans for?")] string state,
         int top = 10,
@@ -254,7 +260,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get lender for a specific loan")]
-    [HttpGet("/loans/{loanId}")]
+    [HttpGet("/loans/id/lender-by-id/{loanId}")]
+    // TESTED https://localhost:44352/loans/id/lender-by-id/17
     public string GetLender(
         [Description("Who is the lender for this specific loan?")] string loanId)
     {
@@ -273,7 +280,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get lender for a specific property address")]
-    [HttpGet("/loans/lender/{address}")]
+    [HttpGet("/loans/address/lender-by-address/{address}")]
+    // TESTED https://localhost:44352/loans/address/lender-by-address/123%20Main%20Street
     public string GetLenderByAddress(
         [Description("Who is the lender for this specific property address?")]
         string address)
@@ -294,7 +302,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get LTV of a specific loan")]
-    [HttpGet("/loans/{loanId}")]
+    [HttpGet("/loans/ltv-by-id/{loanId}")]
+    // TESTED https://localhost:44352/loans/ltv-by-id17
     public string GetLTV(
         [Description("What is the LTV for this specific loan?")] string loanId)
     {
@@ -314,7 +323,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get LTV of a specific property address")]
-    [HttpGet("/loans/address/ltv/{address}")]
+    [HttpGet("/loans/ltv-by-address/{address}")]
+    // TESTED https://localhost:44352/loans/ltv-by-address/123%20Main%20Street
     public string GetLTVByAddress(
         [Description("What is the LTV for this property address?")]
         string address)
@@ -339,6 +349,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get the IDs of loans with a specific status (Active = Submitted / Not Submitted)")]
     [HttpGet("/loans/status/{status}")]
+    // TESTED https://localhost:44352/loans/status/Submitted?top=10&year=2024
     public string GetLoanIdsByStatus(
     [Description("What are the loan IDs with this status?")] string status,
     int top = 10,
@@ -373,6 +384,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get loans that haven't been closed yet")]
     [HttpGet("/loans/open")]
+    // TESTED https://localhost:44352/loans/open?top=10&year=2024
     public string GetOpenLoans(
         [Description("Which loans are still open and haven't been closed yet?")]
         int top = 10,
@@ -412,7 +424,9 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get the most popular ZIP code or get the top zip codes for properties being sold or bought")]
-    [HttpGet("/loans/zips")]
+    [HttpGet("/loans/top-zips")]
+    // TESTED https://localhost:44352/loans/top-zips?year=2024
+    // NOTE: HANDLE VALUE N/A
     public string GetMostPopularZip(
         [Description("Which ZIP code appears most frequently in the loans or what are the top zip codes for properties being sold or bought?")] int top = 1,
         string? agent = null,
@@ -427,7 +441,7 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var zip = GetMostPopularValueFiltered(svc, t => t.SubjectPostalCode, string.IsNullOrEmpty(agent) ? null : new[] { agent }, year, from, to);
+            var zip = GetMostPopularValueFiltered(svc, t => t.SubjectPostalCode, agent, year, from, to);
             result = string.IsNullOrEmpty(zip) ? "N/A" : zip;
         }
 
@@ -437,7 +451,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get top cities ranked by number of transactions")]
-    [HttpGet("/top-cities")]
+    [HttpGet("/loans/top-cities")]
+    // TESTED https://localhost:44352/loans/top-cities?top=5&agent=Maya%20Haffar&year=2019
     public string GetTopCities(
         [Description("Which cities have the highest number of transactions?")] int top = 10,
         string? agent = null,
@@ -452,14 +467,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.SubjectCity));
 
             var result = data.GroupBy(t => t.SubjectCity, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(top)
                              .Select(g => new { City = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopCityResult> results = JsonSerializer.Deserialize<List<TopCityResult>>(JsonSerializer.Serialize(result))!;
 
@@ -473,7 +492,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular property type")]
-    [HttpGet("/top-property-type")]
+    [HttpGet("/loans/top-property-type")]
     public string GetMostPopularPropType(
         [Description("What is the most popular property type?")] string? agent = null,
         int? year = null,
@@ -487,14 +506,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.PropType));
 
             var result = data.GroupBy(t => t.PropType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { PropType = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopPropertyTypeResult> results = JsonSerializer.Deserialize<List<TopPropertyTypeResult>>(JsonSerializer.Serialize(result))!;
 
@@ -508,7 +531,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular transaction type")]
-    [HttpGet("/top-transaction-type")]
+    [HttpGet("/loans/top-transaction-type")]
     public string GetMostPopularTransactionType(
         [Description("What is the most popular transaction type?")] string? agent = null,
         int? year = null,
@@ -522,14 +545,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.TransactionType));
 
             var result = data.GroupBy(t => t.TransactionType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { TransactionType = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopTransactionTypeResult> results = JsonSerializer.Deserialize<List<TopTransactionTypeResult>>(JsonSerializer.Serialize(result))!;
 
@@ -542,7 +569,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular mortgage type")]
-    [HttpGet("/top-mortgage-type")]
+    [HttpGet("/loans/top-mortgage-type")]
     public string GetMostPopularMortgageType(
         [Description("What is the most popular mortgage type?")] string? agent = null,
         int? year = null,
@@ -556,14 +583,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.MortgageType));
 
             var result = data.GroupBy(t => t.MortgageType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { MortgageType = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopMortgageTypeResult> results = JsonSerializer.Deserialize<List<TopMortgageTypeResult>>(JsonSerializer.Serialize(result))!;
 
@@ -576,7 +607,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular brokering type")]
-    [HttpGet("/top-brokering-type")]
+    [HttpGet("/loans/top-brokering-type")]
     public string GetMostPopularBrokeringType(
         [Description("What is the most popular brokering type?")] string? agent = null,
         int? year = null,
@@ -590,14 +621,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.BrokeringType));
 
             var result = data.GroupBy(t => t.BrokeringType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { BrokeringType = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopBrokeringTypeResult> results = JsonSerializer.Deserialize<List<TopBrokeringTypeResult>>(JsonSerializer.Serialize(result))!;
 
@@ -610,7 +645,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular loan type")]
-    [HttpGet("/top-loan-type")]
+    [HttpGet("/loans/top-loan-type")]
     public string GetMostPopularLoanType(
         [Description("What is the most popular loan type?")] string? agent = null,
         int? year = null,
@@ -624,14 +659,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.LoanType));
 
             var result = data.GroupBy(t => t.LoanType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { LoanType = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopLoanTypeResult> results = JsonSerializer.Deserialize<List<TopLoanTypeResult>>(JsonSerializer.Serialize(result))!;
             type = results.Select(r => r.LoanType + " with " + r.Transactions + " transactions")
@@ -644,7 +683,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular escrow method send type")]
-    [HttpGet("/top-escrow-send-type")]
+    [HttpGet("/loans/top-escrow-send-type")]
     public string GetMostPopularEscrowMethod(
     [Description("What is the most popular escrow method send type?")] string? agent = null,
     int? year = null,
@@ -658,14 +697,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.EscrowMethodSendType));
 
             var result = data.GroupBy(t => t.EscrowMethodSendType, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { EscrowMethod = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopEscrowMethodResult> results = JsonSerializer.Deserialize<List<TopEscrowMethodResult>>(JsonSerializer.Serialize(result))!;
             method = results.Select(r => r.EscrowMethod + " with " + r.Transactions + " transactions")
@@ -678,7 +721,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular title company")]
-    [HttpGet("/top-title-company")]
+    [HttpGet("/loans/top-title-company")]
     public string GetMostPopularTitleCompany(
         [Description("What is the most popular title company?")] string? agent = null,
         int? year = null,
@@ -692,14 +735,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.TitleCompany));
 
             var result = data.GroupBy(t => t.TitleCompany, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { TitleCompany = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopTitleCompanyResult> results = JsonSerializer.Deserialize<List<TopTitleCompanyResult>>(JsonSerializer.Serialize(result))!;
             company = results.Select(r => r.TitleCompany + " with " + r.Transactions + " transactions")
@@ -712,7 +759,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular escrow company")]
-    [HttpGet("/top-escrow-company")]
+    [HttpGet("/loans/top-escrow-company")]
     public string GetMostPopularEscrowCompany(
         [Description("What is the most popular escrow company?")] string? agent = null,
         int? year = null,
@@ -726,14 +773,18 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                 .Where(t => !string.IsNullOrWhiteSpace(t.EscrowCompany));
 
             var result = data.GroupBy(t => t.EscrowCompany, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { EscrowCompany = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopEscrowCompanyResult> results = JsonSerializer.Deserialize<List<TopEscrowCompanyResult>>(JsonSerializer.Serialize(result))!;
             company = results.Select(r => r.EscrowCompany + " with " + r.Transactions + " transactions")
@@ -829,7 +880,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get average credit score (overall, by agent or by year)")]
-    [HttpGet("/credit-score/average")]
+    [HttpGet("/loans/credit-score/average")]
     public string GetAverageCreditScore(
         [Description("What is the average credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -854,7 +905,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get highest credit score (overall, by agent or by year)")]
-    [HttpGet("/credit-score/max")]
+    [HttpGet("/loans/credit-score/max")]
     public string GetHighestCreditScore(
         [Description("What is the highest credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -879,7 +930,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get lowest credit score (overall, by agent or by year)")]
-    [HttpGet("/credit-score/min")]
+    [HttpGet("/loans/credit-score/min")]
     public string GetLowestCreditScore(
         [Description("What is the lowest credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -908,7 +959,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get number of loans for a specific escrow company")]
-    [HttpGet("/loans/total/{escrowCompany}")]
+    [HttpGet("/loans/total-by-escrow/{escrowCompany}")]
     public string GetLoansByEscrow(
         [Description("What are the loans for a specific escrow company?")] string escrowCompany,
         string? agent = null,
@@ -924,8 +975,7 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var agentsArray = string.IsNullOrEmpty(agent) ? null : new[] { agent };
-            var data = Filter(svc, agentsArray, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                        .Where(t => !string.IsNullOrEmpty(t.EscrowCompany) &&
                                    t.EscrowCompany.Equals(escrowCompany, StringComparison.OrdinalIgnoreCase));
 
@@ -939,7 +989,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get all escrow companies")]
-    [HttpGet("/escrow-companies")]
+    [HttpGet("/loans/escrow-companies")]
     public string GetAllEscrowCompanies(
         [Description("What are the names of all escrow companies")] string dummy = "")
     {
@@ -966,7 +1016,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get transactions for a specific escrow company")]
-    [HttpGet("/loans/{escrowCompany}")]
+    [HttpGet("/loans/ecrowCompany/{escrowCompany}")]
     public string GetTransactionsByEscrowCompany(
         [Description("List the transactions made by a specific escrow company")]
         string escrowCompany,
@@ -1002,7 +1052,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get top Escrow Companies ranked by number of transactions")]
-    [HttpGet("/top-escrow-companies")]
+    [HttpGet("/loans/top-escrow-companies")]
     public string GetTopEscrowCompanies(
         [Description("What are the top escrow companies")] int top = 10)
     {
@@ -1033,7 +1083,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get Escrow Company statistics (total loans, average, highest, lowest loan amounts)")]
-    [HttpGet("/loans/statistics/{escrowCompany}")]
+    [HttpGet("/loans/escrow-statistics/{escrowCompany}")]
     public string GetEscrowCompanyStats(
         [Description("What are the total loans and loan amount statistics for a specific escrow company?")] string escrowCompany)
     {
@@ -1076,7 +1126,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get total number of transactions for a lender")]
-    [HttpGet("/loans/total/{lender}")]
+    [HttpGet("/loans/total-by-lender/{lender}")]
     public string GetTotalTransactionsByLender(
         [Description("How many transactions did this lender make?")] string lender,
         string? agent = null,
@@ -1092,7 +1142,7 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var count = Filter(svc, new[] { agent! }, year, from, to)
+            var count = Filter(svc, agent, year, from, to)
                         .Where(t => !string.IsNullOrEmpty(t.LoanTransID))
                         .Count(t => t.LenderName != null && t.LenderName.Equals(lender, StringComparison.OrdinalIgnoreCase));
 
@@ -1105,7 +1155,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("What are the names of all title companies?")]
-    [HttpGet("/title-companies")]
+    [HttpGet("/loans/title-companies")]
     public string GetAllTitleCompanies()
     {
         string resultText = "";
@@ -1133,7 +1183,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get transactions for a specific title company")]
-    [HttpGet("/loans/{titleCompany}")]
+    [HttpGet("/loans/title-company/{titleCompany}")]
     public string GetTransactionsByTitleCompany(
         [Description("Which transactions were made by this title company?")] string titleCompany,
         int top = 10,
@@ -1150,7 +1200,7 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var data = Filter(svc, new[] { agent! }, year, from, to)
+            var data = Filter(svc, agent, year, from, to)
                        .Where(t => t.TitleCompany != null && t.TitleCompany.Equals(titleCompany, StringComparison.OrdinalIgnoreCase))
                        .Take(top)
                        .Select(t => new TransactionDto
@@ -1178,7 +1228,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get 1099 for an agent for a specific year")]
-    [HttpGet("/1099/{agent}/{year}")]
+    [HttpGet("/loans/1099/{agent}/{year}")]
     public string GetAgent1099(
         [Description("What is the 1099 for this agent for a specific year?")] string agent,
         int year)
@@ -1201,7 +1251,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get lender statistics (total loans, average, highest, lowest loan amounts)")]
-    [HttpGet("/loans/statistics/{lender}")]
+    [HttpGet("/loans/lender-statistics/{lender}")]
     public string GetLenderStats(
         [Description("What are the total loans and loan amount statistics for this lender?")] string lender)
     {
@@ -1223,14 +1273,14 @@ public class LoansController : ControllerBase
             {
                 LenderStatsResult stats = new LenderStatsResult
                 {
-                    TotalLoans = statsData.totalLoans,
-                    AverageLoanAmount = statsData.avgAmount,
-                    HighestLoanAmount = statsData.maxAmount,
-                    LowestLoanAmount = statsData.minAmount
+                    TotalTransactions = statsData.totalLoans,
+                    AvgAmount = statsData.avgAmount,
+                    MaxAmount = statsData.maxAmount,
+                    MinAmount = statsData.minAmount
                 };
 
-                resultText = $"The lender {lender} has {stats.TotalLoans} loans with an average loan amount of {stats.AverageLoanAmount:F2}, " +
-                             $"highest loan amount of {stats.HighestLoanAmount:F2}, and lowest loan amount of {stats.LowestLoanAmount:F2}.";
+                resultText = $"The lender {lender} has {stats.TotalTransactions} loans with an average loan amount of {stats.AvgAmount:F2}, " +
+                             $"highest loan amount of {stats.MaxAmount:F2}, and lowest loan amount of {stats.MinAmount:F2}.";
             }
         }
 
@@ -1244,15 +1294,22 @@ public class LoansController : ControllerBase
     //HELPERS
     private static IEnumerable<LoanTransaction> Filter(
         ILoanTransactionService svc,
-        IEnumerable<string>? agents = null,
+        string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
         var data = svc.GetLoanTransactions().Result.AsEnumerable();
 
-        if (agents != null && agents.Any())
-            data = data.Where(t => t.AgentName != null && agents.Contains(t.AgentName, StringComparer.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(agent))
+        {
+            string normAgent = Normalize(agent);
+
+            data = data.Where(t =>
+                t.AgentName != null &&
+                Normalize(t.AgentName).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
+        }
+
 
         if (year.HasValue)
             data = data.Where(t => t.DateAdded.HasValue && t.DateAdded.Value.Year == year.Value);
@@ -1265,6 +1322,15 @@ public class LoansController : ControllerBase
 
         return data;
     }
+
+    private static string Normalize(string value)
+    {
+        return string
+            .Join(" ", value.Split(' ', StringSplitOptions.RemoveEmptyEntries)) // remove duplicate spaces
+            .Trim()
+            .ToLowerInvariant();
+    }
+
 
     private static IEnumerable<LoanTransaction> FilterByAgentAndYear(
     ILoanTransactionService svc,
@@ -1284,12 +1350,12 @@ public class LoansController : ControllerBase
     private static string GetMostPopularValueFiltered(
         ILoanTransactionService svc,
         Func<LoanTransaction, string?> selector,
-        IEnumerable<string>? agents = null,
+        string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
     {
-        var data = Filter(svc, agents, year, from, to)
+        var data = Filter(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrEmpty(selector(t)))
                    .Where(t => selector(t) != "NULL");
 
