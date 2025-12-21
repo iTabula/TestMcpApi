@@ -79,9 +79,7 @@ public class RealsController : ControllerBase
             return transactions;
         }
 
-        var agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                     .Where(t => !string.IsNullOrWhiteSpace(t.RealTransID))
                     .Take(top)
                     .Select(t => new
@@ -116,7 +114,7 @@ public class RealsController : ControllerBase
     public string GetRealTransactionsByState(
         [Description("List the real estate transactions located in the state")] string state,
         int top = 10,
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -128,7 +126,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                     .Where(t => !string.IsNullOrWhiteSpace(t.SubjectState))
                     .Where(t => string.Equals(t.SubjectState, state, StringComparison.OrdinalIgnoreCase))
                     .Take(top)
@@ -166,7 +164,7 @@ public class RealsController : ControllerBase
     public string GetRealTransactionsByTitleCompany(
         [Description("List the real estate transactions managed by the title company")] string titleCompany,
         int top = 10,
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -178,7 +176,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                     .Where(t => !string.IsNullOrWhiteSpace(t.TitleCompany))
                     .Where(t => string.Equals(t.TitleCompany, titleCompany, StringComparison.OrdinalIgnoreCase))
                     .Take(top)
@@ -248,7 +246,7 @@ public class RealsController : ControllerBase
     public string GetTransactionsByEscrowCompany(
         [Description("List the real estate transactions handled by this escrow company")] string escrowCompany,
         int top = 10,
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -260,7 +258,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.EscrowCompany) &&
                                string.Equals(t.EscrowCompany, escrowCompany, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -360,8 +358,7 @@ public class RealsController : ControllerBase
             return "No agent name was provided.";
         }
 
-        var agents = new[] { agent };
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
             .Where(t => !string.IsNullOrWhiteSpace(t.RealTransID));
 
         int total = data.Count();
@@ -438,7 +435,7 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/most-popular-zip")]
     public string GetMostPopularZip(
         [Description("Which ZIP code appears most frequently among the real transactions?")]
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -448,7 +445,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var popularZip = GetMostPopularValueFilteredReal(svc, t => t.SubjectPostalCode, agents, year, from, to);
+        var popularZip = GetMostPopularValueFilteredReal(svc, t => t.SubjectPostalCode, agent, year, from, to);
 
         if (string.IsNullOrWhiteSpace(popularZip) || popularZip == "N/A")
         {
@@ -464,7 +461,7 @@ public class RealsController : ControllerBase
     public string GetTopCities(
         [Description("What are the top cities with the most real transactions?")]
         int top = 10,
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -474,7 +471,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                     .Where(t => !string.IsNullOrWhiteSpace(t.SubjectCity));
 
         var grouped = data.GroupBy(t => t.SubjectCity, StringComparer.OrdinalIgnoreCase)
@@ -581,8 +578,8 @@ public class RealsController : ControllerBase
     [Description("List real estate transactions filtered by agents and/or years")]
     [HttpGet("/reals/transactions-by-agents-years")]
     public string GetTransactionsByAgentsAndYears(
-        [Description("Which agents' transactions do you want to see? Provide a comma-separated list.")]
-        string? agents = null,
+        [Description("Which agent's transactions do you want to see? Provide a comma-separated list.")]
+        string? agent = null,
         [Description("Which year's transactions do you want to see?")]
         int? year = null,
         int top = 10,
@@ -594,11 +591,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agentList = null;
-        if (!string.IsNullOrWhiteSpace(agents))
-            agentList = agents.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-        var data = FilterRealTransactions(svc, agentList, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.RealTransID) && t.RealAmount.HasValue)
                    .Take(top)
                    .Select(t => new
@@ -614,9 +607,8 @@ public class RealsController : ControllerBase
 
         if (!data.Any())
         {
-            string agentText = agentList != null ? string.Join(", ", agentList) : "all agents";
             string yearText = year != null ? year.ToString() : "all years";
-            return $"No transactions found for {agentText} during {yearText} using the selected filters.";
+            return $"No transactions found for {agent} during {yearText} using the selected filters.";
         }
 
         var results = JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
@@ -637,7 +629,7 @@ public class RealsController : ControllerBase
         [Description("Up to which date do you want to see transactions?")]
         DateTime? to = null,
         int top = 10,
-        string? agents = null,
+        string? agent = null,
         int? year = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -645,11 +637,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agentList = null;
-        if (!string.IsNullOrWhiteSpace(agents))
-            agentList = agents.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-        var data = FilterRealTransactions(svc, agentList, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.RealTransID) && t.RealAmount.HasValue)
                    .Take(top)
                    .Select(t => new
@@ -665,11 +653,10 @@ public class RealsController : ControllerBase
 
         if (!data.Any())
         {
-            string agentText = agentList != null ? string.Join(", ", agentList) : "all agents";
             string yearText = year != null ? year.ToString() : "all years";
             string fromText = from.HasValue ? from.Value.ToShortDateString() : "the beginning";
             string toText = to.HasValue ? to.Value.ToShortDateString() : "today";
-            return $"No transactions found for {agentText} during {yearText} from {fromText} to {toText}.";
+            return $"No transactions found for {agent} during {yearText} from {fromText} to {toText}.";
         }
 
         var results = JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
@@ -761,11 +748,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        string mostPopularType = GetMostPopularValueFilteredReal(svc, t => t.TransactionType, agents, year, from, to);
+        string mostPopularType = GetMostPopularValueFilteredReal(svc, t => t.TransactionType, agent, year, from, to);
 
         if (mostPopularType == "N/A")
             return "No transaction types found for the selected filters.";
@@ -788,11 +771,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        string mostPopularClientType = GetMostPopularValueFilteredReal(svc, t => t.ClientType, agents, year, from, to);
+        string mostPopularClientType = GetMostPopularValueFilteredReal(svc, t => t.ClientType, agent, year, from, to);
 
         if (mostPopularClientType == "N/A")
             return "No client types found for the selected filters.";
@@ -815,11 +794,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        string mostPopularRealType = GetMostPopularValueFilteredReal(svc, t => t.RealType, agents, year, from, to);
+        string mostPopularRealType = GetMostPopularValueFilteredReal(svc, t => t.RealType, agent, year, from, to);
 
         if (mostPopularRealType == "N/A")
             return "No real types found for the selected filters.";
@@ -842,11 +817,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        string mostPopularRealSubType = GetMostPopularValueFilteredReal(svc, t => t.RealSubType, agents, year, from, to);
+        string mostPopularRealSubType = GetMostPopularValueFilteredReal(svc, t => t.RealSubType, agent, year, from, to);
 
         if (mostPopularRealSubType == "N/A")
             return "No real sub-types found for the selected filters.";
@@ -871,11 +842,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.PartyPresented))
                    .Where(t => string.Equals(t.PartyPresented, party, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -917,11 +884,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.ClientType))
                    .Where(t => string.Equals(t.ClientType, clientType, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -963,11 +926,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.PropType))
                    .Where(t => string.Equals(t.PropType, propType, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1009,11 +968,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.TransType))
                    .Where(t => string.Equals(t.TransType, transType, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1055,11 +1010,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.FinanceInfo))
                    .Where(t => string.Equals(t.FinanceInfo, financeInfo, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1101,11 +1052,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.CARForms.HasValue && t.CARForms.Value == carForms)
                    .Take(top)
                    .Select(t => new RealTransactionDto
@@ -1146,11 +1093,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.NMLSNumber) && t.NMLSNumber.Equals(nmlsNumber, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
                    .Select(t => new RealTransactionDto
@@ -1191,11 +1134,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.HomeInspectionName) &&
                                t.HomeInspectionName.Equals(inspectionName, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1237,11 +1176,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.PestInspectionName) &&
                                t.PestInspectionName.Equals(inspectionName, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1283,11 +1218,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.TCFlag) &&
                                t.TCFlag.Equals(tcFlag, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1330,11 +1261,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.TC.HasValue && t.TC.Value == tc)
                    .Take(top)
                    .Select(t => new RealTransactionDto
@@ -1376,11 +1303,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.RealAmount.HasValue && t.RealAmount.Value >= minPrice && t.RealAmount.Value <= maxPrice)
                    .Take(top)
                    .Select(t => new RealTransactionDto
@@ -1420,11 +1343,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.ActualClosedDate.HasValue && t.ActualClosedDate.Value >= from && t.ActualClosedDate.Value <= to)
                    .Take(top)
                    .Select(t => new RealTransactionDto
@@ -1464,11 +1383,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => string.IsNullOrWhiteSpace(t.ActiveStatus) || !string.Equals(t.ActiveStatus, "Closed", StringComparison.OrdinalIgnoreCase))
                    .Take(top)
                    .Select(t => new RealTransactionDto
@@ -1508,11 +1423,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.HomeInspectionDone) &&
                                string.Equals(t.HomeInspectionDone, "Yes", StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1553,11 +1464,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => string.IsNullOrWhiteSpace(t.HomeInspectionDone) ||
                                !string.Equals(t.HomeInspectionDone, "Yes", StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1598,11 +1505,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.PestInspectionDone) &&
                                string.Equals(t.PestInspectionDone, "Yes", StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1643,11 +1546,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => string.IsNullOrWhiteSpace(t.PestInspectionDone) ||
                                !string.Equals(t.PestInspectionDone, "Yes", StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1690,13 +1589,9 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
         var years = year.HasValue ? new[] { year.Value } : null;
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.TCFees.HasValue &&
                               (!minFee.HasValue || t.TCFees.Value >= minFee.Value) &&
                               (!maxFee.HasValue || t.TCFees.Value <= maxFee.Value))
@@ -1739,11 +1634,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.PayableTo) &&
                                string.Equals(t.PayableTo, payableTo, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1785,11 +1676,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(t.RoutingNumber) &&
                                string.Equals(t.RoutingNumber, routingNumber, StringComparison.OrdinalIgnoreCase))
                    .Take(top)
@@ -1939,7 +1826,7 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/price-stats")]
     public string GetPriceStats(
         [Description("What are the total number of transactions, average price, maximum price, and minimum price for the selected filters?")]
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -1949,7 +1836,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.Price.HasValue);
 
         if (!data.Any())
@@ -1969,7 +1856,7 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/realterm-stats")]
     public string GetRealTermStats(
         [Description("What are the total number of transactions, average real term, maximum real term, and minimum real term for the selected filters?")]
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -1979,7 +1866,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.RealTerm.HasValue);
 
         if (!data.Any())
@@ -1999,7 +1886,7 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/realamount-stats")]
     public string GetRealAmountStats(
         [Description("What are the total number of transactions, average real amount, maximum real amount, and minimum real amount for the selected filters?")]
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -2009,7 +1896,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.RealAmount.HasValue);
 
         if (!data.Any())
@@ -2029,7 +1916,7 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/appraisedvalue-stats")]
     public string GetAppraisedValueStats(
         [Description("What are the total number of transactions, average appraised value, maximum appraised value, and minimum appraised value for the selected filters?")]
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -2039,7 +1926,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.AppraisedValue.HasValue);
 
         if (!data.Any())
@@ -2059,7 +1946,7 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/ltv-stats")]
     public string GetLTVStats(
         [Description("What are the total number of transactions, average LTV, maximum LTV, and minimum LTV for the selected filters?")]
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -2069,7 +1956,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.LTV.HasValue);
 
         if (!data.Any())
@@ -2089,7 +1976,7 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/interest-rate-stats")]
     public string GetInterestRateStats(
         [Description("What are the total number of transactions, average interest rate, maximum interest rate, and minimum interest rate for the selected filters?")]
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -2099,7 +1986,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.InterestRate.HasValue);
 
         if (!data.Any())
@@ -2119,7 +2006,7 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/tcfees-stats")]
     public string GetTCFeesStats(
         [Description("What are the total number of transactions, average TC Fees, maximum TC Fees, and minimum TC Fees for the selected filters?")]
-        IEnumerable<string>? agents = null,
+       string? agent = null,
         int? year = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -2129,7 +2016,7 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => t.TCFees.HasValue);
 
         if (!data.Any())
@@ -2386,17 +2273,22 @@ public class RealsController : ControllerBase
     //HELPERS
     private static IEnumerable<RealTransaction> FilterRealTransactions(
             IRealTransactionService svc,
-            IEnumerable<string>? agents = null,
+            string? agent = null,
             int? year = null,
             DateTime? from = null,
             DateTime? to = null)
     {
         var data = svc.GetRealTransactions().Result.AsEnumerable();
 
-        // Filter by agents (case-insensitive)
-        if (agents != null && agents.Any())
-            data = data.Where(t => t.AgentName != null
-                                && agents.Any(a => string.Equals(a, t.AgentName, StringComparison.OrdinalIgnoreCase)));
+        // Filter by agent (case-insensitive)
+        if (!string.IsNullOrWhiteSpace(agent))
+        {
+            string normAgent = Normalize(agent);
+
+            data = data.Where(t =>
+                t.AgentName != null &&
+                Normalize(t.AgentName).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
+        }
 
         // Filter by year
         if (year.HasValue)
@@ -2412,16 +2304,23 @@ public class RealsController : ControllerBase
         return data;
     }
 
+    private static string Normalize(string value)
+    {
+        return string
+            .Join(" ", value.Split(' ', StringSplitOptions.RemoveEmptyEntries)) // remove duplicate spaces
+            .Trim()
+            .ToLowerInvariant();
+    }
 
     private static string GetMostPopularValueFilteredReal(
             IRealTransactionService svc,
             Func<RealTransaction, string?> selector,
-            IEnumerable<string>? agents = null,
+           string? agent = null,
             int? year = null,
             DateTime? from = null,
             DateTime? to = null)
     {
-        var data = FilterRealTransactions(svc, agents, year, from, to)
+        var data = FilterRealTransactions(svc, agent, year, from, to)
                    .Where(t => !string.IsNullOrWhiteSpace(selector(t)))
                    .Where(t => selector(t) != "NULL");
 
