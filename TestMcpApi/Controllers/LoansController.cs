@@ -25,7 +25,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get top agents ranked by number of transactions")]
-    [HttpGet("/top-agents")]
+    [HttpGet("/loans/top-agents")] //tested
     public string GetTopAgents(
         [Description("who are the top agents for KAM")] int top = 5,
         int? year = null,
@@ -57,7 +57,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by agent name")]
-    [HttpGet("/loans/agent/{agent}")]
+    [HttpGet("/loans/agent/{agent}")] //tested
     public string GetTransactionsByAgent(
         [Description("List the transactions made by the agent, during the year")]
         string agent,
@@ -89,7 +89,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get Agent responsible for a specific loan")]
-    [HttpGet("/loans/agent-by-id/{loanId}")]
+    [HttpGet("/loans/agent-by-id/{loanId}")] //tested
     public string GetAgentByLoan(
         [Description("who is the agent responsible for the loan")]
         string loanId)
@@ -108,7 +108,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get Agent responsible for a specific property address")]
-    [HttpGet("/loans/agent-by-address/{address}")]
+    [HttpGet("/loans/agent-by-address/{address}")] //tested
     public string GetAgentByAddress(
         [Description("Who is the agent responsible for this property address?")]
         string address)
@@ -128,7 +128,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get total number of transactions for an agent")]
-    [HttpGet("/loans/total-for-agent/{agent}")]
+    [HttpGet("/loans/total-for-agent/{agent}")] //tested
     public string GetTotalTransactionsByAgent(
         [Description("How many transactions did the agent make, in the year")]
         string agent,
@@ -153,7 +153,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get all agent names, optionally sorted")]
-    [HttpGet("/agents")]
+    [HttpGet("/loans/agents")]
     public string GetAllAgents(
         [Description("List all agent names, sorted")]
         bool sortByName = true,
@@ -435,7 +435,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get top cities ranked by number of transactions")]
-    [HttpGet("/top-cities")]
+    [HttpGet("/loans/top-cities")]
     public string GetTopCities(
         [Description("Which cities have the highest number of transactions?")] int top = 10,
         string? agent = null,
@@ -470,7 +470,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular property type")]
-    [HttpGet("/top-property-type")]
+    [HttpGet("/loans/top-property-type")]
     public string GetMostPopularPropType(
         [Description("What is the most popular property type?")] string? agent = null,
         int? year = null,
@@ -504,7 +504,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular transaction type")]
-    [HttpGet("/top-transaction-type")]
+    [HttpGet("/loans/top-transaction-type")]
     public string GetMostPopularTransactionType(
         [Description("What is the most popular transaction type?")] string? agent = null,
         int? year = null,
@@ -537,7 +537,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular mortgage type")]
-    [HttpGet("/top-mortgage-type")]
+    [HttpGet("/loans/top-mortgage-type")]
     public string GetMostPopularMortgageType(
         [Description("What is the most popular mortgage type?")] string? agent = null,
         int? year = null,
@@ -570,7 +570,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular brokering type")]
-    [HttpGet("/top-brokering-type")]
+    [HttpGet("/loans/top-brokering-type")]
     public string GetMostPopularBrokeringType(
         [Description("What is the most popular brokering type?")] string? agent = null,
         int? year = null,
@@ -603,7 +603,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular loan type")]
-    [HttpGet("/top-loan-type")]
+    [HttpGet("/loans/top-loan-type")]
     public string GetMostPopularLoanType(
         [Description("What is the most popular loan type?")] string? agent = null,
         int? year = null,
@@ -636,7 +636,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular escrow method send type")]
-    [HttpGet("/top-escrow-send-type")]
+    [HttpGet("/loans/top-escrow-send-type")]
     public string GetMostPopularEscrowMethod(
     [Description("What is the most popular escrow method send type?")] string? agent = null,
     int? year = null,
@@ -669,7 +669,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular title company")]
-    [HttpGet("/top-title-company")]
+    [HttpGet("/loans/top-title-company")]
     public string GetMostPopularTitleCompany(
         [Description("What is the most popular title company?")] string? agent = null,
         int? year = null,
@@ -702,7 +702,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get most popular escrow company")]
-    [HttpGet("/top-escrow-company")]
+    [HttpGet("/loans/top-escrow-company")]
     public string GetMostPopularEscrowCompany(
         [Description("What is the most popular escrow company?")] string? agent = null,
         int? year = null,
@@ -818,7 +818,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get average credit score (overall, by agent or by year)")]
-    [HttpGet("/credit-score/average")]
+    [HttpGet("/loans/credit-score/average")]
     public string GetAverageCreditScore(
         [Description("What is the average credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -843,7 +843,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get highest credit score (overall, by agent or by year)")]
-    [HttpGet("/credit-score/max")]
+    [HttpGet("/loans/credit-score/max")]
     public string GetHighestCreditScore(
         [Description("What is the highest credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -868,7 +868,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get lowest credit score (overall, by agent or by year)")]
-    [HttpGet("/credit-score/min")]
+    [HttpGet("/loans/credit-score/min")]
     public string GetLowestCreditScore(
         [Description("What is the lowest credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -927,7 +927,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get all escrow companies")]
-    [HttpGet("/escrow-companies")]
+    [HttpGet("/loans/escrow-companies")]
     public string GetAllEscrowCompanies(
         [Description("What are the names of all escrow companies")] string dummy = "")
     {
@@ -990,7 +990,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get top Escrow Companies ranked by number of transactions")]
-    [HttpGet("/top-escrow-companies")]
+    [HttpGet("/loans/top-escrow-companies")]
     public string GetTopEscrowCompanies(
         [Description("What are the top escrow companies")] int top = 10)
     {
@@ -1093,7 +1093,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("What are the names of all title companies?")]
-    [HttpGet("/title-companies")]
+    [HttpGet("/loans/title-companies")]
     public string GetAllTitleCompanies()
     {
         string resultText = "";
@@ -1166,7 +1166,7 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get 1099 for an agent for a specific year")]
-    [HttpGet("/1099/{agent}/{year}")]
+    [HttpGet("/loans/1099/{agent}/{year}")]
     public string GetAgent1099(
         [Description("What is the 1099 for this agent for a specific year?")] string agent,
         int year)
