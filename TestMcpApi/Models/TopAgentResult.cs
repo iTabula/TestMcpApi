@@ -11,7 +11,7 @@
         public string ID { get; set; }
         public decimal LoanAmount { get; set; }
         public string LoanType { get; set; }
-        public string LoanTerm { get; set; }
+        public decimal LoanTerm { get; set; }
     }
 
     public class LoanSummaryResult
