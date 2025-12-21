@@ -493,6 +493,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular property type")]
     [HttpGet("/loans/top-property-type")]
+    // TESTED https://localhost:44352/loans/top-escrow-send-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularPropType(
         [Description("What is the most popular property type?")] string? agent = null,
         int? year = null,
@@ -532,6 +533,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular transaction type")]
     [HttpGet("/loans/top-transaction-type")]
+    // TESTED https://localhost:44352/loans/top-transaction-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularTransactionType(
         [Description("What is the most popular transaction type?")] string? agent = null,
         int? year = null,
@@ -570,6 +572,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular mortgage type")]
     [HttpGet("/loans/top-mortgage-type")]
+    //TESTED https://localhost:44352/loans/top-mortgage-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularMortgageType(
         [Description("What is the most popular mortgage type?")] string? agent = null,
         int? year = null,
@@ -608,6 +611,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular brokering type")]
     [HttpGet("/loans/top-brokering-type")]
+    // TESTED https://localhost:44352/loans/top-brokering-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularBrokeringType(
         [Description("What is the most popular brokering type?")] string? agent = null,
         int? year = null,
@@ -646,6 +650,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular loan type")]
     [HttpGet("/loans/top-loan-type")]
+    // TESTED https://localhost:44352/loans/top-brokering-type?agent=Maya%20Haffar&year=2017
     public string GetMostPopularLoanType(
         [Description("What is the most popular loan type?")] string? agent = null,
         int? year = null,
@@ -684,6 +689,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular escrow method send type")]
     [HttpGet("/loans/top-escrow-send-type")]
+    // TESTED https://localhost:44352/loans/top-loan-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularEscrowMethod(
     [Description("What is the most popular escrow method send type?")] string? agent = null,
     int? year = null,
@@ -722,6 +728,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular title company")]
     [HttpGet("/loans/top-title-company")]
+    // TESTED https://localhost:44352/loans/top-title-company?agent=Maya%20Haffar&year=2019
     public string GetMostPopularTitleCompany(
         [Description("What is the most popular title company?")] string? agent = null,
         int? year = null,
@@ -760,6 +767,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular escrow company")]
     [HttpGet("/loans/top-escrow-company")]
+    // TESTED https://localhost:44352/loans/top-escrow-company?agent=Maya%20Haffar&year=2019
     public string GetMostPopularEscrowCompany(
         [Description("What is the most popular escrow company?")] string? agent = null,
         int? year = null,
@@ -800,6 +808,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Average loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/average")]
+    //TESTED https://localhost:44352/loans/average?agent=Maya%20Haffar&year=2019
     public string GetAverageLoanAmount(
         [Description("What is the average loan amount?")]
         string? agent = null,
@@ -826,6 +835,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Highest loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/max")]
+    // TESTED https://localhost:44352/loans/max?agent=Maya%20Haffar&year=2019
     public string GetHighestLoanAmount(
         [Description("What is the highest loan amount?")]
         string? agent = null,
@@ -852,6 +862,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Lowest loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/min")]
+    //TESTED https://localhost:44352/loans/min?agent=Maya%20Haffar&year=2019
     public string GetLowestLoanAmount(
         [Description("What is the lowest loan amount?")]
         string? agent = null,
@@ -881,6 +892,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get average credit score (overall, by agent or by year)")]
     [HttpGet("/loans/credit-score/average")]
+    // TESTED https://localhost:44352/loans/credit-score/average?agent=Maya%20Haffar&year=2019
     public string GetAverageCreditScore(
         [Description("What is the average credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -906,6 +918,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get highest credit score (overall, by agent or by year)")]
     [HttpGet("/loans/credit-score/max")]
+    // TESTED https://localhost:44352/loans/credit-score/max?agent=Maya%20Haffar&year=2019
     public string GetHighestCreditScore(
         [Description("What is the highest credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -931,6 +944,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get lowest credit score (overall, by agent or by year)")]
     [HttpGet("/loans/credit-score/min")]
+    // TESTED https://localhost:44352/loans/credit-score/min?agent=Maya%20Haffar&year=2019
     public string GetLowestCreditScore(
         [Description("What is the lowest credit score for the agent?")] string? agent = null,
         int? year = null)
@@ -960,6 +974,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get number of loans for a specific escrow company")]
     [HttpGet("/loans/total-by-escrow/{escrowCompany}")]
+    // TESTED https://localhost:44352/loans/total-by-escrow/Sun%20Escrow
     public string GetLoansByEscrow(
         [Description("What are the loans for a specific escrow company?")] string escrowCompany,
         string? agent = null,
@@ -990,6 +1005,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get all escrow companies")]
     [HttpGet("/loans/escrow-companies")]
+    // TESTED https://localhost:44352/loans/escrow-companies
     public string GetAllEscrowCompanies(
         [Description("What are the names of all escrow companies")] string dummy = "")
     {
@@ -1017,6 +1033,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get transactions for a specific escrow company")]
     [HttpGet("/loans/ecrowCompany/{escrowCompany}")]
+    // TESTED https://localhost:44352/loans/escrow-company/Sun%20Escrow?top=10
     public string GetTransactionsByEscrowCompany(
         [Description("List the transactions made by a specific escrow company")]
         string escrowCompany,
@@ -1053,6 +1070,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get top Escrow Companies ranked by number of transactions")]
     [HttpGet("/loans/top-escrow-companies")]
+    // TESTED https://localhost:44352/loans/top-escrow-companies?top=5
     public string GetTopEscrowCompanies(
         [Description("What are the top escrow companies")] int top = 10)
     {
@@ -1084,6 +1102,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get Escrow Company statistics (total loans, average, highest, lowest loan amounts)")]
     [HttpGet("/loans/escrow-statistics/{escrowCompany}")]
+    // TESTED https://localhost:44352/loans/escrow-statistics/Sun%20Escrow
     public string GetEscrowCompanyStats(
         [Description("What are the total loans and loan amount statistics for a specific escrow company?")] string escrowCompany)
     {
@@ -1127,6 +1146,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get total number of transactions for a lender")]
     [HttpGet("/loans/total-by-lender/{lender}")]
+    //  TESTED https://localhost:44352/loans/total-by-lender/Essex%20Mortgage
     public string GetTotalTransactionsByLender(
         [Description("How many transactions did this lender make?")] string lender,
         string? agent = null,
@@ -1156,6 +1176,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("What are the names of all title companies?")]
     [HttpGet("/loans/title-companies")]
+    // TESTED https://localhost:44352/loans/title-companies
     public string GetAllTitleCompanies()
     {
         string resultText = "";
@@ -1184,6 +1205,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get transactions for a specific title company")]
     [HttpGet("/loans/title-company/{titleCompany}")]
+    // TESTED https://localhost:44352/loans/title-company/Amrock?top=5
     public string GetTransactionsByTitleCompany(
         [Description("Which transactions were made by this title company?")] string titleCompany,
         int top = 10,
@@ -1229,6 +1251,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get 1099 for an agent for a specific year")]
     [HttpGet("/loans/1099/{agent}/{year}")]
+    // TESTED https://localhost:44352/loans/1099/Maya%20Haffar/2019
     public string GetAgent1099(
         [Description("What is the 1099 for this agent for a specific year?")] string agent,
         int year)
@@ -1252,6 +1275,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get lender statistics (total loans, average, highest, lowest loan amounts)")]
     [HttpGet("/loans/lender-statistics/{lender}")]
+    // TESTED https://localhost:44352/loans/lender-statistics/Essex%20Mortgage
     public string GetLenderStats(
         [Description("What are the total loans and loan amount statistics for this lender?")] string lender)
     {
