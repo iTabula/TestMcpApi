@@ -62,7 +62,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List real estate transactions by agent name")]
-    [HttpGet("/reals/{agent}")]
+    [HttpGet("/reals/agent/{agent}")]
     public string GetRealTransactionsByAgent(
          [Description("List the transactions made by the agent, during the selected year or date range")]
          string agent,
@@ -287,7 +287,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the lender name for a specific property address")]
-    [HttpGet("/reals/lender")]
+    [HttpGet("/reals/lender-by-address/{subjectAddress}")]
     public string GetLenderByPropertyAddress(
         [Description("Who is the lender for the property with this address?")] string subjectAddress)
     {
@@ -315,7 +315,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the LTV (Loan-to-Value) for a specific property address")]
-    [HttpGet("/reals/ltv")]
+    [HttpGet("/reals/ltv-by-address/{subjectAddress}")]
     public string GetLTVByPropertyAddress(
         [Description("What is the LTV for the property with this address?")] string subjectAddress)
     {
@@ -343,7 +343,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the total number of transactions made by a specific agent")]
-    [HttpGet("/reals/total-transactions/agent")]
+    [HttpGet("/reals/total-transactions/agent/{agent}")]
     public string GetTotalTransactionsByAgent(
         [Description("How many transactions has the agent completed?")] string agent,
         int? year = null,
@@ -376,7 +376,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the total number of transactions associated with a specific lender")]
-    [HttpGet("/reals/total-transactions/lender")]
+    [HttpGet("/reals/total-transactions/lender/{lender}")]
     public string GetTotalTransactionsByLender(
         [Description("How many transactions have been handled by the lender?")] string lender,
         int? year = null,
@@ -409,7 +409,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the property address by real transaction ID")]
-    [HttpGet("/reals/subject-address/{realTransId}")]
+    [HttpGet("/reals/address-by-id/{realTransId}")]
     public string GetSubjectAddressById(
         [Description("What is the property address for the real transaction ID?")] string realTransId)
     {
@@ -529,7 +529,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get all agent names, optionally sorted")]
-    [HttpGet("/agents")]
+    [HttpGet("/reals/agents")]
     public string GetAllAgents(
         [Description("List all agent names, sorted")]
         bool sortByName = true,
@@ -855,54 +855,8 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("List transactions by transaction type")]
-    [HttpGet("/reals/by-trans-type")]
-    public string GetByTransType(
-        [Description("List the transactions that have the given transaction type")]
-        string transType,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        IEnumerable<string>? agents = null;
-        if (!string.IsNullOrWhiteSpace(agent))
-            agents = new[] { agent };
-
-        var data = FilterRealTransactions(svc, agents, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(t.TransType))
-                   .Where(t => string.Equals(t.TransType, transType, StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found with transaction type '{transType}' using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions with transaction type '{transType}'{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
     [Description("List transactions by party presented")]
-    [HttpGet("/reals/by-party-presented")]
+    [HttpGet("/reals/by-party-presented/{partyPresented}")]
     public string GetByPartyPresented(
         [Description("List the transactions where the specified party was presented")]
         string party,
@@ -948,7 +902,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by client type")]
-    [HttpGet("/reals/by-client-type")]
+    [HttpGet("/reals/by-client-type/{clientType}")]
     public string GetByClientType(
         [Description("List the transactions for the specified client type")]
         string clientType,
@@ -994,7 +948,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by property type")]
-    [HttpGet("/reals/by-prop-type")]
+    [HttpGet("/reals/by-prop-type/{propType}")]
     public string GetByPropType(
         [Description("List the transactions for the specified property type")]
         string propType,
@@ -1040,7 +994,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by transaction type")]
-    [HttpGet("/reals/by-trans-type")]
+    [HttpGet("/reals/by-trans-type/{transType}")]
     public string GetByTransactionType(
         [Description("List the transactions for the specified transaction type")]
         string transType,
@@ -1086,7 +1040,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by finance info")]
-    [HttpGet("/reals/by-finance-info")]
+    [HttpGet("/reals/by-finance-info/{financeInfo}")]
     public string GetByFinanceInfo(
         [Description("List the transactions with the specified finance information")]
         string financeInfo,
@@ -1132,7 +1086,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by CAR forms count")]
-    [HttpGet("/reals/by-car-forms")]
+    [HttpGet("/reals/by-car-forms/{carForms}")]
     public string GetByCARForms(
         [Description("List the transactions with the specified number of CAR forms")]
         int carForms,
@@ -1177,7 +1131,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by NMLS number")]
-    [HttpGet("/reals/by-nmls-number")]
+    [HttpGet("/reals/by-nmls-number/{nmlsNumber}")]
     public string GetByNMLSNumber(
         [Description("List the transactions associated with the specified NMLS number")]
         string nmlsNumber,
@@ -1222,7 +1176,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by home inspection name")]
-    [HttpGet("/reals/by-home-inspection-name")]
+    [HttpGet("/reals/by-home-inspection-name/{inspectionName}")]
     public string GetByHomeInspectionName(
         [Description("List the transactions associated with the specified home inspection company or inspector")]
         string inspectionName,
@@ -1268,7 +1222,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by pest inspection name")]
-    [HttpGet("/reals/by-pest-inspection-name")]
+    [HttpGet("/reals/by-pest-inspection-name/{inspectionName}")]
     public string GetByPestInspectionName(
         [Description("List the transactions associated with the specified pest inspection company or inspector")]
         string inspectionName,
@@ -1314,7 +1268,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by TC flag")]
-    [HttpGet("/reals/by-tc-flag")]
+    [HttpGet("/reals/by-tc-flag/{tcFlag}")]
     public string GetByTCFlag(
         [Description("List the transactions associated with the specified TC flag")]
         string tcFlag,
@@ -1361,7 +1315,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by TC number")]
-    [HttpGet("/reals/by-tc")]
+    [HttpGet("/reals/by-tc/{tc}")]
     public string GetByTC(
         [Description("List the transactions associated with the specified TC number")]
         int tc,
@@ -1770,7 +1724,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List real estate transactions by payable to")]
-    [HttpGet("/reals/payable-to")]
+    [HttpGet("/reals/payable-to/{payableTo}")]
     public string GetByPayableTo(
         [Description("List the transactions where the payment is payable to the specified recipient")]
         string payableTo,
@@ -1816,7 +1770,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("List real estate transactions by routing number")]
-    [HttpGet("/reals/routing-number")]
+    [HttpGet("/reals/routing-number/{routingNumber}")]
     public string GetByRoutingNumber(
         [Description("List the transactions that use the specified routing number")]
         string routingNumber,
@@ -1862,7 +1816,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the transaction type for a property using its address")]
-    [HttpGet("/reals/trans-type")]
+    [HttpGet("/reals/trans-type-for-address/{subjectAddress}")]
     public string GetTransTypeByPropertyAddress(
         [Description("What is the transaction type for the property at this address?")]
         string subjectAddress)
@@ -1882,7 +1836,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the party presented for a property using its address")]
-    [HttpGet("/reals/party-presented")]
+    [HttpGet("/reals/party-presented-for-address/{subjectAddress}")]
     public string GetPartyPresentedByPropertyAddress(
         [Description("Who is the party presented for the property at this address?")]
         string subjectAddress)
@@ -1902,7 +1856,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the client type for a property using its address")]
-    [HttpGet("/reals/client-type")]
+    [HttpGet("/reals/client-type-for-address/{subjectAddress}")]
     public string GetClientTypeByPropertyAddress(
         [Description("What is the client type for the property at this address?")]
         string subjectAddress)
@@ -1922,7 +1876,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the price for a property using its address")]
-    [HttpGet("/reals/price")]
+    [HttpGet("/reals/price-for-property/{subjectAddress}")]
     public string GetPriceByPropertyAddress(
         [Description("What is the price for the property at this address?")]
         string subjectAddress)
@@ -1942,7 +1896,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the number of CAR forms for a property using its address")]
-    [HttpGet("/reals/carforms")]
+    [HttpGet("/reals/carforms-for-property/{subjectAddress}")]
     public string GetCARFormsByPropertyAddress(
         [Description("How many CAR forms are associated with the property at this address?")]
         string subjectAddress)
@@ -1962,7 +1916,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get the NMLS number for a property using its address")]
-    [HttpGet("/reals/nmls")]
+    [HttpGet("/reals/nmls-for-property/{subjectAddress}")]
     public string GetNMLSNumberByPropertyAddress(
         [Description("What is the NMLS number associated with the property at this address?")]
         string subjectAddress)
@@ -2192,7 +2146,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get home inspection information for a property by address")]
-    [HttpGet("/reals/home-inspection/{subjectAddress}")]
+    [HttpGet("/reals/home-inspection-info/{subjectAddress}")]
     public string GetHomeInspectionInfo(
         [Description("What is the home inspection information for the property located at this address?")]
         string subjectAddress)
@@ -2222,7 +2176,7 @@ public class RealsController : ControllerBase
 
     [McpServerTool]
     [Description("Get pest inspection information for a property by address")]
-    [HttpGet("/reals/pest-inspection/{subjectAddress}")]
+    [HttpGet("/reals/pest-inspection-info/{subjectAddress}")]
     public string GetPestInspectionInfo(
         [Description("What is the pest inspection information for the property located at this address?")]
         string subjectAddress)
