@@ -1246,17 +1246,7 @@ public class LoansController : ControllerBase
             data = data.Where(t =>
                 t.AgentName != null &&
                 Normalize(t.AgentName).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
-
-            //data = data.Where(t => t.AgentName == "Maya Haffar");
         }
-
-        //if (agent != null)
-        //    data = data.Where(t =>
-        //        t.AgentName != null &&
-        //        t.AgentName.IndexOf(agent, StringComparison.OrdinalIgnoreCase) >= 0);
-
-        //data = data.Where(t => t.AgentName != null && t.AgentName.Contains(agent, StringComparison.OrdinalIgnoreCase));
-
 
 
         if (year.HasValue)
