@@ -25,7 +25,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get top agents ranked by number of transactions")]
-    [HttpGet("/loans/top-agents")] //tested
+    [HttpGet("/loans/top-agents")]
+    // TESTED https://localhost:44352/loans/agents?sortByName=true&descending=false
     public string GetTopAgents(
         [Description("who are the top agents for KAM")] int top = 5,
         int? year = null,
@@ -57,7 +58,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("List transactions by agent name")]
-    [HttpGet("/loans/agent/{agent}")] //tested
+    [HttpGet("/loans/agent/{agent}")]
+    // TESTED https://localhost:44352/loans/top-agents?top=5&year=2023
     public string GetTransactionsByAgent(
         [Description("List the transactions made by the agent, during the year")]
         string agent,
@@ -89,7 +91,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get Agent responsible for a specific loan")]
-    [HttpGet("/loans/agent-by-id/{loanId}")] //tested
+    [HttpGet("/loans/agent-by-id/{loanId}")]
+    // TESTED https://localhost:44352/loans/agent-by-id/17
     public string GetAgentByLoan(
         [Description("who is the agent responsible for the loan")]
         string loanId)
@@ -108,7 +111,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get Agent responsible for a specific property address")]
-    [HttpGet("/loans/agent-by-address/{address}")] //tested
+    [HttpGet("/loans/agent-by-address/{address}")]
+    // TESTED https://localhost:44352/loans/agent-by-address/123%20Main%20Street
     public string GetAgentByAddress(
         [Description("Who is the agent responsible for this property address?")]
         string address)
@@ -128,7 +132,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get total number of transactions for an agent")]
-    [HttpGet("/loans/total-for-agent/{agent}")] //tested
+    [HttpGet("/loans/total-for-agent/{agent}")]
+    // TESTED https://localhost:44352/loans/total-for-agent/Maya%20Haffar?year=2019
     public string GetTotalTransactionsByAgent(
         [Description("How many transactions did the agent make, in the year")]
         string agent,
@@ -154,6 +159,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get all agent names, optionally sorted")]
     [HttpGet("/loans/agents")]
+    // TESTED https://localhost:44352/loans/agents?sortByName=true&descending=false
     public string GetAllAgents(
         [Description("List all agent names, sorted")]
         bool sortByName = true,
@@ -183,6 +189,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get subject address by loan number")]
     [HttpGet("/loans/address-by-id/{loanId}")]
+    // TESTED https://localhost:44352/loans/address-by-id/17
     public string GetAddressByLoan(
         [Description("What is the address of the property for this specific loan?")] string loanId)
     {
@@ -205,6 +212,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get the loans in a specific state")]
     [HttpGet("/loans/state/{state}")]
+    // TESTED https://localhost:44352/loans/state/CA?top=10&year=2024
     public string GetLoansByState(
         [Description("Which state do you want to get loans for?")] string state,
         int top = 10,
@@ -253,6 +261,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get lender for a specific loan")]
     [HttpGet("/loans/id/lender-by-id/{loanId}")]
+    // TESTED https://localhost:44352/loans/id/lender-by-id/17
     public string GetLender(
         [Description("Who is the lender for this specific loan?")] string loanId)
     {
@@ -272,6 +281,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get lender for a specific property address")]
     [HttpGet("/loans/address/lender-by-address/{address}")]
+    // TESTED https://localhost:44352/loans/address/lender-by-address/123%20Main%20Street
     public string GetLenderByAddress(
         [Description("Who is the lender for this specific property address?")]
         string address)
@@ -292,7 +302,8 @@ public class LoansController : ControllerBase
 
     [McpServerTool]
     [Description("Get LTV of a specific loan")]
-    [HttpGet("/loans/ltv-by-id{loanId}")]
+    [HttpGet("/loans/ltv-by-id/{loanId}")]
+    // TESTED https://localhost:44352/loans/ltv-by-id17
     public string GetLTV(
         [Description("What is the LTV for this specific loan?")] string loanId)
     {
@@ -313,6 +324,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get LTV of a specific property address")]
     [HttpGet("/loans/ltv-by-address/{address}")]
+    // TESTED https://localhost:44352/loans/ltv-by-address/123%20Main%20Street
     public string GetLTVByAddress(
         [Description("What is the LTV for this property address?")]
         string address)
@@ -337,6 +349,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get the IDs of loans with a specific status (Active = Submitted / Not Submitted)")]
     [HttpGet("/loans/status/{status}")]
+    // TESTED https://localhost:44352/loans/status/Submitted?top=10&year=2024
     public string GetLoanIdsByStatus(
     [Description("What are the loan IDs with this status?")] string status,
     int top = 10,
@@ -371,6 +384,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get loans that haven't been closed yet")]
     [HttpGet("/loans/open")]
+    // TESTED https://localhost:44352/loans/open?top=10&year=2024
     public string GetOpenLoans(
         [Description("Which loans are still open and haven't been closed yet?")]
         int top = 10,
@@ -411,6 +425,8 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get the most popular ZIP code or get the top zip codes for properties being sold or bought")]
     [HttpGet("/loans/top-zips")]
+    // TESTED https://localhost:44352/loans/top-zips?year=2024
+    // NOTE: HANDLE VALUE N/A
     public string GetMostPopularZip(
         [Description("Which ZIP code appears most frequently in the loans or what are the top zip codes for properties being sold or bought?")] int top = 1,
         string? agent = null,
@@ -436,6 +452,7 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get top cities ranked by number of transactions")]
     [HttpGet("/loans/top-cities")]
+    // TESTED https://localhost:44352/loans/top-cities?top=5&agent=Maya%20Haffar&year=2019
     public string GetTopCities(
         [Description("Which cities have the highest number of transactions?")] int top = 10,
         string? agent = null,
@@ -457,6 +474,11 @@ public class LoansController : ControllerBase
                              .OrderByDescending(g => g.Count())
                              .Take(top)
                              .Select(g => new { City = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopCityResult> results = JsonSerializer.Deserialize<List<TopCityResult>>(JsonSerializer.Serialize(result))!;
 
@@ -492,6 +514,11 @@ public class LoansController : ControllerBase
                              .Take(1)
                              .Select(g => new { PropType = g.Key, Transactions = g.Count() });
 
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
+
             List<TopPropertyTypeResult> results = JsonSerializer.Deserialize<List<TopPropertyTypeResult>>(JsonSerializer.Serialize(result))!;
 
             type = results.Select(r => r.PropType + " with " + r.Transactions + " transactions")
@@ -526,6 +553,11 @@ public class LoansController : ControllerBase
                              .Take(1)
                              .Select(g => new { TransactionType = g.Key, Transactions = g.Count() });
 
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
+
             List<TopTransactionTypeResult> results = JsonSerializer.Deserialize<List<TopTransactionTypeResult>>(JsonSerializer.Serialize(result))!;
 
             type = results.Select(r => r.TransactionType + " with " + r.Transactions + " transactions")
@@ -558,6 +590,11 @@ public class LoansController : ControllerBase
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { MortgageType = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopMortgageTypeResult> results = JsonSerializer.Deserialize<List<TopMortgageTypeResult>>(JsonSerializer.Serialize(result))!;
 
@@ -592,6 +629,11 @@ public class LoansController : ControllerBase
                              .Take(1)
                              .Select(g => new { BrokeringType = g.Key, Transactions = g.Count() });
 
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
+
             List<TopBrokeringTypeResult> results = JsonSerializer.Deserialize<List<TopBrokeringTypeResult>>(JsonSerializer.Serialize(result))!;
 
             type = results.Select(r => r.BrokeringType + " with " + r.Transactions + " transactions")
@@ -624,6 +666,11 @@ public class LoansController : ControllerBase
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { LoanType = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopLoanTypeResult> results = JsonSerializer.Deserialize<List<TopLoanTypeResult>>(JsonSerializer.Serialize(result))!;
             type = results.Select(r => r.LoanType + " with " + r.Transactions + " transactions")
@@ -658,6 +705,11 @@ public class LoansController : ControllerBase
                              .Take(1)
                              .Select(g => new { EscrowMethod = g.Key, Transactions = g.Count() });
 
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
+
             List<TopEscrowMethodResult> results = JsonSerializer.Deserialize<List<TopEscrowMethodResult>>(JsonSerializer.Serialize(result))!;
             method = results.Select(r => r.EscrowMethod + " with " + r.Transactions + " transactions")
                             .Aggregate((a, b) => a + ", " + b);
@@ -691,6 +743,11 @@ public class LoansController : ControllerBase
                              .Take(1)
                              .Select(g => new { TitleCompany = g.Key, Transactions = g.Count() });
 
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
+
             List<TopTitleCompanyResult> results = JsonSerializer.Deserialize<List<TopTitleCompanyResult>>(JsonSerializer.Serialize(result))!;
             company = results.Select(r => r.TitleCompany + " with " + r.Transactions + " transactions")
                              .Aggregate((a, b) => a + ", " + b);
@@ -723,6 +780,11 @@ public class LoansController : ControllerBase
                              .OrderByDescending(g => g.Count())
                              .Take(1)
                              .Select(g => new { EscrowCompany = g.Key, Transactions = g.Count() });
+
+            if (!result.Any() || result.Count() == 0)
+            {
+                return "Result Not Available";
+            }
 
             List<TopEscrowCompanyResult> results = JsonSerializer.Deserialize<List<TopEscrowCompanyResult>>(JsonSerializer.Serialize(result))!;
             company = results.Select(r => r.EscrowCompany + " with " + r.Transactions + " transactions")
