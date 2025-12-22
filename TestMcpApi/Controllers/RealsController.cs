@@ -84,18 +84,19 @@ public class RealsController : ControllerBase
                     .Take(top)
                     .Select(t => new
                     {
-                        ID = t.RealTransID,
-                        Type = t.TransactionType ?? t.TransType,
-                        Amount = t.RealAmount ?? t.PurchasePrice,
-                        Address = t.SubjectAddress,
-                        ClosedDate = t.ActualClosedDate
+                        RealTransID = t.RealTransID,
+                        ClientFullName = $"{t.ClientFirstName} {t.ClientLastName}".Trim(),
+                        AgentName = t.AgentName,
+                        TransactionType = t.TransactionType ?? t.TransType,
+                        RealAmount = t.RealAmount ?? t.PurchasePrice,
+                        SubjectAddress = t.SubjectAddress,
+                        ActualClosedDate = t.ActualClosedDate
                     });
 
         if (!data.Any())
             return $"No real estate transactions found for agent {agent} using the selected filters.";
 
-        List<RealTransactionDto> results =
-            JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
+        List<RealTransactionDto> results = JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
 
         transactions = results
             .Select(r =>
