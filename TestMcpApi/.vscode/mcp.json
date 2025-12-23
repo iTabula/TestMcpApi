@@ -1,0 +1,13 @@
+{
+	"servers": {
+		"TestMcpApi": {
+			"type": "stdio",
+			"command": "dotnet",
+			"args": [
+				"run",
+                "--project",
+                "C:/Users/rodai/TestMcpApi/TestMcpApi.csproj"
+			]
+		}
+	}
+}
