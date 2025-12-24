@@ -13,6 +13,7 @@ builder.Services
 
 builder.Services.AddSingleton<ILoanTransactionService, LoanTransactionService>();
 builder.Services.AddSingleton<IRealTransactionService, RealTransactionService>();
+builder.Services.AddSingleton<ILenderService, LenderService>();
 
 
 var app = builder.Build();
