@@ -15,7 +15,7 @@ namespace TestMcpApi.Services;
 
 public class LenderService : ILenderService
 {
-    private readonly List<Lenders> _data = new();
+    private readonly List<Lender> _data = new();
     private string _errorLoadCsv = string.Empty;
 
     public string ErrorLoadCsv => _errorLoadCsv;
@@ -39,7 +39,7 @@ public class LenderService : ILenderService
 
             using SqlConnection db = new SqlConnection(connStr);
             const string sql = "SELECT * FROM LendersView ORDER BY 1 DESC";
-            var list = db.Query<Lenders>(sql).AsList();
+            var list = db.Query<Lender>(sql).AsList();
             _data.AddRange(list);
 
             return string.Empty;
@@ -50,24 +50,24 @@ public class LenderService : ILenderService
         }
     }
 
-    public Task<List<Lenders>> GetLenders()
+    public Task<List<Lender>> GetLenders()
         => Task.FromResult(_data);
 
-    public Task<Lenders?> GetLenderById(int lenderId)
+    public Task<Lender?> GetLenderById(int lenderId)
         => Task.FromResult(_data.FirstOrDefault(l => l.LenderID == lenderId));
 
-    public IEnumerable<Lenders> GetByCompany(string companyName)
+    public IEnumerable<Lender> GetByCompany(string companyName)
         => _data.Where(l => !string.IsNullOrEmpty(l.CompanyName) &&
                             l.CompanyName.Contains(companyName, StringComparison.OrdinalIgnoreCase));
 
-    public IEnumerable<Lenders> GetByName(string name)
+    public IEnumerable<Lender> GetByName(string name)
         => _data.Where(l => !string.IsNullOrEmpty(l.LenderContact) &&
                             l.LenderContact.Contains(name, StringComparison.OrdinalIgnoreCase));
 
-    public IEnumerable<Lenders> GetVAApproved()
+    public IEnumerable<Lender> GetVAApproved()
         => _data.Where(l => l.VAApproved == "Yes");
 
-    public IEnumerable<Lenders> GetActiveLenders()
+    public IEnumerable<Lender> GetActiveLenders()
         => _data.Where(l => l.Status == "Active");
 
     public int GetTotalLenders() => _data.Count;
@@ -107,15 +107,15 @@ public class LenderService : ILenderService
                 .Where(c => !string.IsNullOrEmpty(c))
                 .Distinct();
 
-    public IEnumerable<Lenders> GetByCity(string city)
+    public IEnumerable<Lender> GetByCity(string city)
         => _data.Where(l => !string.IsNullOrEmpty(l.City) &&
                             l.City.Equals(city, StringComparison.OrdinalIgnoreCase));
 
-    public IEnumerable<Lenders> GetByState(string state)
+    public IEnumerable<Lender> GetByState(string state)
         => _data.Where(l => !string.IsNullOrEmpty(l.State) &&
                             l.State.Equals(state, StringComparison.OrdinalIgnoreCase));
 
-    public IEnumerable<Lenders> GetByDateRange(DateTime? from = null, DateTime? to = null)
+    public IEnumerable<Lender> GetByDateRange(DateTime? from = null, DateTime? to = null)
     {
         var data = _data.AsEnumerable();
         if (from.HasValue)
@@ -125,10 +125,10 @@ public class LenderService : ILenderService
         return data;
     }
 
-    public IEnumerable<Lenders> GetWithNotes()
+    public IEnumerable<Lender> GetWithNotes()
         => _data.Where(l => !string.IsNullOrEmpty(l.Notes) || !string.IsNullOrEmpty(l.ProcessorNotes));
 
-    public IEnumerable<Lenders> GetByWebsite(string website)
+    public IEnumerable<Lender> GetByWebsite(string website)
         => _data.Where(l => !string.IsNullOrEmpty(l.Website) &&
                             l.Website.Contains(website, StringComparison.OrdinalIgnoreCase));
 }

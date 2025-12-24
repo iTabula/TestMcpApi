@@ -1,6 +1,6 @@
 ﻿namespace TestMcpApi.Models
 {
-    public class Lenders
+    public class Lender
     {
         // Identifiers
         public int LenderID { get; set; }
@@ -41,7 +41,7 @@
         public string? VAApproved { get; set; }
 
         // Audit
-        public DateTime DateAdded { get; set; }
+        public DateTime? DateAdded { get; set; }
         public string? AddedBy { get; set; }
 
         public DateTime? LastUpdatedOn { get; set; }
