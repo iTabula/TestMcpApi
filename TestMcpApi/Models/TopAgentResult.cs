@@ -92,9 +92,11 @@
     public class LenderStatsResult
     {
         public int TotalTransactions { get; set; }
-        public decimal AvgAmount { get; set; }
+        public decimal? AvgAmount { get; set; }
         public decimal MaxAmount { get; set; }
         public decimal MinAmount { get; set; }
+        public decimal VARatio { get; set; }
+
     }
     public class HomeInspectionInfo
     {
@@ -174,5 +176,52 @@
         public decimal? AmountRetainedByKam { get; set; }
         public decimal? AmountPaidToKamAgent { get; set; }
     }
+    public class TopLenderResult
+    {
+        public string? Lender { get; set; }
+        public int Transactions { get; set; }
+    }
+    public class LenderStateResult
+    {
+        public string? CompanyName { get; set; }
+        public string? LenderContact { get; set; }
+        public string? City { get; set; }
+    }
+    public class LenderCompanyResult
+    {
+        public string? LenderContact { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+    }
+    public class VALenderResult
+    {
+        public string? CompanyName { get; set; }
+        public string? LenderContact { get; set; }
+    }
+    public class LenderUsernameResult
+    {
+        public string? CompanyName { get; set; }
+        public string? LenderContact { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+    }
+    public class TopLenderCityResult
+    {
+        public string City { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+    public class TopLenderStateResult
+    {
+        public string State { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+    public class LenderVAStateStats
+    {
+        public string State { get; set; } = string.Empty;
+        public int Total { get; set; }
+        public int VAApproved { get; set; }
+        public double Ratio { get; set; }
+    }
+
 
 }
