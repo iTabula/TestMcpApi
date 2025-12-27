@@ -222,6 +222,18 @@
         public int VAApproved { get; set; }
         public double Ratio { get; set; }
     }
+    public class TopThirdPartyResult
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    public class ThirdPartyContactResult
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Username { get; set; }
+        public string? Website { get; set; }
+    }
 
 
 }
