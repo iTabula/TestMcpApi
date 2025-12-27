@@ -27,10 +27,10 @@ public class LendersController : ControllerBase
     [Description("Get top lenders ranked by number of transactions")]
     [HttpGet("/lenders/top")]
     public string GetTopLenders(
-    [Description("who are the top lenders for KAM")] int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("who are the top lenders for KAM")] int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -61,11 +61,11 @@ public class LendersController : ControllerBase
     [Description("List lenders operating in a specific state")]
     [HttpGet("/lenders/by-state/{state}")]
     public string GetLendersByState(
-    [Description("which lenders operate in this state")] string state,
-    int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("which lenders operate in this state")] string state,
+        int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -101,11 +101,11 @@ public class LendersController : ControllerBase
     [Description("List lenders by company name")]
     [HttpGet("/lenders/by-company/{company}")]
     public string GetLendersByCompany(
-    [Description("which lenders work at this company")] string company,
-    int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("which lenders work at this company")] string company,
+        int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -141,10 +141,10 @@ public class LendersController : ControllerBase
     [Description("List VA approved lenders")]
     [HttpGet("/lenders/va-approved")]
     public string GetVAApprovedLenders(
-    [Description("which lenders are VA approved")] int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("which lenders are VA approved")] int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -175,9 +175,9 @@ public class LendersController : ControllerBase
     [Description("Get the most popular lender company based on number of transactions")]
     [HttpGet("/lenders/most-popular-company")]
     public string GetMostPopularLenderCompany(
-    [Description("what is the most popular lender company")] int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("what is the most popular lender company")] int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -200,9 +200,9 @@ public class LendersController : ControllerBase
     [Description("Get statistics for lenders including total count, average compensation, and VA approval ratio")]
     [HttpGet("/lenders/stats")]
     public string GetLenderStats(
-    [Description("what are the lender statistics for KAM")] int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("what are the lender statistics for KAM")] int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -237,7 +237,7 @@ public class LendersController : ControllerBase
     [Description("Get the primary lender contact for a specific company")]
     [HttpGet("/lenders/contact-by-company/{company}")]
     public string GetLenderContactByCompany(
-    [Description("who is the lender contact for this company")] string company)
+        [Description("who is the lender contact for this company")] string company)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -258,7 +258,7 @@ public class LendersController : ControllerBase
     [Description("Get lender information by ID")]
     [HttpGet("/lenders/by-username/{username}")]
     public string GetLenderByID(
-    [Description("which lender is associated with this ID")] string id)
+        [Description("which lender is associated with this ID")] string id)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -287,10 +287,10 @@ public class LendersController : ControllerBase
     [Description("Get the top cities with the most lenders")]
     [HttpGet("/lenders/top-cities")]
     public string GetTopLenderCities(
-    [Description("what are the top cities with the most lenders")] int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("what are the top cities with the most lenders")] int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -323,10 +323,10 @@ public class LendersController : ControllerBase
     [Description("List lenders that have notes or processor notes")]
     [HttpGet("/lenders/with-notes")]
     public string GetLendersWithNotes(
-    [Description("which lenders have notes recorded")] int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("which lenders have notes recorded")] int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -351,10 +351,10 @@ public class LendersController : ControllerBase
     [Description("List inactive lenders")]
     [HttpGet("/lenders/inactive")]
     public string GetInactiveLenders(
-    [Description("which lenders are inactive")] int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("which lenders are inactive")] int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -378,11 +378,11 @@ public class LendersController : ControllerBase
     [Description("List lenders by website domain")]
     [HttpGet("/lenders/by-website/{website}")]
     public string GetLendersByWebsite(
-    [Description("which lenders use this website")] string website,
-    int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("which lenders use this website")] string website,
+        int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -410,10 +410,11 @@ public class LendersController : ControllerBase
     [Description("Get the top states with the most lenders")]
     [HttpGet("/lenders/top-states")]
     public string GetTopLendersByState(
-    int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("What are the top states with the most lenders?")]
+        int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -446,10 +447,11 @@ public class LendersController : ControllerBase
     [Description("Get VA approved lender ratio by state")]
     [HttpGet("/lenders/va-ratio-by-state")]
     public string GetLendersVAApprovedRatioByState(
-    int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("Which states have the highest VA-approved lender ratios?")]
+        int top = 10,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -489,10 +491,11 @@ public class LendersController : ControllerBase
     [Description("Get the most common lender job titles")]
     [HttpGet("/lenders/common-titles")]
     public string GetMostCommonLenderTitle(
-    int top = 5,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("What are the most common lender job titles?")]
+        int top = 5,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -517,9 +520,10 @@ public class LendersController : ControllerBase
     [Description("Get recently added lenders")]
     [HttpGet("/lenders/recent")]
     public string GetRecentlyAddedLenders(
-    int top = 10,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("Who are the most recently added lenders??")]
+        int top = 10,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
