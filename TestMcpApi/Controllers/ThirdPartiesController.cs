@@ -27,10 +27,10 @@ public class ThirdPartiesController : ControllerBase
     [Description("Get the most popular third-party purpose")]
     [HttpGet("/thirdparties/most-popular-purpose")]
     public string GetMostPopularPurpose(
-    [Description("Which is the most common purpose of third parties?")] string? name = null,
-    [Description("Filter for year updated?")] int? year = null,
-    [Description("Filter from date?")] DateTime? from = null,
-    [Description("Filter to date?")] DateTime? to = null)
+        [Description("Which is the most common purpose of third parties?")] string? name = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -44,11 +44,11 @@ public class ThirdPartiesController : ControllerBase
     [HttpGet("/thirdparties/top-names")]
     public string GetTopThirdPartyNames(
         [Description("Which third parties are the most common?")] int top = 10,
-        [Description("Filter by name?")] string? name = null,
-        [Description("Filter by purpose?")] string? purpose = null,
-        [Description("Filter by year updated?")] int? year = null,
-        [Description("Filter from date?")] DateTime? from = null,
-        [Description("Filter to date?")] DateTime? to = null)
+        string? name = null,
+        string? purpose = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -74,10 +74,10 @@ public class ThirdPartiesController : ControllerBase
     [HttpGet("/thirdparties/contacts")]
     public string GetThirdPartyContacts(
         [Description("Which third parties' contact info do you want?")] string? name = null,
-        [Description("Filter by purpose?")] string? purpose = null,
-        [Description("Filter by year updated?")] int? year = null,
-        [Description("Filter from date?")] DateTime? from = null,
-        [Description("Filter to date?")] DateTime? to = null)
+        string? purpose = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -104,11 +104,11 @@ public class ThirdPartiesController : ControllerBase
     [HttpGet("/thirdparties/with-notes")]
     public string GetThirdPartiesWithNotes(
         [Description("Do you want to see all third parties that have notes?")] int top = 10,
-        [Description("Filter by name?")] string? name = null,
-        [Description("Filter by purpose?")] string? purpose = null,
-        [Description("Filter by year updated?")] int? year = null,
-        [Description("Filter from date?")] DateTime? from = null,
-        [Description("Filter to date?")] DateTime? to = null)
+        string? name = null,
+        string? purpose = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -129,11 +129,11 @@ public class ThirdPartiesController : ControllerBase
     [HttpGet("/thirdparties/admin-only")]
     public string GetAdminOnlyThirdParties(
         [Description("Do you want to see third parties that are admin view only?")] int top = 10,
-        [Description("Filter by name?")] string? name = null,
-        [Description("Filter by purpose?")] string? purpose = null,
-        [Description("Filter by year updated?")] int? year = null,
-        [Description("Filter from date?")] DateTime? from = null,
-        [Description("Filter to date?")] DateTime? to = null)
+        string? name = null,
+        string? purpose = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -153,7 +153,7 @@ public class ThirdPartiesController : ControllerBase
     [Description("Get third party info by username")]
     [HttpGet("/thirdparties/by-username")]
     public string GetThirdPartyByUsername(
-    [Description("What is the username of the third party you are looking for?")] string username)
+        [Description("What is the username of the third party you are looking for?")] string username)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -175,11 +175,11 @@ public class ThirdPartiesController : ControllerBase
     [Description("Get statistics for third parties")]
     [HttpGet("/thirdparties/stats")]
     public string GetThirdPartyStats(
-    [Description("Optional: Filter by name?")] string? name = null,
-    [Description("Optional: Filter by purpose?")] string? purpose = null,
-    [Description("Optional: Filter by year updated?")] int? year = null,
-    [Description("Optional: Filter from date?")] DateTime? from = null,
-    [Description("Optional: Filter to date?")] DateTime? to = null)
+        [Description("What are the third-party stats?")] string? name = null,
+        string? purpose = null,
+        int? year = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -199,9 +199,6 @@ public class ThirdPartiesController : ControllerBase
 
         return $"Filtered third-party stats: Total = {total}, Most recent update = {(lastUpdated.HasValue ? lastUpdated.Value.ToString("yyyy-MM-dd") : "N/A")}, Most common purpose = {purposes}.";
     }
-
-
-
 
     // HELPERS
     private static IEnumerable<ThirdParty> Filter(
