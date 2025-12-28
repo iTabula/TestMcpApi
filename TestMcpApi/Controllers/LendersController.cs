@@ -26,6 +26,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get top lenders ranked by number of transactions")]
     [HttpGet("/lenders/top")]
+    // https://localhost:44352/lenders/top?top=10&year=2024 TESTED
     public string GetTopLenders(
         [Description("who are the top lenders for KAM")] int top = 10,
         int? year = null,
@@ -60,6 +61,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("List lenders operating in a specific state")]
     [HttpGet("/lenders/by-state/{state}")]
+    // https://localhost:44352/lenders/by-state/CA?top=10 TESTED
     public string GetLendersByState(
         [Description("which lenders operate in this state")] string state,
         int top = 10,
@@ -100,6 +102,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("List lenders by company name")]
     [HttpGet("/lenders/by-company/{company}")]
+    // https://localhost:44352/lenders/by-company/United?top=5 TESTED
     public string GetLendersByCompany(
         [Description("which lenders work at this company")] string company,
         int top = 10,
@@ -140,6 +143,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("List VA approved lenders")]
     [HttpGet("/lenders/va-approved")]
+    // https://localhost:44352/lenders/va-approved?top=10 TESTED
     public string GetVAApprovedLenders(
         [Description("which lenders are VA approved")] int top = 10,
         int? year = null,
@@ -174,6 +178,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get the most popular lender company based on number of transactions")]
     [HttpGet("/lenders/most-popular-company")]
+    // https://localhost:44352/lenders/most-popular-company?year=2024 TESTED
     public string GetMostPopularLenderCompany(
         [Description("what is the most popular lender company")] int? year = null,
         DateTime? from = null,
@@ -199,6 +204,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get statistics for lenders including total count, average compensation, and VA approval ratio")]
     [HttpGet("/lenders/stats")]
+    // https://localhost:44352/lenders/stats?year=2024 TESTED
     public string GetLenderStats(
         [Description("what are the lender statistics for KAM")] int? year = null,
         DateTime? from = null,
@@ -236,6 +242,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get the primary lender contact for a specific company")]
     [HttpGet("/lenders/contact-by-company/{company}")]
+    // https://localhost:44352/lenders/contact-by-company/United TESTED
     public string GetLenderContactByCompany(
         [Description("who is the lender contact for this company")] string company)
     {
@@ -256,7 +263,8 @@ public class LendersController : ControllerBase
 
     [McpServerTool]
     [Description("Get lender information by ID")]
-    [HttpGet("/lenders/by-username/{username}")]
+    [HttpGet("/lenders/by-id/{id}")]
+    // https://localhost:44352/lenders/by-id/12 TESTED
     public string GetLenderByID(
         [Description("which lender is associated with this ID")] string id)
     {
@@ -286,6 +294,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get the top cities with the most lenders")]
     [HttpGet("/lenders/top-cities")]
+    // https://localhost:44352/lenders/top-cities?top=10 TESTED
     public string GetTopLenderCities(
         [Description("what are the top cities with the most lenders")] int top = 10,
         int? year = null,
@@ -322,6 +331,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("List lenders that have notes or processor notes")]
     [HttpGet("/lenders/with-notes")]
+    // https://localhost:44352/lenders/with-notes?top=10 TESTED
     public string GetLendersWithNotes(
         [Description("which lenders have notes recorded")] int top = 10,
         int? year = null,
@@ -350,6 +360,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("List inactive lenders")]
     [HttpGet("/lenders/inactive")]
+    // https://localhost:44352/lenders/inactive?top=10 TESTED
     public string GetInactiveLenders(
         [Description("which lenders are inactive")] int top = 10,
         int? year = null,
@@ -377,6 +388,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("List lenders by website domain")]
     [HttpGet("/lenders/by-website/{website}")]
+    // https://localhost:44352/lenders/by-website/mortgage?top=10 TESTED
     public string GetLendersByWebsite(
         [Description("which lenders use this website")] string website,
         int top = 10,
@@ -409,6 +421,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get the top states with the most lenders")]
     [HttpGet("/lenders/top-states")]
+    // https://localhost:44352/lenders/top-states?top=5 TESTED
     public string GetTopLendersByState(
         [Description("What are the top states with the most lenders?")]
         int top = 10,
@@ -446,6 +459,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get VA approved lender ratio by state")]
     [HttpGet("/lenders/va-ratio-by-state")]
+    // https://localhost:44352/lenders/va-ratio-by-state?top=5 TESTED
     public string GetLendersVAApprovedRatioByState(
         [Description("Which states have the highest VA-approved lender ratios?")]
         int top = 10,
@@ -490,6 +504,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get the most common lender job titles")]
     [HttpGet("/lenders/common-titles")]
+    // https://localhost:44352/lenders/common-titles?top=5 TESTED
     public string GetMostCommonLenderTitle(
         [Description("What are the most common lender job titles?")]
         int top = 5,
@@ -519,6 +534,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("Get recently added lenders")]
     [HttpGet("/lenders/recent")]
+    // https://localhost:44352/lenders/recent?top=10 TESTED
     public string GetRecentlyAddedLenders(
         [Description("Who are the most recently added lenders??")]
         int top = 10,
