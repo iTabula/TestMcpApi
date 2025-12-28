@@ -14,6 +14,7 @@ builder.Services
 builder.Services.AddSingleton<ILoanTransactionService, LoanTransactionService>();
 builder.Services.AddSingleton<IRealTransactionService, RealTransactionService>();
 builder.Services.AddSingleton<ILenderService, LenderService>();
+builder.Services.AddSingleton<IThirdPartyService, ThirdPartyService>();
 
 
 var app = builder.Build();
