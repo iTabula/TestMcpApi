@@ -50,14 +50,19 @@ public class UserService : IUserService
         }
     }
 
-    public Task<List<User>> GetUsers()
+    public Task<List<User>> GetUsers(string AccessToken)
         => Task.FromResult(_data);
 
-    public Task<User?> GetUserById(int userId)
-        => Task.FromResult(_data.FirstOrDefault(l => l.UserId == userId));
+    public Task<User?> GetUserById(string AccessToken, string userId)
+        => Task.FromResult(_data.FirstOrDefault(l => l.UserId.ToString() == userId));
 
-    public Task<User?> GetUserByEmail(string email)
+    public Task<User?> GetUserByEmail(string AccessToken, string email)
         => Task.FromResult(_data.FirstOrDefault(l => l.Email == email));
+
+    //public Task<LoginResponse> LoginUser(string UserName, string Password)
+    //{
+
+    //}
 
 }
 

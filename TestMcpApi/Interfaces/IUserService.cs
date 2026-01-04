@@ -9,12 +9,13 @@ namespace TestMcpApi.Services
     {
         string ErrorLoadCsv { get; }
 
-        Task<List<UserPartial>> GetUsers(string AccessToken);
-        Task<List<User>> GetUsersBelongToGroup(string AccessToken, string groupId);
+        Task<List<User>> GetUsers(string AccessToken);
         Task<User> GetUserById(string AccessToken, string UserId);
         Task<User> GetUserByEmail(string AccessToken, string Email);
-        Task<LoginResponse> LoginUser(string UserName, string Password);
-        Task<User> CreateUser(string AccessToken, User user);
-        Task<User> UpdateUser(string AccessToken, User user, int UserId);
+
+        //Task<LoginResponse> LoginUser(string UserName, string Password);
+        //Task<User> CreateUser(string AccessToken, User user);
+        //Task<User> UpdateUser(string AccessToken, User user, int UserId);
+        //Task<List<User>> GetUsersBelongToGroup(string AccessToken, string groupId);
     }
 }
