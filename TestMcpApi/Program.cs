@@ -1,4 +1,5 @@
 ﻿using ModelContextProtocol.AspNetCore;
+using TestMcpApi.Interfaces;
 using TestMcpApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,8 @@ builder.Services.AddSingleton<ILoanTransactionService, LoanTransactionService>()
 builder.Services.AddSingleton<IRealTransactionService, RealTransactionService>();
 builder.Services.AddSingleton<ILenderService, LenderService>();
 builder.Services.AddSingleton<IThirdPartyService, ThirdPartyService>();
+builder.Services.AddSingleton<IFactoryHttpClient, FactoryHttpClient>();
+
 
 
 var app = builder.Build();
