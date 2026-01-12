@@ -27,7 +27,7 @@ namespace TestMcpApi.Services
             _unitOfWork = unitOfWork;
         }
 
-        public string GenerateJwtToken(string username, string userId, List<string> UserFeatures)
+        public string GenerateJwtToken(string username, string userId)
         {
             var claims = new List<Claim>
                 {
@@ -37,7 +37,7 @@ namespace TestMcpApi.Services
 
 
             //Add all the features
-            claims.AddRange(UserFeatures.Select(x => new Claim(x, "true")).ToList());
+            //claims.AddRange(UserFeatures.Select(x => new Claim(x, "true")).ToList());
 
             var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtOptions:SigningKey"]!));
             var signinCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
