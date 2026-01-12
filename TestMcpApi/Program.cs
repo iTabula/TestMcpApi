@@ -17,6 +17,7 @@ builder.Services.AddSingleton<IRealTransactionService, RealTransactionService>()
 builder.Services.AddSingleton<ILenderService, LenderService>();
 builder.Services.AddSingleton<IThirdPartyService, ThirdPartyService>();
 builder.Services.AddSingleton<IFactoryHttpClient, FactoryHttpClient>();
+builder.Services.AddSingleton<IUnitOfWork, UnitOfWork>();
 
 
 
