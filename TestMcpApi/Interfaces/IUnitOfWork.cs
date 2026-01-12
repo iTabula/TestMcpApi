@@ -14,33 +14,30 @@ namespace TestMcpApi.Services
 {
     public interface IUnitOfWork
     {
-        public interface IUnitOfWork
-        {
-            DbContext GetDbContext();
+        DbContext GetDbContext();
 
-            IRepository<User> Users { get; }
-            DbSet<User> UsersTable { get; }
+        IRepository<User> Users { get; }
+        DbSet<User> UsersTable { get; }
 
-            IRepository<AllUserRole> AllUserRoles { get; }
-            DbSet<AllUserRole> AllUserRolesTable { get; }
+        IRepository<AllUserRole> AllUserRoles { get; }
+        DbSet<AllUserRole> AllUserRolesTable { get; }
 
-            IRepository<Lender> Lenders { get; }
-            DbSet<Lender> LendersTable { get; }
+        IRepository<Lender> Lenders { get; }
+        DbSet<Lender> LendersTable { get; }
 
-            IRepository<LoanTransaction> LoanTransactions { get; }
-            DbSet<LoanTransaction> LoanTransactionsTable { get; }
+        IRepository<LoanTransaction> LoanTransactions { get; }
+        DbSet<LoanTransaction> LoanTransactionsTable { get; }
 
-            IRepository<RealTransaction> RealTransactions { get; }
-            DbSet<RealTransaction> RealTransactionsTable { get; }
+        IRepository<RealTransaction> RealTransactions { get; }
+        DbSet<RealTransaction> RealTransactionsTable { get; }
 
-            IRepository<Role> Roles { get; }
-            DbSet<Role> RolesTable { get; }
+        IRepository<Role> Roles { get; }
+        DbSet<Role> RolesTable { get; }
 
-            IRepository<ThirdParty> ThirdParties { get; }
-            DbSet<ThirdParty> ThirdPartiesTable { get; }
+        IRepository<ThirdParty> ThirdParties { get; }
+        DbSet<ThirdParty> ThirdPartiesTable { get; }
 
-            void Commit();
-        }
-
+        void Commit();
     }
+
 }
