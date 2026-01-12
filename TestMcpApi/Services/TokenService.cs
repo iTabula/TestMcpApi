@@ -66,7 +66,7 @@ namespace TestMcpApi.Services
         public Task<IActionResult> RefreshToken(string JwtToken, string RefreshToken)
         {
 
-            if (JwtToken.IsNullOrEmpty() || RefreshToken.IsNullOrEmpty())
+            if (string.IsNullOrEmpty(JwtToken) || string.IsNullOrEmpty(RefreshToken))
             {
                 throw new SecurityTokenException("Invalid Request");
                 //return BadRequest("Invalid client request");

@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="KamWeb/KamWeb.csproj" Id="75e08509-a5b3-4313-a2ea-d76af1dfa983" />
   <Project Path="TestMcpApi/TestMcpApi.csproj" />
 </Solution>
