@@ -11,7 +11,7 @@ namespace TestMcpApi.Interfaces
     public interface ITokenService
     {
 
-        string GenerateJwtToken(string username, string userId, List<string> UserFeatures);
+        string GenerateJwtToken(string username, string userId);
         public string GenerateRefreshToken();
         public Task<IActionResult> RefreshToken(string JwtToken, string RefreshToken);
 
