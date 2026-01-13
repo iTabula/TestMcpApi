@@ -1,4 +1,4 @@
-﻿namespace TestMcpApi.Models
+﻿namespace WebApi.Models
 {
     public partial class User
     {
