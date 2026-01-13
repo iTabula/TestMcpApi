@@ -7,8 +7,8 @@ using Azure.Core;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using System.Text.Json;
-using TestMcpApi.Services;
-using TestMcpApi.Models;
+using WebApi.Services;
+using WebApi.Models;
 
 namespace KamWeb.Pages
 {

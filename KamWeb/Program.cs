@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Net.Http.Headers;
 using System.Text.Json.Serialization;
-using TestMcpApi.Interfaces;
-using TestMcpApi.Services;
+using WebApi.Interfaces;
+using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,10 +23,6 @@ builder.Services.AddHttpClient("MyWebApi",
 
 builder.Services.AddSingleton<IFactoryHttpClient, FactoryHttpClient>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ILenderService, LenderService>();
-builder.Services.AddScoped<IThirdPartyService, ThirdPartyService>();
-builder.Services.AddScoped<ILoanTransactionService, LoanTransactionService>();
-builder.Services.AddScoped<IRealTransactionService, RealTransactionService>();
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>

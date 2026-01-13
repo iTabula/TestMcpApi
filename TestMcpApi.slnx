@@ -1,4 +1,7 @@
 <Solution>
-  <Project Path="KamWeb/KamWeb.csproj" Id="75e08509-a5b3-4313-a2ea-d76af1dfa983" />
+  <Project Path="KamWeb/KamWeb.csproj" Id="75e08509-a5b3-4313-a2ea-d76af1dfa983">
+    <BuildDependency Project="WebApi/WebApi.csproj" />
+  </Project>
   <Project Path="TestMcpApi/TestMcpApi.csproj" />
+  <Project Path="WebApi/WebApi.csproj" Id="48279bb4-1bce-4a24-877b-bf924af7757a" />
 </Solution>
