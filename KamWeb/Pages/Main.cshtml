@@ -1,0 +1,82 @@
+﻿@page
+@model KamWeb.Pages.MainModel
+@{
+    ViewData["Title"] = "Main - KAM Chat";
+}
+<div class="kam-chat-container" style="max-width:900px;margin:24px auto;font-family:Segoe UI,Arial;">
+    <h2>KAM Assistant</h2>
+    <div id="chat" style="border:1px solid #ccc;padding:12px;border-radius:6px;height:420px;overflow:auto;background:#fff;"></div>
+
+    <div style="display:flex;margin-top:12px;gap:8px;">
+        <input id="question" type="text" placeholder="Ask a question about KAM..." style="flex:1;padding:8px;border:1px solid #ccc;border-radius:4px;" />
+        <button id="send" style="padding:8px 12px;border-radius:4px;background:#0078d4;color:#fff;border:none;">Send</button>
+    </div>
+    <div style="margin-top:8px;color:#666;font-size:0.9rem;">
+        Tip: ask things like "Who are the top agents?", "LTV for 123 Main St", "Real transaction 12345", "Top lenders".
+    </div>
+</div>
+
+<script>
+    (function () {
+        const chat = document.getElementById('chat');
+        const input = document.getElementById('question');
+        const send = document.getElementById('send');
+
+        function appendMessage(role, text) {
+            const wrapper = document.createElement('div');
+            wrapper.style.margin = '8px 0';
+            const bubble = document.createElement('div');
+            bubble.textContent = text;
+            bubble.style.display = 'inline-block';
+            bubble.style.padding = '8px 12px';
+            bubble.style.borderRadius = '12px';
+            bubble.style.maxWidth = '85%';
+            bubble.style.whiteSpace = 'pre-wrap';
+            bubble.style.lineHeight = '1.3';
+            if (role === 'user') {
+                bubble.style.background = '#0078d4';
+                bubble.style.color = '#fff';
+                bubble.style.marginLeft = 'auto';
+            } else {
+                bubble.style.background = '#f1f1f1';
+                bubble.style.color = '#111';
+            }
+            wrapper.appendChild(bubble);
+            chat.appendChild(wrapper);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function ask(question) {
+            if (!question || !question.trim()) return;
+            appendMessage('user', question);
+            input.value = '';
+            appendMessage('assistant', '...thinking...');
+            const assistantBubble = chat.lastChild;
+
+            try {
+                const res = await fetch('?handler=Ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+
+                const payload = await res.json();
+                if (payload && payload.success) {
+                    assistantBubble.remove();
+                    appendMessage('assistant', payload.answer || '(no answer)');
+                } else {
+                    assistantBubble.remove();
+                    appendMessage('assistant', payload?.error || 'No answer available.');
+                }
+            } catch (err) {
+                assistantBubble.remove();
+                appendMessage('assistant', 'Error contacting server: ' + (err && err.message || err));
+            }
+        }
+
+        send.addEventListener('click', () => ask(input.value));
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') ask(input.value);
+        });
+    })();
+</script>
