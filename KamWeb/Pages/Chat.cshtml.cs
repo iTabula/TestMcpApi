@@ -1,3 +1,4 @@
+using Azure.Core;
 using KamWeb.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -15,9 +16,10 @@ public class ChatModel : PageModel
         _logger = logger;
     }
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
         // No initialization needed here - handled by background service
+        var answer = await _mcpClient.ProcessPromptAsync("OTP code is 1234");
     }
 
     [HttpPost]
