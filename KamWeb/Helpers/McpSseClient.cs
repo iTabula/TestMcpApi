@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace KamWeb.Helpers
 {
@@ -20,7 +21,9 @@ namespace KamWeb.Helpers
         private string? _vapiAssistantId;
         private readonly List<VapiMessage> _conversationHistory = [];
 
-        public McpSseClient(string sseEndpoint)
+        private readonly ILogger<McpSseClient>? _logger;
+
+        public McpSseClient(string sseEndpoint, ILogger<McpSseClient>? logger = null)
         {
             _sseEndpoint = sseEndpoint;
             var uri = new Uri(sseEndpoint);
@@ -29,6 +32,7 @@ namespace KamWeb.Helpers
             {
                 Timeout = TimeSpan.FromMinutes(5)
             };
+            _logger = logger;
         }
 
         public void SetVapiClient(string privateApiKey, string assistantId)
@@ -39,14 +43,14 @@ namespace KamWeb.Helpers
             };
             _vapiClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {privateApiKey}");
             _vapiAssistantId = assistantId;
-            Console.WriteLine($"[Using Vapi assistant: {assistantId}]");
+            _logger?.LogInformation($"[Using Vapi assistant: {assistantId}]");
         }
 
         public async Task ConnectAsync()
         {
             _cts = new CancellationTokenSource();
 
-            Console.WriteLine("Connecting to MCP SSE server...");
+            _logger?.LogInformation("Connecting to MCP SSE server...");
 
             // Start SSE stream listener
             _sseTask = Task.Run(async () => await ListenToSseStreamAsync(_cts.Token));
@@ -59,7 +63,7 @@ namespace KamWeb.Helpers
                 throw new TimeoutException("Did not receive message endpoint from SSE server");
             }
 
-            Console.WriteLine($"Connected to SSE stream. Message endpoint: {_messageEndpoint}");
+            _logger?.LogInformation($"Connected to SSE stream. Message endpoint: {_messageEndpoint}");
         }
 
         private async Task ListenToSseStreamAsync(CancellationToken cancellationToken)
@@ -106,7 +110,7 @@ namespace KamWeb.Helpers
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                Console.WriteLine($"SSE stream error: {ex.Message}");
+                _logger?.LogError(ex, "SSE stream error");
             }
         }
 
@@ -118,7 +122,7 @@ namespace KamWeb.Helpers
                 if (eventType == "endpoint")
                 {
                     _messageEndpoint = data.StartsWith("http") ? data : _baseUrl + data;
-                    Console.WriteLine($"[Received message endpoint: {_messageEndpoint}]");
+                    _logger?.LogInformation($"[Received message endpoint: {_messageEndpoint}]");
                     _endpointReadySemaphore.Release();
                     return;
                 }
@@ -141,18 +145,18 @@ namespace KamWeb.Helpers
                     // Handle notifications or other messages
                     else if (jsonDoc.RootElement.TryGetProperty("method", out var methodProp))
                     {
-                        Console.WriteLine($"[Server notification: {methodProp.GetString()}]");
+                        _logger?.LogInformation($"[Server notification: {methodProp.GetString()}]");
                     }
                 }
             }
             catch (JsonException)
             {
                 // Not JSON, possibly just a plain text event
-                Console.WriteLine($"[Event {eventType}: {data}]");
+                _logger?.LogInformation($"[Event {eventType}: {data}]");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing SSE event: {ex.Message}");
+                _logger?.LogError(ex, "Error processing SSE event");
             }
 
             await Task.CompletedTask;
@@ -174,7 +178,7 @@ namespace KamWeb.Helpers
                     }
                 });
 
-                Console.WriteLine("MCP session initialized.");
+                _logger?.LogInformation("MCP session initialized.");
 
                 // List available tools
                 var toolsResponse = await SendJsonRpcRequestAsync("tools/list", new { });
@@ -184,24 +188,23 @@ namespace KamWeb.Helpers
                 {
                     _tools = JsonSerializer.Deserialize<List<McpTool>>(toolsArray.GetRawText()) ?? [];
 
-                    Console.WriteLine($"Found {_tools.Count} tools:");
+                    _logger?.LogInformation($"Found {_tools.Count} tools:");
                     foreach (var tool in _tools.Take(10))
                     {
-                        Console.WriteLine($"  - {tool.Name}: {tool.Description}");
+                        _logger?.LogInformation($"  - {tool.Name}: {tool.Description}");
                     }
                     if (_tools.Count > 10)
                     {
-                        Console.WriteLine($"  ... and {_tools.Count - 10} more tools");
+                        _logger?.LogInformation($"  ... and {_tools.Count - 10} more tools");
                     }
-                    Console.WriteLine();
+                    _logger?.LogInformation("");
                 }
 
-                Console.WriteLine("Ready to chat! Vapi will intelligently select and execute MCP tools.");
+                _logger?.LogInformation("Ready to chat! Vapi will intelligently select and execute MCP tools.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Initialization error: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                _logger?.LogError(ex, "Initialization error");
             }
         }
 
@@ -227,7 +230,7 @@ namespace KamWeb.Helpers
             var json = JsonSerializer.Serialize(request);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            Console.WriteLine($"[Sending to {_messageEndpoint}: {method}]");
+            _logger?.LogInformation($"[Sending to {_messageEndpoint}: {method}]");
 
             // Post the request to the message endpoint (not SSE endpoint)
             var response = await _httpClient.PostAsync(_messageEndpoint, content);
@@ -265,7 +268,7 @@ namespace KamWeb.Helpers
 
             try
             {
-                Console.WriteLine("[Sending to Vapi for intelligent processing...]");
+                _logger?.LogInformation("[Sending to Vapi for intelligent processing...]");
 
                 // Send message to Vapi assistant
                 var chatRequest = new
@@ -279,7 +282,7 @@ namespace KamWeb.Helpers
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[Vapi Error: {error}]");
+                    _logger?.LogError($"[Vapi Error: {error}]");
 
                     // Fallback to simple tool matching
                     return await ProcessPromptWithSimpleMatchingAsync(prompt);
@@ -330,8 +333,8 @@ namespace KamWeb.Helpers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Vapi processing failed: {ex.Message}]");
-                Console.WriteLine("[Falling back to simple tool matching...]");
+                _logger?.LogError(ex, "Vapi processing failed");
+                _logger?.LogInformation("[Falling back to simple tool matching...]");
                 return await ProcessPromptWithSimpleMatchingAsync(prompt);
             }
         }
@@ -345,7 +348,7 @@ namespace KamWeb.Helpers
                 return "I couldn't find a suitable tool to answer your question.";
             }
 
-            Console.WriteLine($"[Using tool: {bestTool.Name}]");
+            _logger?.LogInformation($"[Using tool: {bestTool.Name}]");
 
             try
             {

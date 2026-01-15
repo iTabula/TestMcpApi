@@ -3,6 +3,9 @@ using Microsoft.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using WebApi.Interfaces;
 using WebApi.Services;
+using KamWeb.Helpers;
+using KamWeb.Models;
+using KamWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,7 +75,28 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddHttpContextAccessor();
 
+// Configure options
+builder.Services.Configure<VapiConfiguration>(builder.Configuration.GetSection("Vapi"));
+builder.Services.Configure<McpConfiguration>(builder.Configuration.GetSection("Mcp"));
 
+// Register McpSseClient as singleton (one instance for the entire application)
+builder.Services.AddSingleton<McpSseClient>(sp =>
+{
+    var mcpConfig = builder.Configuration.GetSection("Mcp").Get<McpConfiguration>();
+    var vapiConfig = builder.Configuration.GetSection("Vapi").Get<VapiConfiguration>();
+    
+    var client = new McpSseClient(mcpConfig?.SseEndpoint ?? "https://freemypalestine.com/api/mcp/sse");
+    
+    if (vapiConfig != null)
+    {
+        client.SetVapiClient(vapiConfig.PrivateApiKey, vapiConfig.AssistantId);
+    }
+    
+    return client;
+});
+
+// Register background service to initialize MCP client
+builder.Services.AddHostedService<McpInitializationService>();
 
 var app = builder.Build();
 

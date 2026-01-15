@@ -1,54 +1,52 @@
 using KamWeb.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using ModelContextProtocol.Protocol;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
-namespace KamWeb.Pages
+namespace KamWeb.Pages;
+
+public class ChatModel : PageModel
 {
-    public class ChatModel : PageModel
+    private readonly McpSseClient _mcpClient;
+    private readonly ILogger<ChatModel> _logger;
+
+    public ChatModel(McpSseClient mcpClient, ILogger<ChatModel> logger)
     {
-        public static McpSseClient client = new McpSseClient("https://freemypalestine.com/api/mcp/sse");
-        public async Task OnGetAsync()
+        _mcpClient = mcpClient;
+        _logger = logger;
+    }
+
+    public void OnGet()
+    {
+        // No initialization needed here - handled by background service
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> OnPostGetAnswer([FromBody] QuestionRequest request)
+    {
+        try
         {
-            // Configure Vapi with your existing assistant
-            var vapiPrivateKey = "e3162921-9738-4195-8143-716973bcf9b6";
-            var vapiAssistantId = "f6caa8b6-83f7-4b40-a410-39d1988dcf8d";
-
-            client.SetVapiClient(vapiPrivateKey, vapiAssistantId);
-
-            await client.ConnectAsync();
-            await client.InitializeAsync();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> OnPostGetAnswer([FromBody] QuestionRequest request)
-        {
-            var answer = await GetAnswerAsync(request.Question);
-            return new JsonResult(new { answer });
-        }
-
-        private async Task<string> GetAnswerAsync(string question)
-        {
-            // Dummy answer logic - you can replace this with your actual logic
-            if (string.IsNullOrWhiteSpace(question))
+            if (string.IsNullOrWhiteSpace(request.Question))
             {
-                return "I didn't hear your question. Please try again.";
+                return new JsonResult(new { answer = "I didn't hear your question. Please try again." });
             }
 
-            question = question.ToLower().Trim();
-
-            var response = await client.ProcessPromptAsync(question);
-
-            return response;
+            _logger.LogInformation("Processing question: {Question}", request.Question);
+            
+            var answer = await _mcpClient.ProcessPromptAsync(request.Question.Trim());
+            
+            _logger.LogInformation("Answer generated successfully");
+            
+            return new JsonResult(new { answer });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing question");
+            return new JsonResult(new { answer = "I'm sorry, I encountered an error processing your question. Please try again." });
         }
     }
+}
 
-    public class QuestionRequest
-    {
-        public string Question { get; set; } = string.Empty;
-    }
+public class QuestionRequest
+{
+    public string Question { get; set; } = string.Empty;
 }
