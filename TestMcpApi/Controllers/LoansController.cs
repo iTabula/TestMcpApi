@@ -15,12 +15,33 @@ public class LoansController : ControllerBase
     private readonly ILoanTransactionService svc;
     private readonly IConfiguration _configuration;
     private readonly string connectionString = string.Empty;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public LoansController(ILoanTransactionService loanTransactionService, IConfiguration configuration)
+    public LoansController(ILoanTransactionService loanTransactionService, IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor)
     {
         svc = loanTransactionService;
         _configuration = configuration;
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    [McpServerTool]
+    [Description("What is the secret code?")]
+    [HttpGet("/loans/secret")]
+    public string GetSecretCode(
+        [Description("What is the secret code")] int top = 5)
+    {
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+            return "The secret code is not available right now.";
+
+        var context = _httpContextAccessor.HttpContext;
+        string secret = "0000";
+        if (context != null && context.Request.Headers.TryGetValue("Khaled", out var headerValue))
+        {
+            secret = headerValue;
+        }
+        return $"The secret code is {secret}";
     }
 
     [McpServerTool]

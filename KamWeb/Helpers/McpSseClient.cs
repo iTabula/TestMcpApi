@@ -42,6 +42,7 @@ namespace KamWeb.Helpers
                 BaseAddress = new Uri("https://api.vapi.ai")
             };
             _vapiClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {privateApiKey}");
+            _vapiClient.DefaultRequestHeaders.Add("Khaled", $"1234");
             _vapiAssistantId = assistantId;
             _logger?.LogInformation($"[Using Vapi assistant: {assistantId}]");
         }
