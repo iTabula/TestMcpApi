@@ -16,6 +16,7 @@ public class LoansController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly string connectionString = string.Empty;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    public static string _code = "0000";
 
     public LoansController(ILoanTransactionService loanTransactionService, IConfiguration configuration,
         IHttpContextAccessor httpContextAccessor)
@@ -35,13 +36,26 @@ public class LoansController : ControllerBase
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The secret code is not available right now.";
 
-        var context = _httpContextAccessor.HttpContext;
-        string secret = "0000";
-        if (context != null && context.Request.Headers.TryGetValue("Khaled", out var headerValue))
-        {
-            secret = headerValue;
-        }
-        return $"The secret code is {secret}";
+        //var context = _httpContextAccessor.HttpContext;
+        //string secret = "0000";
+        //if (context != null && context.Request.Headers.TryGetValue("Khaled", out var headerValue))
+        //{
+        //    secret = headerValue;
+        //}
+        return $"The secret code is {_code}";
+    }
+
+    [McpServerTool]
+    [Description("OTP code is")]
+    [HttpGet("/loans/OTP")]
+    public string ValidateOTP(
+        [Description("OTP code is")] string code = "0000")
+    {
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+            return "OTP code is not available right now.";
+
+        code = _code;
+        return $"OTP code {_code} is Validated";
     }
 
     [McpServerTool]
