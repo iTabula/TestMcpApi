@@ -54,7 +54,7 @@ public class LoansController : ControllerBase
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "OTP code is not available right now.";
 
-        code = _code;
+        _code = code;
         return $"OTP code {_code} is Validated";
     }
 
