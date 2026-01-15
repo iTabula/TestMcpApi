@@ -90,7 +90,7 @@ namespace KamWeb.Pages
             Response.Cookies.Append("password_oc", Password, cookieOptions);
 
             // SignIn User with this identity
-            return new JsonResult(new { success = true, message = "User Logged in Successfully!", redirectUrl = Url.Page("/Main") });
+            return new JsonResult(new { success = true, message = "User Logged in Successfully!", redirectUrl = Url.Page("/Chat") });
         }
 
         public async Task<string> LoginAutomatically(string UserName, string Password)

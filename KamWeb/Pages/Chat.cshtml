@@ -1,0 +1,15 @@
+﻿@page
+@model KamWeb.Pages.ChatModel
+@{
+    ViewData["Title"] = "KAM Chat";
+}
+
+<h2>Voice Chatbot</h2>
+
+<button id="startBtn">🎤 Start Talking</button>
+<button id="stopBtn" disabled>🛑 Stop</button>
+
+<p id="status">Idle</p>
+
+<script src="https://cdn.vapi.ai/web/vapi.min.js"></script>
+<script src="~/js/vapi-chat.js"></script>
