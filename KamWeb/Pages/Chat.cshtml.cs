@@ -2,6 +2,7 @@ using Azure.Core;
 using KamWeb.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 
 namespace KamWeb.Pages;
 
@@ -19,7 +20,6 @@ public class ChatModel : PageModel
     public async Task OnGetAsync()
     {
         // No initialization needed here - handled by background service
-        var answer = await _mcpClient.ProcessPromptAsync("OTP code is 1234");
     }
 
     [HttpPost]
@@ -33,8 +33,13 @@ public class ChatModel : PageModel
             }
 
             _logger.LogInformation("Processing question: {Question}", request.Question);
-            
-            var answer = await _mcpClient.ProcessPromptAsync(request.Question.Trim());
+
+            string AccessToken = (this.User as ClaimsPrincipal)?.Identities.FirstOrDefault()!.FindFirst(ClaimTypes.Authentication)!.Value!;
+            string UserId = (this.User as ClaimsPrincipal)?.Identities.FirstOrDefault()!.FindFirst(ClaimTypes.PrimarySid)!.Value!;
+            string Role = (this.User as ClaimsPrincipal)?.Identities.FirstOrDefault()!.FindFirst(ClaimTypes.Role)!.Value!;
+
+            string prompt = request.Question.Trim() + $" with user_id = {UserId} and user_role = '{Role}' and token = '{AccessToken}'";
+            var answer = await _mcpClient.ProcessPromptAsync(prompt);
             
             _logger.LogInformation("Answer generated successfully");
             
