@@ -85,7 +85,7 @@ builder.Services.AddSingleton<McpSseClient>(sp =>
     var mcpConfig = builder.Configuration.GetSection("Mcp").Get<McpConfiguration>();
     var vapiConfig = builder.Configuration.GetSection("Vapi").Get<VapiConfiguration>();
     
-    var client = new McpSseClient(mcpConfig?.SseEndpoint ?? "https://freemypalestine.com/api/mcp/sse");
+    var client = new McpSseClient(mcpConfig?.SseEndpoint ?? "https://mcp.kamfr.com/api/mcp/sse");
     
     if (vapiConfig != null)
     {

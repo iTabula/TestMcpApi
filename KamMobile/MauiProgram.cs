@@ -39,7 +39,7 @@ namespace KamMobile
                 var vapiConfig = configuration.GetSection("Vapi").Get<VapiConfiguration>();
 
                 var client = new McpSseClient(
-                    mcpConfig?.SseEndpoint ?? "https://freemypalestine.com/api/mcp/sse");
+                    mcpConfig?.SseEndpoint ?? "https://mcp.kamfr.com/api/mcp/sse");
 
                 if (vapiConfig != null)
                 {
