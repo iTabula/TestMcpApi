@@ -34,9 +34,9 @@ public class ChatModel : PageModel
 
             _logger.LogInformation("Processing question: {Question}", request.Question);
 
-            string AccessToken = (this.User as ClaimsPrincipal)?.Identities.FirstOrDefault()!.FindFirst(ClaimTypes.Authentication)!.Value!;
-            string UserId = (this.User as ClaimsPrincipal)?.Identities.FirstOrDefault()!.FindFirst(ClaimTypes.PrimarySid)!.Value!;
-            string Role = (this.User as ClaimsPrincipal)?.Identities.FirstOrDefault()!.FindFirst(ClaimTypes.Role)!.Value!;
+            string AccessToken = User.FindFirst(ClaimTypes.Authentication)?.Value ?? string.Empty;
+            string UserId = User.FindFirst(ClaimTypes.PrimarySid)?.Value ?? string.Empty; 
+            string Role = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty; 
 
             string prompt = request.Question.Trim() + $" with user_id = {UserId} and user_role = '{Role}' and token = '{AccessToken}'";
             var answer = await _mcpClient.ProcessPromptAsync(prompt);
