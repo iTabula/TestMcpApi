@@ -1,4 +1,5 @@
-﻿using KamMobile.Helpers;
+﻿using CommunityToolkit.Maui;
+using KamMobile.Helpers;
 using KamMobile.Models;
 using KamMobile.Services;
 using KamMobile.ViewModels;
@@ -18,6 +19,7 @@ namespace KamMobile
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseMauiCommunityToolkit()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
