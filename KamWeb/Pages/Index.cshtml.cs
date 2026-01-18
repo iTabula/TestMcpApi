@@ -90,14 +90,14 @@ namespace KamWeb.Pages
             Response.Cookies.Append("password_oc", Password, cookieOptions);
 
             // SignIn User with this identity
-            return new JsonResult(new { success = true, message = "User Logged in Successfully!", redirectUrl = Url.Page("/Main") });
+            return new JsonResult(new { success = true, message = "User Logged in Successfully!", redirectUrl = Url.Page("/Chat") });
         }
 
         public async Task<string> LoginAutomatically(string UserName, string Password)
         {
             LoginResponse response = await _userService.LoginUser(UserName, Password);
 
-            if (response == null || response.Status != true)
+            if (response == null || response.Status != true || response.User == null || string.IsNullOrEmpty(response.JwtToken))
             {
                 string errorMessage = response == null ? "Invalid credentials" : response.Message;
                 return errorMessage;

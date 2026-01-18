@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="KamMobile.Views.ChatPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewModels="clr-namespace:KamMobile.ViewModels"
+    Title="Voice Assistant"
+    x:DataType="viewModels:ChatViewModel">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Command="{Binding LogoutCommand}" Text="Logout" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!--  Header  -->
+            <Label
+                FontAttributes="Bold"
+                FontSize="28"
+                HorizontalOptions="Center"
+                Text="Voice Assistant"
+                TextColor="#333" />
+
+            <Label
+                Margin="0,0,0,20"
+                FontSize="14"
+                HorizontalOptions="Center"
+                Text="Ask me a question by clicking the microphone"
+                TextColor="#666" />
+
+            <!--  Assistant Section  -->
+            <Frame
+                Padding="30"
+                BackgroundColor="#667eea"
+                CornerRadius="15"
+                HasShadow="True">
+                <VerticalStackLayout Spacing="20">
+
+                    <!--  Microphone Icon  -->
+                    <Image
+                        Margin="0,0,0,10"
+                        HeightRequest="80"
+                        HorizontalOptions="Center"
+                        Source="microphone.png"
+                        WidthRequest="80" />
+
+                    <!--  Start Button  -->
+                    <Button
+                        BackgroundColor="White"
+                        Command="{Binding StartConversationCommand}"
+                        CornerRadius="25"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        HeightRequest="50"
+                        Text="{Binding ButtonText}"
+                        TextColor="#667eea" />
+
+                    <!--  Status  -->
+                    <Label
+                        FontAttributes="Bold"
+                        FontSize="16"
+                        HorizontalOptions="Center"
+                        MinimumHeightRequest="24"
+                        Text="{Binding StatusText}"
+                        TextColor="White" />
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <!--  Question Section  -->
+            <Frame
+                Padding="20"
+                BackgroundColor="White"
+                CornerRadius="10"
+                HasShadow="True">
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        Text="Your Question:"
+                        TextColor="#667eea" />
+                    <Frame
+                        Padding="15"
+                        BackgroundColor="#f0f4ff"
+                        CornerRadius="8"
+                        HasShadow="False">
+                        <Label
+                            FontSize="16"
+                            LineBreakMode="WordWrap"
+                            Text="{Binding QuestionText}"
+                            TextColor="#333" />
+                    </Frame>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!--  Answer Section  -->
+            <Frame
+                Padding="20"
+                BackgroundColor="White"
+                CornerRadius="10"
+                HasShadow="True">
+                <VerticalStackLayout Spacing="10">
+                    <HorizontalStackLayout Spacing="10">
+                        <Label
+                            FontAttributes="Bold"
+                            FontSize="18"
+                            Text="My Answer:"
+                            TextColor="#28a745"
+                            VerticalOptions="Center" />
+                        <Image
+                            HeightRequest="24"
+                            IsVisible="{Binding IsSpeaking}"
+                            Source="speaker.png"
+                            VerticalOptions="Center"
+                            WidthRequest="24" />
+                    </HorizontalStackLayout>
+                    <Frame
+                        Padding="15"
+                        BackgroundColor="#f0fff4"
+                        CornerRadius="8"
+                        HasShadow="False">
+                        <Label
+                            FontSize="16"
+                            LineBreakMode="WordWrap"
+                            Text="{Binding AnswerText}"
+                            TextColor="#333" />
+                    </Frame>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
