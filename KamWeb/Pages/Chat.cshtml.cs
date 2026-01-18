@@ -1,6 +1,8 @@
+using Azure.Core;
 using KamWeb.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 
 namespace KamWeb.Pages;
 
@@ -15,7 +17,7 @@ public class ChatModel : PageModel
         _logger = logger;
     }
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
         // No initialization needed here - handled by background service
     }
@@ -31,8 +33,13 @@ public class ChatModel : PageModel
             }
 
             _logger.LogInformation("Processing question: {Question}", request.Question);
-            
-            var answer = await _mcpClient.ProcessPromptAsync(request.Question.Trim());
+
+            string AccessToken = User.FindFirst(ClaimTypes.Authentication)?.Value ?? string.Empty;
+            string UserId = User.FindFirst(ClaimTypes.PrimarySid)?.Value ?? string.Empty; 
+            string Role = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty; 
+
+            string prompt = request.Question.Trim() + $" with user_id = {UserId} and user_role = '{Role}' and token = '{AccessToken}'";
+            var answer = await _mcpClient.ProcessPromptAsync(prompt);
             
             _logger.LogInformation("Answer generated successfully");
             

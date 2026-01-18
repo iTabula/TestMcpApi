@@ -5,6 +5,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Register HttpContextAccessor to enable access to HttpContext in tools
+builder.Services.AddHttpContextAccessor();
+
 // 👇 Add MCP Server to IoC and automatically discover tools from this assembly
 builder.Services
     .AddMcpServer()
