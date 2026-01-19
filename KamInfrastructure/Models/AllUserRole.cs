@@ -1,4 +1,4 @@
-﻿namespace WebApi.Models
+﻿namespace KamInfrastructure.Models
 {
     public partial class AllUserRole
     {

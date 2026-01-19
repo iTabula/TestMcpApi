@@ -18,4 +18,9 @@
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\KamHttp\KamHttp.csproj" />
+	  <ProjectReference Include="..\KamInfrastructure\KamInfrastructure.csproj" />
+	</ItemGroup>
+
 </Project>

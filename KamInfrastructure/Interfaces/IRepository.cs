@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WebApi.Interfaces
+namespace KamInfrastructure.Interfaces
 {
     public interface IRepository<T>
     {

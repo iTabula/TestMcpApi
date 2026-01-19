@@ -1,11 +1,11 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using WebApi.DBContexts;
-using WebApi.Interfaces;
-using WebApi.Models;
+using KamInfrastructure.DBContexts;
+using KamInfrastructure.Interfaces;
+using KamInfrastructure.Models;
 
-namespace WebApi.Services
+namespace KamInfrastructure.Services
 {
     public class UnitOfWork : IUnitOfWork
     {

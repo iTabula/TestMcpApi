@@ -2,15 +2,15 @@ using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using WebApi.Models;
+using KamInfrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using WebApi.Interfaces;
+using KamInfrastructure.Interfaces;
 
-namespace WebApi.Services
+namespace KamInfrastructure.Services
 {
     public interface IUnitOfWork
     {

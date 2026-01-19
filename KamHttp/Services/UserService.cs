@@ -9,10 +9,10 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using WebApi.Interfaces;
-using WebApi.Models;
+using KamHttp.Interfaces;
+using KamInfrastructure.Models;
 
-namespace WebApi.Services;
+namespace KamHttp.Services;
 
 public class UserService : IUserService
 {

@@ -1,10 +1,12 @@
 ﻿using System.Text;
 using System.Text.Json;
-using WebApi.Interfaces;
+using KamHttp.Interfaces;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
-namespace WebApi.Services
+namespace KamHttp.Services
 {
     public class FactoryHttpClient : IFactoryHttpClient
     {
