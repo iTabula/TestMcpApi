@@ -2,14 +2,14 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using KamHttp.Helpers;
-using CommunityToolkit.Maui.Media;
-using System.Globalization; // <-- Add this using directive
+using KamMobile.Services;
 
 namespace KamMobile.ViewModels;
 
 public class ChatViewModel : INotifyPropertyChanged
 {
     private readonly McpSseClient _mcpClient;
+    private readonly ISpeechRecognitionService _speechRecognitionService;
     private string _questionText = "Waiting for your question...";
     private string _answerText = "Waiting for question...";
     private string _statusText = "Click to start";
@@ -19,11 +19,11 @@ public class ChatViewModel : INotifyPropertyChanged
     private string _buttonText = "Start Conversation";
     private CancellationTokenSource? _recognitionCts;
     private CancellationTokenSource? _speechCts;
-    private TaskCompletionSource<string>? _recognitionTcs;
 
-    public ChatViewModel(McpSseClient mcpClient)
+    public ChatViewModel(McpSseClient mcpClient, ISpeechRecognitionService speechRecognitionService)
     {
         _mcpClient = mcpClient;
+        _speechRecognitionService = speechRecognitionService;
         StartConversationCommand = new Command(async () => await ExecuteStartConversationAsync());
         LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
     }
@@ -136,7 +136,18 @@ public class ChatViewModel : INotifyPropertyChanged
 
             _recognitionCts = new CancellationTokenSource();
             
-            var recognizedText = await RecognizeSpeechAsync(_recognitionCts.Token);
+            var recognizedText = await _speechRecognitionService.RecognizeSpeechAsync(
+                partialText =>
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(partialText))
+                        {
+                            QuestionText = partialText;
+                        }
+                    });
+                },
+                _recognitionCts.Token);
 
             if (!string.IsNullOrWhiteSpace(recognizedText))
             {
@@ -166,93 +177,12 @@ public class ChatViewModel : INotifyPropertyChanged
         _recognitionCts?.Cancel();
         StatusText = "Stopping...";
         
-        // Give a moment for the cancellation to process
         await Task.Delay(100);
         
         IsListening = false;
         ButtonText = "Start Conversation";
         StatusText = "Click to start";
     }
-
-    private async Task<string> RecognizeSpeechAsync(CancellationToken cancellationToken)
-    {
-        var recognitionTcs = new TaskCompletionSource<string>();
-        var finalText = string.Empty;
-
-        void OnResultUpdated(object? sender, SpeechToTextRecognitionResultUpdatedEventArgs args)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                if (!string.IsNullOrWhiteSpace(args.RecognitionResult.ToString()))
-                {
-                    QuestionText = args.RecognitionResult.ToString();
-                }
-            });
-        }
-
-        void OnResultCompleted(object? sender, SpeechToTextRecognitionResultCompletedEventArgs args)
-        {
-            if (args.RecognitionResult.IsSuccessful)
-            {
-                recognitionTcs.TrySetResult(args.RecognitionResult.Text ?? string.Empty);
-            }
-            else
-            {
-                recognitionTcs.TrySetResult(string.Empty);
-            }
-        }
-
-        try
-        {
-            // Subscribe to events
-            SpeechToText.Default.RecognitionResultUpdated += OnResultUpdated;
-            SpeechToText.Default.RecognitionResultCompleted += OnResultCompleted;
-
-            // Configure options
-            var options = new SpeechToTextOptions
-            {
-                Culture = CultureInfo.GetCultureInfo("en-US"),
-                ShouldReportPartialResults = true
-            };
-
-            // Start listening
-            await SpeechToText.Default.StartListenAsync(options, cancellationToken);
-
-            // Wait for result or cancellation
-            using (cancellationToken.Register(() => recognitionTcs.TrySetCanceled()))
-            {
-                finalText = await recognitionTcs.Task;
-            }
-
-            return finalText;
-        }
-        catch (OperationCanceledException)
-        {
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"Recognition error: {ex.Message}";
-            return string.Empty;
-        }
-        finally
-        {
-            // Always unsubscribe and stop listening
-            SpeechToText.Default.RecognitionResultUpdated -= OnResultUpdated;
-            SpeechToText.Default.RecognitionResultCompleted -= OnResultCompleted;
-            
-            try
-            {
-                await SpeechToText.Default.StopListenAsync(CancellationToken.None);
-            }
-            catch
-            {
-                // Ignore errors during cleanup
-            }
-        }
-    }
-
-
 
     private async Task ProcessQuestionAsync(string question)
     {
@@ -287,17 +217,14 @@ public class ChatViewModel : INotifyPropertyChanged
         {
             _speechCts = new CancellationTokenSource();
 
-            // Get available locales from device
             var locales = await TextToSpeech.Default.GetLocalesAsync();
-
-            // Pick a locale (e.g., first supported locale or you can pick specific)
             var selectedLocale = locales.FirstOrDefault();
 
             var speechOptions = new SpeechOptions
             {
                 Pitch = 1.0f,
                 Volume = 1.0f,
-                Locale = selectedLocale // correct type
+                Locale = selectedLocale
             };
 
             await TextToSpeech.Default.SpeakAsync(text, speechOptions, _speechCts.Token);
@@ -319,7 +246,6 @@ public class ChatViewModel : INotifyPropertyChanged
             ResetState();
         }
     }
-
 
     private void StopSpeaking()
     {

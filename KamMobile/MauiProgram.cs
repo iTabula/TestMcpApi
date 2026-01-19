@@ -52,11 +52,11 @@ public static class MauiProgram
             return client;
         });
 
-        // Register background service to initialize MCP client
-        //builder.Services.AddHostedService<McpInitializationService>();
+        // Register Speech Recognition Service (platform-specific)
+#if ANDROID
+        builder.Services.AddSingleton<ISpeechRecognitionService, Platforms.Android.Services.AndroidSpeechRecognitionService>();
+#endif
 
-        // Register Speech-to-Text service from CommunityToolkit
-        builder.Services.AddSingleton(SpeechToText.Default);
         builder.Services.AddSingleton<AuthenticationService>();
 
         // Register ViewModels
