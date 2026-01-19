@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using KamMobile.Helpers;
+using KamHttp.Helpers;
+using CommunityToolkit.Maui.Media;
+using System.Globalization; // <-- Add this using directive
 
 namespace KamMobile.ViewModels;
 
@@ -15,6 +17,9 @@ public class ChatViewModel : INotifyPropertyChanged
     private bool _isProcessing = false;
     private bool _isSpeaking = false;
     private string _buttonText = "Start Conversation";
+    private CancellationTokenSource? _recognitionCts;
+    private CancellationTokenSource? _speechCts;
+    private TaskCompletionSource<string>? _recognitionTcs;
 
     public ChatViewModel(McpSseClient mcpClient)
     {
@@ -116,20 +121,38 @@ public class ChatViewModel : INotifyPropertyChanged
     {
         try
         {
-            // Speech recognition will be handled by platform-specific implementations
+            // Request microphone permissions
+            var status = await Permissions.RequestAsync<Permissions.Microphone>();
+            if (status != PermissionStatus.Granted)
+            {
+                StatusText = "Microphone permission denied";
+                return;
+            }
+
             IsListening = true;
             ButtonText = "Stop Listening";
             StatusText = "Listening... Speak now";
             QuestionText = "Listening...";
 
-            // This will be implemented using platform-specific speech recognition
-            var recognizedText = await RecognizeSpeechAsync();
+            _recognitionCts = new CancellationTokenSource();
+            
+            var recognizedText = await RecognizeSpeechAsync(_recognitionCts.Token);
 
             if (!string.IsNullOrWhiteSpace(recognizedText))
             {
                 QuestionText = recognizedText;
                 await ProcessQuestionAsync(recognizedText);
             }
+            else
+            {
+                StatusText = "No speech detected. Click to try again.";
+                ResetState();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "Listening cancelled";
+            ResetState();
         }
         catch (Exception ex)
         {
@@ -138,27 +161,98 @@ public class ChatViewModel : INotifyPropertyChanged
         }
     }
 
-    private Task StopListeningAsync()
+    private async Task StopListeningAsync()
     {
+        _recognitionCts?.Cancel();
+        StatusText = "Stopping...";
+        
+        // Give a moment for the cancellation to process
+        await Task.Delay(100);
+        
         IsListening = false;
         ButtonText = "Start Conversation";
         StatusText = "Click to start";
-        return Task.CompletedTask;
     }
 
-    private async Task<string> RecognizeSpeechAsync()
+    private async Task<string> RecognizeSpeechAsync(CancellationToken cancellationToken)
     {
-        // This is a placeholder - actual implementation will use platform-specific APIs
-        // For now, return empty to demonstrate the flow
-        await Task.Delay(100);
-        
-#if ANDROID || IOS
-        // Platform-specific speech recognition will be implemented here
-        return string.Empty;
-#else
-        return string.Empty;
-#endif
+        var recognitionTcs = new TaskCompletionSource<string>();
+        var finalText = string.Empty;
+
+        void OnResultUpdated(object? sender, SpeechToTextRecognitionResultUpdatedEventArgs args)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (!string.IsNullOrWhiteSpace(args.RecognitionResult.ToString()))
+                {
+                    QuestionText = args.RecognitionResult.ToString();
+                }
+            });
+        }
+
+        void OnResultCompleted(object? sender, SpeechToTextRecognitionResultCompletedEventArgs args)
+        {
+            if (args.RecognitionResult.IsSuccessful)
+            {
+                recognitionTcs.TrySetResult(args.RecognitionResult.Text ?? string.Empty);
+            }
+            else
+            {
+                recognitionTcs.TrySetResult(string.Empty);
+            }
+        }
+
+        try
+        {
+            // Subscribe to events
+            SpeechToText.Default.RecognitionResultUpdated += OnResultUpdated;
+            SpeechToText.Default.RecognitionResultCompleted += OnResultCompleted;
+
+            // Configure options
+            var options = new SpeechToTextOptions
+            {
+                Culture = CultureInfo.GetCultureInfo("en-US"),
+                ShouldReportPartialResults = true
+            };
+
+            // Start listening
+            await SpeechToText.Default.StartListenAsync(options, cancellationToken);
+
+            // Wait for result or cancellation
+            using (cancellationToken.Register(() => recognitionTcs.TrySetCanceled()))
+            {
+                finalText = await recognitionTcs.Task;
+            }
+
+            return finalText;
+        }
+        catch (OperationCanceledException)
+        {
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Recognition error: {ex.Message}";
+            return string.Empty;
+        }
+        finally
+        {
+            // Always unsubscribe and stop listening
+            SpeechToText.Default.RecognitionResultUpdated -= OnResultUpdated;
+            SpeechToText.Default.RecognitionResultCompleted -= OnResultCompleted;
+            
+            try
+            {
+                await SpeechToText.Default.StopListenAsync(CancellationToken.None);
+            }
+            catch
+            {
+                // Ignore errors during cleanup
+            }
+        }
     }
+
+
 
     private async Task ProcessQuestionAsync(string question)
     {
@@ -191,10 +285,32 @@ public class ChatViewModel : INotifyPropertyChanged
 
         try
         {
-            // Use MAUI's built-in TextToSpeech
-            await TextToSpeech.Default.SpeakAsync(text);
-            
-            StatusText = "Done! Click to ask another question.";
+            _speechCts = new CancellationTokenSource();
+
+            // Get available locales from device
+            var locales = await TextToSpeech.Default.GetLocalesAsync();
+
+            // Pick a locale (e.g., first supported locale or you can pick specific)
+            var selectedLocale = locales.FirstOrDefault();
+
+            var speechOptions = new SpeechOptions
+            {
+                Pitch = 1.0f,
+                Volume = 1.0f,
+                Locale = selectedLocale // correct type
+            };
+
+            await TextToSpeech.Default.SpeakAsync(text, speechOptions, _speechCts.Token);
+
+            if (!_speechCts.IsCancellationRequested)
+            {
+                StatusText = "Done! Click to ask another question.";
+                ResetState();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "Stopped. Click to ask another question.";
             ResetState();
         }
         catch (Exception ex)
@@ -204,12 +320,11 @@ public class ChatViewModel : INotifyPropertyChanged
         }
     }
 
+
     private void StopSpeaking()
     {
-        // Cancel any ongoing speech
-#if ANDROID || IOS
+        _speechCts?.Cancel();
         TextToSpeech.Default.SpeakAsync(string.Empty);
-#endif
         StatusText = "Stopped. Click to ask another question.";
         ResetState();
     }
@@ -220,6 +335,10 @@ public class ChatViewModel : INotifyPropertyChanged
         IsProcessing = false;
         IsSpeaking = false;
         ButtonText = "Start Conversation";
+        _recognitionCts?.Dispose();
+        _recognitionCts = null;
+        _speechCts?.Dispose();
+        _speechCts = null;
     }
 
     private async Task ExecuteLogoutAsync()
