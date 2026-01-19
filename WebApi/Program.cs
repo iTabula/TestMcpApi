@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using System.Text;
 using System.Text.Json.Serialization;
 using WebApi.DBContexts;
@@ -84,31 +84,31 @@ builder.Services.AddAuthentication(x =>
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "KAM", Version = "v1" });
-    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+//builder.Services.AddSwaggerGen(c =>
+//{
+//    c.SwaggerDoc("v1", new OpenApiInfo { Title = "KAM", Version = "v1" });
+//    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 
-    var securityScheme = new OpenApiSecurityScheme
-    {
-        Name = "JWT Authentication",
-        Description = "Enter JWT Bearer token **_only_**",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer", // must be lower case
-        BearerFormat = "JWT",
-        Reference = new OpenApiReference
-        {
-            Id = JwtBearerDefaults.AuthenticationScheme,
-            Type = ReferenceType.SecurityScheme
-        }
-    };
-    c.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
-                    {securityScheme, new string[] { }}
-                });
-});
+//    var securityScheme = new OpenApiSecurityScheme
+//    {
+//        Name = "JWT Authentication",
+//        Description = "Enter JWT Bearer token **_only_**",
+//        In = ParameterLocation.Header,
+//        Type = SecuritySchemeType.Http,
+//        Scheme = "bearer", // must be lower case
+//        BearerFormat = "JWT",
+//        Reference = new OpenApiReference
+//        {
+//            Id = JwtBearerDefaults.AuthenticationScheme,
+//            Type = ReferenceType.SecurityScheme
+//        }
+//    };
+//    c.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
+//    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+//                {
+//                    {securityScheme, new string[] { }}
+//                });
+//});
 
 
 var app = builder.Build();
