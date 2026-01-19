@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using WebApi.Models;
+using KamInfrastructure.Models;
 
-namespace WebApi.Services
+namespace KamHttp.Services
 {
     public interface IUserService
     {

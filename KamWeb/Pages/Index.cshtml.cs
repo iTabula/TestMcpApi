@@ -7,8 +7,8 @@ using Azure.Core;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using System.Text.Json;
-using WebApi.Services;
-using WebApi.Models;
+using KamHttp.Services;
+using KamInfrastructure.Models;
 
 namespace KamWeb.Pages
 {

@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Net.Http.Headers;
 using System.Text.Json.Serialization;
-using WebApi.Interfaces;
-using WebApi.Services;
+using KamInfrastructure.Interfaces;
+using KamHttp.Services;
+using KamHttp.Interfaces;
 using KamWeb.Helpers;
 using KamWeb.Models;
 using KamWeb.Services;

@@ -6,7 +6,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WebApi.Interfaces
+namespace KamHttp.Interfaces
 {
     public interface ITokenService
     {

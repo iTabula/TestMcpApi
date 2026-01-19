@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using WebApi.Interfaces;
-using WebApi.Services;
-using WebApi.Models;
+using KamInfrastructure.Interfaces;
+using KamInfrastructure.Services;
+using KamHttp.Interfaces;
+using KamHttp.Services;
+using KamInfrastructure.Models;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
-using WebApi.DBContexts;
+using KamInfrastructure.DBContexts;
 using Dapper;
 
 namespace WebApi.Controllers

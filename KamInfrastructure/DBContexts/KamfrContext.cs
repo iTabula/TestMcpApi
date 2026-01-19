@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using WebApi.Models;
+using KamInfrastructure.Models;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.SqlServer; // Add this using directive
 
-namespace WebApi.DBContexts;
+namespace KamInfrastructure.DBContexts;
 
 public partial class KamfrContext : DbContext
 {

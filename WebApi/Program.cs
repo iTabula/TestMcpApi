@@ -6,9 +6,11 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
 using System.Text.Json.Serialization;
-using WebApi.DBContexts;
-using WebApi.Interfaces;
-using WebApi.Services;
+using KamInfrastructure.DBContexts;
+using KamInfrastructure.Interfaces;
+using KamInfrastructure.Services;
+using KamHttp.Interfaces;
+using KamHttp.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);

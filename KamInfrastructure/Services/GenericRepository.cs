@@ -1,12 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using WebApi.Interfaces;
+using KamInfrastructure.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WebApi.Services
+namespace KamInfrastructure.Services
 {
     public class GenericRepository<T> : IRepository<T> where T : class
     {
