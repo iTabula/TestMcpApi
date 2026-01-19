@@ -1,6 +1,8 @@
-using KamWeb.Helpers;
+using KamHttp.Helpers;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-namespace KamWeb.Services;
+namespace KamHttp.Services;
 
 public class McpInitializationService : BackgroundService
 {
