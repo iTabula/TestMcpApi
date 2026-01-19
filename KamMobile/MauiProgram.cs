@@ -62,10 +62,12 @@ public static class MauiProgram
         // Register ViewModels
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<ChatViewModel>();
+        builder.Services.AddTransient<TestAgentViewModel>();
 
         // Register Pages
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<ChatPage>();
+        builder.Services.AddTransient<TestAgentPage>();
 
         return builder.Build();
     }

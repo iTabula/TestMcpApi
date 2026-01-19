@@ -6,7 +6,7 @@ using KamMobile.Services;
 
 namespace KamMobile.ViewModels;
 
-public class ChatViewModel : INotifyPropertyChanged
+public class TestAgentViewModel : INotifyPropertyChanged
 {
     private readonly McpSseClient _mcpClient;
     private readonly ISpeechRecognitionService _speechRecognitionService;
@@ -20,7 +20,7 @@ public class ChatViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _recognitionCts;
     private CancellationTokenSource? _speechCts;
 
-    public ChatViewModel(McpSseClient mcpClient, ISpeechRecognitionService speechRecognitionService)
+    public TestAgentViewModel(McpSseClient mcpClient, ISpeechRecognitionService speechRecognitionService)
     {
         _mcpClient = mcpClient;
         _speechRecognitionService = speechRecognitionService;
@@ -65,6 +65,8 @@ public class ChatViewModel : INotifyPropertyChanged
         {
             _isListening = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ButtonBackgroundColor));
+            OnPropertyChanged(nameof(ButtonTextColor));
         }
     }
 
@@ -75,6 +77,8 @@ public class ChatViewModel : INotifyPropertyChanged
         {
             _isProcessing = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ButtonBackgroundColor));
+            OnPropertyChanged(nameof(ButtonTextColor));
         }
     }
 
@@ -85,6 +89,8 @@ public class ChatViewModel : INotifyPropertyChanged
         {
             _isSpeaking = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ButtonBackgroundColor));
+            OnPropertyChanged(nameof(ButtonTextColor));
         }
     }
 
@@ -95,6 +101,27 @@ public class ChatViewModel : INotifyPropertyChanged
         {
             _buttonText = value;
             OnPropertyChanged();
+        }
+    }
+
+    public Color ButtonBackgroundColor
+    {
+        get
+        {
+            if (IsListening) return Color.FromArgb("#dc3545"); // Red
+            if (IsProcessing) return Color.FromArgb("#ffc107"); // Yellow
+            if (IsSpeaking) return Color.FromArgb("#28a745"); // Green
+            return Colors.White; // Default
+        }
+    }
+
+    public Color ButtonTextColor
+    {
+        get
+        {
+            if (IsListening || IsSpeaking) return Colors.White;
+            if (IsProcessing) return Color.FromArgb("#333");
+            return Color.FromArgb("#667eea"); // Default
         }
     }
 
@@ -177,7 +204,6 @@ public class ChatViewModel : INotifyPropertyChanged
         _recognitionCts?.Cancel();
         StatusText = "Stopping...";
         
-        // Give the cancellation time to process
         await Task.Delay(100);
         
         IsListening = false;

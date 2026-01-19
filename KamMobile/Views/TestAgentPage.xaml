@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="KamMobile.Views.TestAgentPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewModels="clr-namespace:KamMobile.ViewModels"
+    Title="Voice Assistant"
+    x:DataType="viewModels:TestAgentViewModel">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Command="{Binding LogoutCommand}" Text="Logout" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="10">
+
+            <!--  Header  -->
+            <Label
+                FontAttributes="Bold"
+                FontSize="28"
+                HorizontalOptions="Center"
+                Text="Voice Assistant"
+                TextColor="#333" />
+
+            <Label
+                Margin="0,0,0,20"
+                FontSize="16"
+                HorizontalOptions="Center"
+                Text="Ask me a question by clicking the microphone"
+                TextColor="#666" />
+
+            <!--  Assistant Section with Gradient Background  -->
+            <Border
+                Padding="40"
+                BackgroundColor="#667eea"
+                StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="15" />
+                </Border.StrokeShape>
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Offset="0.0" Color="#667eea" />
+                        <GradientStop Offset="1.0" Color="#764ba2" />
+                    </LinearGradientBrush>
+                </Border.Background>
+
+                <VerticalStackLayout Spacing="20">
+
+                    <!--  Microphone Icon  -->
+                    <Image
+                        x:Name="MicIcon"
+                        HeightRequest="80"
+                        HorizontalOptions="Center"
+                        Source="microphone_icon.png"
+                        WidthRequest="80">
+                        <Image.Behaviors>
+                            <Toolkit:IconTintColorBehavior xmlns:Toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit" TintColor="White" />
+                        </Image.Behaviors>
+                    </Image>
+
+                    <!--  Start Button  -->
+                    <Button
+                        Padding="15,10"
+                        BackgroundColor="{Binding ButtonBackgroundColor}"
+                        Command="{Binding StartConversationCommand}"
+                        CornerRadius="25"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        HorizontalOptions="Center"
+                        Text="{Binding ButtonText}"
+                        TextColor="{Binding ButtonTextColor}"
+                        WidthRequest="250" />
+
+                    <!--  Status Text  -->
+                    <Label
+                        FontAttributes="Bold"
+                        FontSize="16"
+                        HorizontalOptions="Center"
+                        Text="{Binding StatusText}"
+                        TextColor="White" />
+
+                    <!--  Question Section  -->
+                    <Border
+                        Padding="20"
+                        BackgroundColor="White"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="10">
+                            <Label
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                Text="Your Question:"
+                                TextColor="#667eea" />
+
+                            <Border
+                                Padding="15"
+                                BackgroundColor="#f0f4ff"
+                                StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+
+                                <Label
+                                    FontSize="16"
+                                    LineBreakMode="WordWrap"
+                                    MinimumHeightRequest="60"
+                                    Text="{Binding QuestionText}"
+                                    TextColor="#333" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!--  Answer Section  -->
+                    <Border
+                        Padding="20"
+                        BackgroundColor="White"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="10">
+                            <HorizontalStackLayout Spacing="10">
+                                <Label
+                                    FontAttributes="Bold"
+                                    FontSize="18"
+                                    Text="My Answer:"
+                                    TextColor="#28a745"
+                                    VerticalOptions="Center" />
+
+                                <Image
+                                    x:Name="SpeakerIcon"
+                                    HeightRequest="24"
+                                    Source="speaker_icon.png"
+                                    VerticalOptions="Center"
+                                    WidthRequest="24">
+                                    <Image.Behaviors>
+                                        <Toolkit:IconTintColorBehavior xmlns:Toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit" TintColor="#28a745" />
+                                    </Image.Behaviors>
+                                </Image>
+                            </HorizontalStackLayout>
+
+                            <Border
+                                Padding="15"
+                                BackgroundColor="#f0fff4"
+                                StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+
+                                <Label
+                                    FontSize="16"
+                                    LineBreakMode="WordWrap"
+                                    MinimumHeightRequest="60"
+                                    Text="{Binding AnswerText}"
+                                    TextColor="#333" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Border>
+
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
