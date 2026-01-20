@@ -307,6 +307,8 @@ namespace KamHttp.Helpers
                 if (result.output != null && result.output.Count > 0)
                 {
                     Output output = result.output.Where(x => x.role == "tool").FirstOrDefault();
+                    bool isToolOutputInvalid = false;
+
                     if (output == null)
                     {
                         output = result.output.Where(x => x.content.Length > 10).FirstOrDefault();
@@ -318,7 +320,18 @@ namespace KamHttp.Helpers
                         List<ContentMessages> text_messages = JsonSerializer.Deserialize<List<ContentMessages>>(message);
                         if (text_messages != null && text_messages.Count > 0)
                         {
-                            message = string.Join(" ", text_messages.Select(tm => tm.text));
+                            string combinedText = string.Join(" ", text_messages.Select(tm => tm.text));
+
+                            if (IsInvalidToolOutput(combinedText))
+                            {
+                                _logger?.LogInformation("[Tool output contains invalid/debug content, ignoring...]");
+                                isToolOutputInvalid = true;
+                                message = "";
+                            }
+                            else
+                            {
+                                message = combinedText;
+                            }
                         }
                     }
                     message = message
@@ -326,8 +339,13 @@ namespace KamHttp.Helpers
                         .Replace("Hi, this is Ava, your KAM AI Agent.", "")
                         .Replace("Let me check that for you.", "")  
                         .Replace("By the way, may I get your name, phone number, and email in case you'd like more insights or help joining KAM?", "")
-                        .Replace("\n", "").
-                        Trim(); // Remove markdown bold for console display"
+                        .Replace("\n", "")
+                        .Trim(); // Remove markdown bold for console display"
+
+                    if (string.IsNullOrEmpty(message) && isToolOutputInvalid)
+                    {
+                        return "No response content.";
+                    }
                     return message ?? "No response content.";
                 }
 
@@ -339,6 +357,26 @@ namespace KamHttp.Helpers
                 _logger?.LogInformation("[Falling back to simple tool matching...]");
                 return await ProcessPromptWithSimpleMatchingAsync(prompt);
             }
+        }
+
+        private bool IsInvalidToolOutput(string content)
+        {
+            // Check if content contains patterns that indicate it's debug/technical output
+            // that should be ignored (like tokens, secret codes, etc.)
+            var contentLower = content.ToLowerInvariant();
+
+            var invalidPatterns = new[]
+            {
+                "secret code",
+                "user_role",
+                "token =",
+                "eyj", // JWT token prefix
+                "bearer",
+                "authorization"
+            };
+
+            // If any of these patterns exist, consider it invalid
+            return invalidPatterns.Any(pattern => contentLower.Contains(pattern));
         }
 
         private async Task<string> ProcessPromptWithSimpleMatchingAsync(string prompt)
