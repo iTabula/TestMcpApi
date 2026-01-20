@@ -1,5 +1,5 @@
 using Azure.Core;
-using KamWeb.Helpers;
+using KamHttp.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
