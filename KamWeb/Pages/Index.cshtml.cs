@@ -97,7 +97,7 @@ namespace KamWeb.Pages
         {
             LoginResponse response = await _userService.LoginUser(UserName, Password);
 
-            if (response == null || response.status != true || response.user == null || string.IsNullOrEmpty(response.jwtToken) || string.IsNullOrEmpty(response.jwtToken))
+            if (response == null || response.status != true || response.user == null || string.IsNullOrEmpty(response.jwtToken))
             {
                 string errorMessage = response == null ? "Invalid credentials" : response.message;
                 return errorMessage;
