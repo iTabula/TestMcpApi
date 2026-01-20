@@ -55,35 +55,45 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get top agents ranked by number of transactions")]
     [HttpGet("/loans/top-agents")]
-    // TESTED https://localhost:44352/loans/agents?sortByName=true&descending=false
     public string GetTopAgents(
         [Description("who are the top agents for KAM")] int top = 5,
         int? year = null,
         DateTime? from = null,
-        DateTime? to = null)
+        DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
-        //return $"the top agent for KAM is Khaled El Henawy";
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
 
-        string names = "";
-        //LoanTransactionService svc = new LoanTransactionService();
+        // Check if service has errors
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
-            names = "not availabale right now";
+            return "not available right now";
         }
-        var data = Filter(svc, null, year, from, to).Where(t => !string.IsNullOrWhiteSpace(t.AgentName)); ;
+
+        // Proceed with the tool execution for Admin users
+        var data = Filter(svc, null, year, from, to).Where(t => !string.IsNullOrWhiteSpace(t.AgentName));
 
         var result = data.GroupBy(t => t.AgentName, StringComparer.OrdinalIgnoreCase)
                         .OrderByDescending(g => g.Count())
                         .Take(top)
                         .Select(g => new { Agent = g.Key, Transactions = g.Count() });
+        
         if (result.Count() == 0)
             return "There are no agent transactions available for the selected filters.";
 
         List<TopAgentResult> results = JsonSerializer.Deserialize<List<TopAgentResult>>(JsonSerializer.Serialize(result))!;
 
-        names = results.Select(r => r.Agent + " with " + r.Transactions + " transactions").Aggregate((a, b) => a + ", " + b);
+        string names = results.Select(r => r.Agent + " with " + r.Transactions + " transactions").Aggregate((a, b) => a + ", " + b);
         return $"The top {top} agents for KAM are: {names}";
     }
+
+
 
     [McpServerTool]
     [Description("List transactions by agent name")]
