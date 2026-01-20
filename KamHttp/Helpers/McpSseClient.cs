@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 
-namespace KamMobile.Helpers
+namespace KamHttp.Helpers
 {
     public class McpSseClient
     {
@@ -43,6 +43,7 @@ namespace KamMobile.Helpers
                 BaseAddress = new Uri("https://api.vapi.ai")
             };
             _vapiClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {privateApiKey}");
+            //_vapiClient.DefaultRequestHeaders.Add("Khaled", $"1234");
             _vapiAssistantId = assistantId;
             _logger?.LogInformation($"[Using Vapi assistant: {assistantId}]");
         }
