@@ -57,9 +57,9 @@ public class LoansController : ControllerBase
     [HttpGet("/loans/top-agents")]
     public string GetTopAgents(
         [Description("who are the top agents for KAM")] int top = 5,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown")
