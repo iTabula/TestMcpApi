@@ -227,34 +227,36 @@ namespace WebApi.Controllers
             // Validate Username and Password
 
             //Check for nulls
-            if (string.IsNullOrEmpty(LoginRequest.UserName) || string.IsNullOrEmpty(LoginRequest.Password))
+            if (string.IsNullOrEmpty(LoginRequest.userName) || string.IsNullOrEmpty(LoginRequest.password))
             {
                 return Ok(new LoginResponse()
                 {
-                    Status = false,
-                    Code = "-1",
-                    Message = "Incomplete or Empty Credentials!",
-                    User = null!,
-                    JwtToken = "",
-                    RefreshToken = "",
-                    FeatureKeys = null!,
-                    Role = ""
+                    id = "",
+                    status = false,
+                    code = "-1",
+                    message = "Incomplete or Empty Credentials!",
+                    user = null!,
+                    jwtToken = "",
+                    refreshToken = "",
+                    featureKeys = null!,
+                    role = ""
                 });
             }
 
-            User user = await _unitOfWork.UsersTable.FirstOrDefaultAsync(x => x.UserName == LoginRequest.UserName && x.Password == LoginRequest.Password);
-            if (user == null || user.Password != LoginRequest.Password)
+            User user = await _unitOfWork.UsersTable.FirstOrDefaultAsync(x => x.UserName == LoginRequest.userName && x.Password == LoginRequest.password);
+            if (user == null || user.Password != LoginRequest.password)
             {
                 return Ok(new LoginResponse()
                 {
-                    Status = false,
-                    Code = "-1",
-                    Message = "Invalid UserName or Password!",
-                    User = null!,
-                    JwtToken = "",
-                    RefreshToken = "",
-                    FeatureKeys = null!,
-                    Role = ""
+                    id = "",
+                    status = false,
+                    code = "-1",
+                    message = "Invalid UserName or Password!",
+                    user = null!,
+                    jwtToken = "",
+                    refreshToken = "",
+                    featureKeys = null!,
+                    role = ""
                 });
             }
 
@@ -270,11 +272,11 @@ namespace WebApi.Controllers
 
             // Getting the user groups and user features
 
-            List<long> lstUserGroups =
-                await _unitOfWork.AllUserRolesTable
-                .Where(x => x.UserId == userId)
-                .Select(x => x.BasicRoleId)
-                .ToListAsync();
+            //List<long> lstUserGroups =
+            //    await _unitOfWork.AllUserRolesTable
+            //    .Where(x => x.UserId == userId)
+            //    .Select(x => x.BasicRoleId)
+            //    .ToListAsync();
 
             // Generating The User's Token
             string jwtToken = _tokenService.GenerateJwtToken(email, userId.ToString());
@@ -282,12 +284,15 @@ namespace WebApi.Controllers
 
             LoginResponse loginResponse = new LoginResponse()
             {
-                Status = true,
-                Code = "0",
-                Message = "",
-                User = user,
-                JwtToken = jwtToken,
-                RefreshToken = refreshToken,
+                id = userId.ToString(),
+                status = true,
+                code = "0",
+                message = "",
+                user = user,
+                jwtToken = jwtToken,
+                refreshToken = refreshToken,
+                featureKeys = new List<string>(),
+                role = roleName!
             };
 
             return Ok(loginResponse);

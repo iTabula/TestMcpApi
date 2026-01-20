@@ -97,18 +97,18 @@ namespace KamWeb.Pages
         {
             LoginResponse response = await _userService.LoginUser(UserName, Password);
 
-            if (response == null || response.Status != true || response.User == null || string.IsNullOrEmpty(response.JwtToken))
+            if (response == null || response.status != true || response.user == null || string.IsNullOrEmpty(response.jwtToken) || string.IsNullOrEmpty(response.jwtToken))
             {
-                string errorMessage = response == null ? "Invalid credentials" : response.Message;
+                string errorMessage = response == null ? "Invalid credentials" : response.message;
                 return errorMessage;
             }
 
             // Extract the token and other information from the response
-            User user = response.User;
-            string AccessToken = response.JwtToken;
-            string RefreshToken = response.RefreshToken;
-            List<string> features = response.FeatureKeys;
-            string Role = response.Role;
+            User user = response.user;
+            string AccessToken = response.jwtToken;
+            string RefreshToken = response.refreshToken;
+            List<string> features = response.featureKeys;
+            string Role = response.role;
 
 
             //Create the Identity Claim

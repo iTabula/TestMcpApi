@@ -83,8 +83,8 @@ public class UserService : IUserService
     {
         LoginRequest loginRequest = new LoginRequest()
         {
-            UserName = UserName,
-            Password = Password
+            userName = UserName,
+            password = Password
         };
         HttpContent httpContent = _factoryHttpClient.SetHttpContent(loginRequest);
         LoginResponse data = await _factoryHttpClient.PostRequest<LoginResponse>(_WebApiName,
