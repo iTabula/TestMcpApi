@@ -44,7 +44,10 @@ public class LoansController : ControllerBase
     [Description("OTP code is")]
     [HttpGet("/loans/OTP")]
     public string ValidateOTP(
-        [Description("OTP code is")] string code = "0000")
+        [Description("OTP code is")] string code = "0000",
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "OTP code is not available right now.";
@@ -98,14 +101,16 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("List transactions by agent name")]
     [HttpGet("/loans/agent/{agent}")]
-    // TESTED https://localhost:44352/loans/top-agents?top=5&year=2023
     public string GetTransactionsByAgent(
         [Description("List the transactions made by the agent, during the year")]
         string agent,
-        int top = 10,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string transactions = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -131,10 +136,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get Agent responsible for a specific loan")]
     [HttpGet("/loans/agent-by-id/{loanId}")]
-    // TESTED https://localhost:44352/loans/agent-by-id/17
     public string GetAgentByLoan(
         [Description("who is the agent responsible for the loan")]
-        string loanId)
+        string loanId,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string agent = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -151,10 +158,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get Agent responsible for a specific property address")]
     [HttpGet("/loans/agent-by-address/{address}")]
-    // TESTED https://localhost:44352/loans/agent-by-address/123%20Main%20Street
     public string GetAgentByAddress(
         [Description("Who is the agent responsible for this property address?")]
-        string address)
+        string address,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
@@ -172,13 +181,15 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get total number of transactions for an agent")]
     [HttpGet("/loans/total-for-agent/{agent}")]
-    // TESTED https://localhost:44352/loans/total-for-agent/Maya%20Haffar?year=2019
     public string GetTotalTransactionsByAgent(
         [Description("How many transactions did the agent make, in the year")]
         string agent,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -198,11 +209,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get all agent names, optionally sorted")]
     [HttpGet("/loans/agents")]
-    // TESTED https://localhost:44352/loans/agents?sortByName=true&descending=false
     public string GetAllAgents(
-        [Description("List all agent names, sorted")]
-        bool sortByName = true,
-        bool descending = false)
+        [Description("Sort agent names alphabetically")] bool sortByName = true,
+        [Description("Sort in descending order")] bool descending = false,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -228,9 +240,11 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get subject address by loan number")]
     [HttpGet("/loans/address-by-id/{loanId}")]
-    // TESTED https://localhost:44352/loans/address-by-id/17
     public string GetAddressByLoan(
-        [Description("What is the address of the property for this specific loan?")] string loanId)
+        [Description("What is the address of the property for this specific loan?")] string loanId,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -251,13 +265,15 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get the loans in a specific state")]
     [HttpGet("/loans/state/{state}")]
-    // TESTED https://localhost:44352/loans/state/CA?top=10&year=2024
     public string GetLoansByState(
         [Description("Which state do you want to get loans for?")] string state,
-        int top = 10,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of loans to return")] int top = 10,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string loansText = "";
 
@@ -300,9 +316,11 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get lender for a specific loan")]
     [HttpGet("/loans/id/lender-by-id/{loanId}")]
-    // TESTED https://localhost:44352/loans/id/lender-by-id/17
     public string GetLender(
-        [Description("Who is the lender for this specific loan?")] string loanId)
+        [Description("Who is the lender for this specific loan?")] string loanId,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string lender = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -320,10 +338,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get lender for a specific property address")]
     [HttpGet("/loans/address/lender-by-address/{address}")]
-    // TESTED https://localhost:44352/loans/address/lender-by-address/123%20Main%20Street
     public string GetLenderByAddress(
         [Description("Who is the lender for this specific property address?")]
-        string address)
+        string address,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
@@ -342,9 +362,11 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get LTV of a specific loan")]
     [HttpGet("/loans/ltv-by-id/{loanId}")]
-    // TESTED https://localhost:44352/loans/ltv-by-id17
     public string GetLTV(
-        [Description("What is the LTV for this specific loan?")] string loanId)
+        [Description("What is the LTV for this specific loan?")] string loanId,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string ltv = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -363,10 +385,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get LTV of a specific property address")]
     [HttpGet("/loans/ltv-by-address/{address}")]
-    // TESTED https://localhost:44352/loans/ltv-by-address/123%20Main%20Street
     public string GetLTVByAddress(
         [Description("What is the LTV for this property address?")]
-        string address)
+        string address,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
@@ -388,13 +412,15 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get the IDs of loans with a specific status (Active = Submitted / Not Submitted)")]
     [HttpGet("/loans/status/{status}")]
-    // TESTED https://localhost:44352/loans/status/Submitted?top=10&year=2024
     public string GetLoanIdsByStatus(
-    [Description("What are the loan IDs with this status?")] string status,
-    int top = 10,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("What are the loan IDs with this status?")] string status,
+        [Description("Maximum number of loan IDs to return")] int top = 10,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -423,13 +449,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get loans that haven't been closed yet")]
     [HttpGet("/loans/open")]
-    // TESTED https://localhost:44352/loans/open?top=10&year=2024
     public string GetOpenLoans(
-        [Description("Which loans are still open and haven't been closed yet?")]
-        int top = 10,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Which loans are still open and haven't been closed yet?")] int top = 10,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -464,14 +491,15 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get the most popular ZIP code or get the top zip codes for properties being sold or bought")]
     [HttpGet("/loans/top-zips")]
-    // TESTED https://localhost:44352/loans/top-zips?year=2024
-    // NOTE: HANDLE VALUE N/A
     public string GetMostPopularZip(
         [Description("Which ZIP code appears most frequently in the loans or what are the top zip codes for properties being sold or bought?")] int top = 1,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -491,13 +519,15 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get top cities ranked by number of transactions")]
     [HttpGet("/loans/top-cities")]
-    // TESTED https://localhost:44352/loans/top-cities?top=5&agent=Maya%20Haffar&year=2019
     public string GetTopCities(
         [Description("Which cities have the highest number of transactions?")] int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string names = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -532,12 +562,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular property type")]
     [HttpGet("/loans/top-property-type")]
-    // TESTED https://localhost:44352/loans/top-escrow-send-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularPropType(
         [Description("What is the most popular property type?")] string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -572,12 +604,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular transaction type")]
     [HttpGet("/loans/top-transaction-type")]
-    // TESTED https://localhost:44352/loans/top-transaction-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularTransactionType(
         [Description("What is the most popular transaction type?")] string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -611,12 +645,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular mortgage type")]
     [HttpGet("/loans/top-mortgage-type")]
-    //TESTED https://localhost:44352/loans/top-mortgage-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularMortgageType(
         [Description("What is the most popular mortgage type?")] string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -650,12 +686,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular brokering type")]
     [HttpGet("/loans/top-brokering-type")]
-    // TESTED https://localhost:44352/loans/top-brokering-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularBrokeringType(
         [Description("What is the most popular brokering type?")] string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -689,12 +727,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular loan type")]
     [HttpGet("/loans/top-loan-type")]
-    // TESTED https://localhost:44352/loans/top-brokering-type?agent=Maya%20Haffar&year=2017
     public string GetMostPopularLoanType(
         [Description("What is the most popular loan type?")] string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -728,12 +768,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular escrow method send type")]
     [HttpGet("/loans/top-escrow-send-type")]
-    // TESTED https://localhost:44352/loans/top-loan-type?agent=Maya%20Haffar&year=2019
     public string GetMostPopularEscrowMethod(
-    [Description("What is the most popular escrow method send type?")] string? agent = null,
-    int? year = null,
-    DateTime? from = null,
-    DateTime? to = null)
+        [Description("What is the most popular escrow method send type?")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string method = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -767,12 +809,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular title company")]
     [HttpGet("/loans/top-title-company")]
-    // TESTED https://localhost:44352/loans/top-title-company?agent=Maya%20Haffar&year=2019
     public string GetMostPopularTitleCompany(
         [Description("What is the most popular title company?")] string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -806,12 +850,14 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get most popular escrow company")]
     [HttpGet("/loans/top-escrow-company")]
-    // TESTED https://localhost:44352/loans/top-escrow-company?agent=Maya%20Haffar&year=2019
     public string GetMostPopularEscrowCompany(
         [Description("What is the most popular escrow company?")] string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -847,11 +893,13 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Average loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/average")]
-    //TESTED https://localhost:44352/loans/average?agent=Maya%20Haffar&year=2019
     public string GetAverageLoanAmount(
         [Description("What is the average loan amount?")]
         string? agent = null,
-        int? year = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result;
 
@@ -874,11 +922,13 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Highest loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/max")]
-    // TESTED https://localhost:44352/loans/max?agent=Maya%20Haffar&year=2019
     public string GetHighestLoanAmount(
         [Description("What is the highest loan amount?")]
         string? agent = null,
-        int? year = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result;
 
@@ -901,11 +951,13 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Lowest loan amount (overall, by agent or by year)")]
     [HttpGet("/loans/min")]
-    //TESTED https://localhost:44352/loans/min?agent=Maya%20Haffar&year=2019
     public string GetLowestLoanAmount(
         [Description("What is the lowest loan amount?")]
         string? agent = null,
-        int? year = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result;
 
@@ -931,10 +983,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get average credit score (overall, by agent or by year)")]
     [HttpGet("/loans/credit-score/average")]
-    // TESTED https://localhost:44352/loans/credit-score/average?agent=Maya%20Haffar&year=2019
     public string GetAverageCreditScore(
         [Description("What is the average credit score for the agent?")] string? agent = null,
-        int? year = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
 
@@ -957,10 +1011,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get highest credit score (overall, by agent or by year)")]
     [HttpGet("/loans/credit-score/max")]
-    // TESTED https://localhost:44352/loans/credit-score/max?agent=Maya%20Haffar&year=2019
     public string GetHighestCreditScore(
         [Description("What is the highest credit score for the agent?")] string? agent = null,
-        int? year = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
 
@@ -983,10 +1039,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get lowest credit score (overall, by agent or by year)")]
     [HttpGet("/loans/credit-score/min")]
-    // TESTED https://localhost:44352/loans/credit-score/min?agent=Maya%20Haffar&year=2019
     public string GetLowestCreditScore(
         [Description("What is the lowest credit score for the agent?")] string? agent = null,
-        int? year = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
 
@@ -1013,13 +1071,15 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get number of loans for a specific escrow company")]
     [HttpGet("/loans/total-by-escrow/{escrowCompany}")]
-    // TESTED https://localhost:44352/loans/total-by-escrow/Sun%20Escrow
     public string GetLoansByEscrow(
         [Description("What are the loans for a specific escrow company?")] string escrowCompany,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
 
@@ -1044,9 +1104,11 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get all escrow companies")]
     [HttpGet("/loans/escrow-companies")]
-    // TESTED https://localhost:44352/loans/escrow-companies
     public string GetAllEscrowCompanies(
-        [Description("What are the names of all escrow companies")] string dummy = "")
+        [Description("What are the names of all escrow companies")] string dummy = "",
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
 
@@ -1072,11 +1134,13 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get transactions for a specific escrow company")]
     [HttpGet("/loans/ecrowCompany/{escrowCompany}")]
-    // TESTED https://localhost:44352/loans/escrow-company/Sun%20Escrow?top=10
     public string GetTransactionsByEscrowCompany(
         [Description("List the transactions made by a specific escrow company")]
         string escrowCompany,
-        int top = 10)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string result = "";
 
@@ -1109,9 +1173,11 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get top Escrow Companies ranked by number of transactions")]
     [HttpGet("/loans/top-escrow-companies")]
-    // TESTED https://localhost:44352/loans/top-escrow-companies?top=5
     public string GetTopEscrowCompanies(
-        [Description("What are the top escrow companies")] int top = 10)
+        [Description("What are the top escrow companies")] int top = 10,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string names = "";
 
@@ -1141,9 +1207,11 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get Escrow Company statistics (total loans, average, highest, lowest loan amounts)")]
     [HttpGet("/loans/escrow-statistics/{escrowCompany}")]
-    // TESTED https://localhost:44352/loans/escrow-statistics/Sun%20Escrow
     public string GetEscrowCompanyStats(
-        [Description("What are the total loans and loan amount statistics for a specific escrow company?")] string escrowCompany)
+        [Description("What are the total loans and loan amount statistics for a specific escrow company?")] string escrowCompany,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string resultText = "";
 
@@ -1185,13 +1253,15 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get total number of transactions for a lender")]
     [HttpGet("/loans/total-by-lender/{lender}")]
-    //  TESTED https://localhost:44352/loans/total-by-lender/Essex%20Mortgage
     public string GetTotalTransactionsByLender(
         [Description("How many transactions did this lender make?")] string lender,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string resultText = "";
 
@@ -1215,8 +1285,10 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("What are the names of all title companies?")]
     [HttpGet("/loans/title-companies")]
-    // TESTED https://localhost:44352/loans/title-companies
-    public string GetAllTitleCompanies()
+    public string GetAllTitleCompanies(
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string resultText = "";
 
@@ -1244,14 +1316,16 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get transactions for a specific title company")]
     [HttpGet("/loans/title-company/{titleCompany}")]
-    // TESTED https://localhost:44352/loans/title-company/Amrock?top=5
     public string GetTransactionsByTitleCompany(
         [Description("Which transactions were made by this title company?")] string titleCompany,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string resultText = "";
 
@@ -1290,10 +1364,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get 1099 for an agent for a specific year")]
     [HttpGet("/loans/1099/{agent}/{year}")]
-    // TESTED https://localhost:44352/loans/1099/Maya%20Haffar/2019
     public string GetAgent1099(
         [Description("What is the 1099 for this agent for a specific year?")] string agent,
-        int year)
+        [Description("Year to get 1099")] int year,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string resultText = "";
 
@@ -1314,9 +1390,11 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Get lender statistics (total loans, average, highest, lowest loan amounts)")]
     [HttpGet("/loans/lender-statistics/{lender}")]
-    // TESTED https://localhost:44352/loans/lender-statistics/Essex%20Mortgage
     public string GetLenderStats(
-        [Description("What are the total loans and loan amount statistics for this lender?")] string lender)
+        [Description("What are the total loans and loan amount statistics for this lender?")] string lender,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string resultText = "";
 
