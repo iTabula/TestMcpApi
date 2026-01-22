@@ -28,7 +28,10 @@ public class RealsController : ControllerBase
     [Description("Get details of a real transaction by its RealTransID")]
     [HttpGet("/real-transaction/{realTransID}")]
     public string GetRealTransactionById(
-        [Description("What is the real transaction information for RealTransID?")] string realTransID)
+        [Description("What is the real transaction information for RealTransID?")] string realTransID,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (svc == null || !string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Real transactions data is not available right now.";
@@ -66,10 +69,13 @@ public class RealsController : ControllerBase
     public string GetRealTransactionsByAgent(
          [Description("List the transactions made by the agent, during the selected year or date range")]
          string agent,
-         int top = 10,
-         int? year = null,
-         DateTime? from = null,
-         DateTime? to = null)
+         [Description("Maximum number of transactions to return")] int top = 10,
+         [Description("Filter by specific year")] int? year = null,
+         [Description("Filter transactions from this date")] DateTime? from = null,
+         [Description("Filter transactions to this date")] DateTime? to = null,
+         [Description("user_id")] int user_id = 0,
+         [Description("user_role")] string user_role = "unknown",
+         [Description("token")] string token = "unknown")
     {
         string transactions = "";
 
@@ -114,11 +120,14 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/state/{state}")]
     public string GetRealTransactionsByState(
         [Description("List the real estate transactions located in the state")] string state,
-        int top = 10,
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string transactions = "";
 
@@ -164,11 +173,14 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/title-company/{titleCompany}")]
     public string GetRealTransactionsByTitleCompany(
         [Description("List the real estate transactions managed by the title company")] string titleCompany,
-        int top = 10,
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string transactions = "";
 
@@ -213,7 +225,10 @@ public class RealsController : ControllerBase
     [Description("Get a real estate transaction by property address")]
     [HttpGet("/reals/property/{subjectAddress}")]
     public string GetRealTransactionByPropertyAddress(
-        [Description("Get the real estate transaction information for the property at this address")] string subjectAddress)
+        [Description("Get the real estate transaction information for the property at this address")] string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -246,11 +261,14 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/escrow/{escrowCompany}")]
     public string GetTransactionsByEscrowCompany(
         [Description("List the real estate transactions handled by this escrow company")] string escrowCompany,
-        int top = 10,
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         string transactions = "";
 
@@ -288,7 +306,10 @@ public class RealsController : ControllerBase
     [Description("Get the lender name for a specific property address")]
     [HttpGet("/reals/lender-by-address/{subjectAddress}")]
     public string GetLenderByPropertyAddress(
-        [Description("Who is the lender for the property with this address?")] string subjectAddress)
+        [Description("Who is the lender for the property with this address?")] string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -316,7 +337,10 @@ public class RealsController : ControllerBase
     [Description("Get the LTV (Loan-to-Value) for a specific property address")]
     [HttpGet("/reals/ltv-by-address/{subjectAddress}")]
     public string GetLTVByPropertyAddress(
-        [Description("What is the LTV for the property with this address?")] string subjectAddress)
+        [Description("What is the LTV for the property with this address?")] string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -345,9 +369,12 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/total-transactions/agent/{agent}")]
     public string GetTotalTransactionsByAgent(
         [Description("How many transactions has the agent completed?")] string agent,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -377,9 +404,12 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/total-transactions/lender/{lender}")]
     public string GetTotalTransactionsByLender(
         [Description("How many transactions have been handled by the lender?")] string lender,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -409,7 +439,10 @@ public class RealsController : ControllerBase
     [Description("Get the property address by real transaction ID")]
     [HttpGet("/reals/address-by-id/{realTransId}")]
     public string GetSubjectAddressById(
-        [Description("What is the property address for the real transaction ID?")] string realTransId)
+        [Description("What is the property address for the real transaction ID?")] string realTransId,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -436,10 +469,13 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/most-popular-zip")]
     public string GetMostPopularZip(
         [Description("Which ZIP code appears most frequently among the real transactions?")]
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -462,10 +498,13 @@ public class RealsController : ControllerBase
     public string GetTopCities(
         [Description("What are the top cities with the most real transactions?")]
         int top = 10,
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -497,9 +536,12 @@ public class RealsController : ControllerBase
     public string GetTopAgents(
         [Description("Who are the top agents for real estate transactions?")]
         int top = 10,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -531,7 +573,10 @@ public class RealsController : ControllerBase
     public string GetAllAgents(
         [Description("List all agent names, sorted")]
         bool sortByName = true,
-        bool descending = false)
+        [Description("Sort in descending order")] bool descending = false,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -554,7 +599,10 @@ public class RealsController : ControllerBase
     [McpServerTool]
     [Description("List all title companies involved in real estate transactions")]
     [HttpGet("/reals/all-title-companies")]
-    public string GetAllTitleCompanies()
+    public string GetAllTitleCompanies(
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -583,9 +631,12 @@ public class RealsController : ControllerBase
         string? agent = null,
         [Description("Which year's transactions do you want to see?")]
         int? year = null,
-        int top = 10,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -629,9 +680,12 @@ public class RealsController : ControllerBase
         DateTime? from = null,
         [Description("Up to which date do you want to see transactions?")]
         DateTime? to = null,
-        int top = 10,
-        string? agent = null,
-        int? year = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -679,7 +733,10 @@ public class RealsController : ControllerBase
         [Description("What is the agent's name you want to get the 1099 for?")]
         string agent,
         [Description("For which year do you want to get the 1099?")]
-        int year)
+        int year,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -701,7 +758,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/lender-stats")]
     public string GetLenderStats(
         [Description("Which lender do you want to get stats for?")]
-        string lender)
+        string lender,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -740,9 +800,12 @@ public class RealsController : ControllerBase
     public string GetMostPopularTransactionType(
         [Description("Which transaction type is most common for the selected filters?")]
         string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -763,9 +826,12 @@ public class RealsController : ControllerBase
     public string GetMostPopularClientType(
         [Description("Which client type is most common for the selected filters?")]
         string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -786,9 +852,12 @@ public class RealsController : ControllerBase
     public string GetMostPopularRealType(
         [Description("Which real type is most common for the selected filters?")]
         string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -832,11 +901,14 @@ public class RealsController : ControllerBase
     public string GetByPartyPresented(
         [Description("List the transactions where the specified party was presented")]
         string party,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -874,11 +946,14 @@ public class RealsController : ControllerBase
     public string GetByClientType(
         [Description("List the transactions for the specified client type")]
         string clientType,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -916,11 +991,14 @@ public class RealsController : ControllerBase
     public string GetByPropType(
         [Description("List the transactions for the specified property type")]
         string propType,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -958,11 +1036,14 @@ public class RealsController : ControllerBase
     public string GetByTransactionType(
         [Description("List the transactions for the specified transaction type")]
         string transType,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1000,11 +1081,14 @@ public class RealsController : ControllerBase
     public string GetByFinanceInfo(
         [Description("List the transactions with the specified finance information")]
         string financeInfo,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1042,11 +1126,14 @@ public class RealsController : ControllerBase
     public string GetByCARForms(
         [Description("List the transactions with the specified number of CAR forms")]
         int carForms,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1083,11 +1170,14 @@ public class RealsController : ControllerBase
     public string GetByNMLSNumber(
         [Description("List the transactions associated with the specified NMLS number")]
         string nmlsNumber,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1124,11 +1214,14 @@ public class RealsController : ControllerBase
     public string GetByHomeInspectionName(
         [Description("List the transactions associated with the specified home inspection company or inspector")]
         string inspectionName,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1166,11 +1259,14 @@ public class RealsController : ControllerBase
     public string GetByPestInspectionName(
         [Description("List the transactions associated with the specified pest inspection company or inspector")]
         string inspectionName,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1208,11 +1304,14 @@ public class RealsController : ControllerBase
     public string GetByTCFlag(
         [Description("List the transactions associated with the specified TC flag")]
         string tcFlag,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1251,11 +1350,14 @@ public class RealsController : ControllerBase
     public string GetByTC(
         [Description("List the transactions associated with the specified TC number")]
         int tc,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1290,14 +1392,16 @@ public class RealsController : ControllerBase
     [Description("List transactions within a specified price range")]
     [HttpGet("/reals/by-price-range")]
     public string GetByPriceRange(
-        [Description("List the transactions with RealAmount within the specified range")]
-        decimal minPrice,
-        decimal maxPrice,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("List the transactions with RealAmount within the specified range")] int top = 10,
+        [Description("Minimum price")] decimal minPrice = 0,
+        [Description("Maximum price")] decimal maxPrice = 0,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1332,12 +1436,14 @@ public class RealsController : ControllerBase
     [Description("List transactions within a specified Actual Closed Date range")]
     [HttpGet("/reals/by-closed-date")]
     public string GetByActualClosedDateRange(
-        [Description("List the transactions that were actually closed within the specified date range")]
-        DateTime from,
-        DateTime to,
-        int top = 10,
-        string? agent = null,
-        int? year = null)
+        [Description("List the transactions that were actually closed within the specified date range")] int top = 10,
+        [Description("From date")] DateTime? from = null,
+        [Description("To date")] DateTime? to = null,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1359,25 +1465,27 @@ public class RealsController : ControllerBase
                    }).ToList();
 
         if (!data.Any())
-            return $"No transactions found between {from.ToShortDateString()} and {to.ToShortDateString()}{(agent != null ? $" for agent {agent}" : "")}.";
+            return $"No transactions found between {from?.ToShortDateString()} and {to?.ToShortDateString()}{(agent != null ? $" for agent {agent}" : "")}.";
 
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + ", " + b);
 
-        return $"The top {top} transactions closed between {from.ToShortDateString()} and {to.ToShortDateString()}{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
+        return $"The top {top} transactions closed between {from?.ToShortDateString()} and {to?.ToShortDateString()}{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
     }
 
     [McpServerTool]
     [Description("List all open real estate transactions")]
     [HttpGet("/reals/open-transactions")]
     public string GetOpenTransactions(
-        [Description("List the transactions that are still open and not closed")]
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("List the transactions that are still open and not closed")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1412,12 +1520,14 @@ public class RealsController : ControllerBase
     [Description("List all real estate transactions that have completed home inspections")]
     [HttpGet("/reals/home-inspection-done")]
     public string GetWithHomeInspectionDone(
-        [Description("List the transactions where the home inspection has been completed")]
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("List the transactions where the home inspection has been completed")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1453,12 +1563,14 @@ public class RealsController : ControllerBase
     [Description("List all real estate transactions that have not completed home inspections")]
     [HttpGet("/reals/home-inspection-not-done")]
     public string GetWithHomeInspectionNotDone(
-        [Description("List the transactions where the home inspection has not been completed")]
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("List the transactions where the home inspection has not been completed")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1494,12 +1606,14 @@ public class RealsController : ControllerBase
     [Description("List all real estate transactions that have completed pest inspections")]
     [HttpGet("/reals/pest-inspection-done")]
     public string GetWithPestInspectionDone(
-        [Description("List the transactions where the pest inspection has been completed")]
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("List the transactions where the pest inspection has been completed")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1535,12 +1649,14 @@ public class RealsController : ControllerBase
     [Description("List all real estate transactions that have not completed pest inspections")]
     [HttpGet("/reals/pest-inspection-not-done")]
     public string GetWithPestInspectionNotDone(
-        [Description("List the transactions where the pest inspection has not been completed")]
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("List the transactions where the pest inspection has not been completed")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1576,14 +1692,16 @@ public class RealsController : ControllerBase
     [Description("List real estate transactions by TC Fees range")]
     [HttpGet("/reals/tc-fees-range")]
     public string GetByTCFeesRange(
-        [Description("List the transactions with TC Fees within the specified minimum and maximum values")]
-        decimal? minFee = null,
-        decimal? maxFee = null,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("List the transactions with TC Fees within the specified minimum and maximum values")] int top = 10,
+        [Description("Minimum TC fee")] decimal? minFee = null,
+        [Description("Maximum TC fee")] decimal? maxFee = null,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1624,11 +1742,14 @@ public class RealsController : ControllerBase
     public string GetByPayableTo(
         [Description("List the transactions where the payment is payable to the specified recipient")]
         string payableTo,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1666,11 +1787,14 @@ public class RealsController : ControllerBase
     public string GetByRoutingNumber(
         [Description("List the transactions that use the specified routing number")]
         string routingNumber,
-        int top = 10,
-        string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1727,7 +1851,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/party-presented-for-address/{subjectAddress}")]
     public string GetPartyPresentedByPropertyAddress(
         [Description("Who is the party presented for the property at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1747,7 +1874,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/client-type-for-address/{subjectAddress}")]
     public string GetClientTypeByPropertyAddress(
         [Description("What is the client type for the property at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1767,7 +1897,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/price-for-property/{subjectAddress}")]
     public string GetPriceByPropertyAddress(
         [Description("What is the price for the property at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1787,7 +1920,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/carforms-for-property/{subjectAddress}")]
     public string GetCARFormsByPropertyAddress(
         [Description("How many CAR forms are associated with the property at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1807,7 +1943,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/nmls-for-property/{subjectAddress}")]
     public string GetNMLSNumberByPropertyAddress(
         [Description("What is the NMLS number associated with the property at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1826,11 +1965,13 @@ public class RealsController : ControllerBase
     [Description("Get statistics for transaction prices")]
     [HttpGet("/reals/price-stats")]
     public string GetPriceStats(
-        [Description("What are the total number of transactions, average price, maximum price, and minimum price for the selected filters?")]
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("What are the total number of transactions, average price, maximum price, and minimum price for the selected filters?")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1856,11 +1997,13 @@ public class RealsController : ControllerBase
     [Description("Get statistics for real terms of transactions")]
     [HttpGet("/reals/realterm-stats")]
     public string GetRealTermStats(
-        [Description("What are the total number of transactions, average real term, maximum real term, and minimum real term for the selected filters?")]
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("What are the total number of transactions, average real term, maximum real term, and minimum real term for the selected filters?")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1886,11 +2029,13 @@ public class RealsController : ControllerBase
     [Description("Get statistics for real amounts of transactions")]
     [HttpGet("/reals/realamount-stats")]
     public string GetRealAmountStats(
-        [Description("What are the total number of transactions, average real amount, maximum real amount, and minimum real amount for the selected filters?")]
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("What are the total number of transactions, average real amount, maximum real amount, and minimum real amount for the selected filters?")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1916,11 +2061,13 @@ public class RealsController : ControllerBase
     [Description("Get statistics for appraised values of transactions")]
     [HttpGet("/reals/appraisedvalue-stats")]
     public string GetAppraisedValueStats(
-        [Description("What are the total number of transactions, average appraised value, maximum appraised value, and minimum appraised value for the selected filters?")]
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("What are the total number of transactions, average appraised value, maximum appraised value, and minimum appraised value for the selected filters?")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1946,11 +2093,13 @@ public class RealsController : ControllerBase
     [Description("Get statistics for LTV (Loan-to-Value) of real estate transactions")]
     [HttpGet("/reals/ltv-stats")]
     public string GetLTVStats(
-        [Description("What are the total number of transactions, average LTV, maximum LTV, and minimum LTV for the selected filters?")]
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("What are the total number of transactions, average LTV, maximum LTV, and minimum LTV for the selected filters?")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -1976,11 +2125,13 @@ public class RealsController : ControllerBase
     [Description("Get statistics for Interest Rate of real estate transactions")]
     [HttpGet("/reals/interest-rate-stats")]
     public string GetInterestRateStats(
-        [Description("What are the total number of transactions, average interest rate, maximum interest rate, and minimum interest rate for the selected filters?")]
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("What are the total number of transactions, average interest rate, maximum interest rate, and minimum interest rate for the selected filters?")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -2007,10 +2158,13 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/tcfees-stats")]
     public string GetTCFeesStats(
         [Description("What are the total number of transactions, average TC Fees, maximum TC Fees, and minimum TC Fees for the selected filters?")]
-       string? agent = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -2037,7 +2191,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/home-inspection-info/{subjectAddress}")]
     public string GetHomeInspectionInfo(
         [Description("What is the home inspection information for the property located at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -2067,7 +2224,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/pest-inspection-info/{subjectAddress}")]
     public string GetPestInspectionInfo(
         [Description("What is the pest inspection information for the property located at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -2097,7 +2257,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/escrow-info/{subjectAddress}")]
     public string GetEscrowInfo(
         [Description("What is the escrow information for the property located at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -2130,7 +2293,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/title-company-info/{subjectAddress}")]
     public string GetTitleCompanyInfo(
         [Description("What is the title company information for the property located at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -2156,7 +2322,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/appraisal-company-info/{subjectAddress}")]
     public string GetAppraisalCompanyInfo(
         [Description("What is the appraisal company information for the property located at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -2209,7 +2378,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/payment-info/{subjectAddress}")]
     public string GetPaymentInfo(
         [Description("What is the payment information for the property located at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -2242,7 +2414,10 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/bank-info/{subjectAddress}")]
     public string GetBankInfo(
         [Description("What is the banking information for the property located at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {

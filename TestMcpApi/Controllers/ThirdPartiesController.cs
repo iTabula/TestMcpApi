@@ -26,12 +26,14 @@ public class ThirdPartiesController : ControllerBase
     [McpServerTool]
     [Description("Get the most popular third-party purpose")]
     [HttpGet("/thirdparties/most-popular-purpose")]
-    // https://localhost:44352/thirdparties/most-popular-purpose?name=zoom //TESTED
     public string GetMostPopularPurpose(
         [Description("Which is the most common purpose of third parties?")] string? name = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter from this date")] DateTime? from = null,
+        [Description("Filter to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -43,14 +45,16 @@ public class ThirdPartiesController : ControllerBase
     [McpServerTool]
     [Description("Get top third-party names ranked by number of occurrences")]
     [HttpGet("/thirdparties/top-names")]
-    // https://localhost:44352/thirdparties/top-names?top=5&purpose=Not%20sure%20yet //TESTED
     public string GetTopThirdPartyNames(
         [Description("Which third parties are the most common?")] int top = 10,
-        string? name = null,
-        string? purpose = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by name")] string? name = null,
+        [Description("Filter by purpose")] string? purpose = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter from this date")] DateTime? from = null,
+        [Description("Filter to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -74,13 +78,15 @@ public class ThirdPartiesController : ControllerBase
     [McpServerTool]
     [Description("Get contact info for third parties")]
     [HttpGet("/thirdparties/contacts")]
-    // https://localhost:44352/thirdparties/contacts?name=zoom //TESTED
     public string GetThirdPartyContacts(
         [Description("Which third parties' contact info do you want?")] string? name = null,
-        string? purpose = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by purpose")] string? purpose = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter from this date")] DateTime? from = null,
+        [Description("Filter to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -105,14 +111,16 @@ public class ThirdPartiesController : ControllerBase
     [McpServerTool]
     [Description("Get all third parties with notes")]
     [HttpGet("/thirdparties/with-notes")]
-    // https://localhost:44352/thirdparties/with-notes?top=10 //TESTED
     public string GetThirdPartiesWithNotes(
         [Description("Do you want to see all third parties that have notes?")] int top = 10,
-        string? name = null,
-        string? purpose = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by name")] string? name = null,
+        [Description("Filter by purpose")] string? purpose = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter from this date")] DateTime? from = null,
+        [Description("Filter to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -131,14 +139,16 @@ public class ThirdPartiesController : ControllerBase
     [McpServerTool]
     [Description("Get all third parties marked as admin view only")]
     [HttpGet("/thirdparties/admin-only")]
-    // https://localhost:44352/thirdparties/admin-only?top=10 TESTED
     public string GetAdminOnlyThirdParties(
         [Description("Do you want to see third parties that are admin view only?")] int top = 10,
-        string? name = null,
-        string? purpose = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by name")] string? name = null,
+        [Description("Filter by purpose")] string? purpose = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter from this date")] DateTime? from = null,
+        [Description("Filter to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -157,9 +167,11 @@ public class ThirdPartiesController : ControllerBase
     [McpServerTool]
     [Description("Get third party info by username")]
     [HttpGet("/thirdparties/by-username")]
-    // https://localhost:44352/thirdparties/by-username?username=admin@kamfr.com //TESTED
     public string GetThirdPartyByUsername(
-        [Description("What is the username of the third party you are looking for?")] string username)
+        [Description("What is the username of the third party you are looking for?")] string username,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
@@ -180,13 +192,15 @@ public class ThirdPartiesController : ControllerBase
     [McpServerTool]
     [Description("Get statistics for third parties")]
     [HttpGet("/thirdparties/stats")]
-    // https://localhost:44352/thirdparties/stats?year=2024 TESTED
     public string GetThirdPartyStats(
         [Description("What are the third-party stats?")] string? name = null,
-        string? purpose = null,
-        int? year = null,
-        DateTime? from = null,
-        DateTime? to = null)
+        [Description("Filter by purpose")] string? purpose = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter from this date")] DateTime? from = null,
+        [Description("Filter to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Third-party data is not available right now.";
