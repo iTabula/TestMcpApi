@@ -32,8 +32,15 @@ public class LoansController : ControllerBase
     public string GetSecretCode(
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The secret code is not available right now.";
 
@@ -47,7 +54,8 @@ public class LoansController : ControllerBase
         [Description("OTP code is")] string code = "0000",
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "OTP code is not available right now.";
@@ -65,7 +73,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         // Check if user role is Admin
         if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
@@ -110,7 +119,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string transactions = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -141,7 +151,8 @@ public class LoansController : ControllerBase
         string loanId,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string agent = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -163,7 +174,8 @@ public class LoansController : ControllerBase
         string address,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
@@ -189,7 +201,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -214,8 +227,15 @@ public class LoansController : ControllerBase
         [Description("Sort in descending order")] bool descending = false,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The agent names are not available right now.";
@@ -244,7 +264,8 @@ public class LoansController : ControllerBase
         [Description("What is the address of the property for this specific loan?")] string loanId,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -273,8 +294,15 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string loansText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -320,7 +348,8 @@ public class LoansController : ControllerBase
         [Description("Who is the lender for this specific loan?")] string loanId,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string lender = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -343,7 +372,8 @@ public class LoansController : ControllerBase
         string address,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
@@ -366,7 +396,8 @@ public class LoansController : ControllerBase
         [Description("What is the LTV for this specific loan?")] string loanId,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string ltv = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -390,7 +421,8 @@ public class LoansController : ControllerBase
         string address,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
@@ -420,8 +452,15 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -456,8 +495,15 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -499,7 +545,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -527,7 +574,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string names = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -569,7 +617,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -611,7 +660,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -652,7 +702,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -693,7 +744,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -734,7 +786,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -775,7 +828,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string method = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -816,7 +870,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -857,7 +912,8 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -899,8 +955,15 @@ public class LoansController : ControllerBase
         [Description("Filter by specific year")] int? year = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string result;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -928,7 +991,8 @@ public class LoansController : ControllerBase
         [Description("Filter by specific year")] int? year = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string result;
 
@@ -957,7 +1021,8 @@ public class LoansController : ControllerBase
         [Description("Filter by specific year")] int? year = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string result;
 
@@ -988,8 +1053,15 @@ public class LoansController : ControllerBase
         [Description("Filter by specific year")] int? year = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1016,8 +1088,15 @@ public class LoansController : ControllerBase
         [Description("Filter by specific year")] int? year = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1044,8 +1123,15 @@ public class LoansController : ControllerBase
         [Description("Filter by specific year")] int? year = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1079,8 +1165,15 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1108,7 +1201,8 @@ public class LoansController : ControllerBase
         [Description("What are the names of all escrow companies")] string dummy = "",
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string result = "";
 
@@ -1140,8 +1234,15 @@ public class LoansController : ControllerBase
         [Description("Maximum number of transactions to return")] int top = 10,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1177,8 +1278,15 @@ public class LoansController : ControllerBase
         [Description("What are the top escrow companies")] int top = 10,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string names = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1211,8 +1319,15 @@ public class LoansController : ControllerBase
         [Description("What are the total loans and loan amount statistics for a specific escrow company?")] string escrowCompany,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1261,8 +1376,15 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1288,7 +1410,8 @@ public class LoansController : ControllerBase
     public string GetAllTitleCompanies(
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         string resultText = "";
 
@@ -1325,8 +1448,15 @@ public class LoansController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1369,8 +1499,15 @@ public class LoansController : ControllerBase
         [Description("Year to get 1099")] int year,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1394,8 +1531,15 @@ public class LoansController : ControllerBase
         [Description("What are the total loans and loan amount statistics for this lender?")] string lender,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Check if user role is Admin
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. Only users with Admin role can access this information.";
+        }
+
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
