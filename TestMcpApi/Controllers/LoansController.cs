@@ -122,6 +122,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string transactions = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -204,6 +219,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The total number of transactions is not available right now.";
@@ -548,6 +578,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -577,6 +622,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string names = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -620,6 +680,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -663,6 +738,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -705,6 +795,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -747,6 +852,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -789,6 +909,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -831,6 +966,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string method = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -873,6 +1023,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -915,6 +1080,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -958,10 +1138,19 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
         {
-            return "Access denied. Only users with Admin role can access this information.";
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
         }
 
         string result;
@@ -994,6 +1183,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string result;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1024,6 +1228,21 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
+        }
+
         string result;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1056,10 +1275,19 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
         {
-            return "Access denied. Only users with Admin role can access this information.";
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
         }
 
         string result = "";
@@ -1091,10 +1319,19 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
         {
-            return "Access denied. Only users with Admin role can access this information.";
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
         }
 
         string result = "";
@@ -1126,10 +1363,19 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        // Check authorization and set agent filter based on role
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
+            !user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
         {
-            return "Access denied. Only users with Admin role can access this information.";
+            return "Access denied. You do not have permission to access this information.";
+        }
+
+        // If user is Agent or Senior Agent, filter by their name
+        if (user_role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+            user_role.Equals("Senior Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = name;
         }
 
         string result = "";
