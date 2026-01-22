@@ -1,5 +1,6 @@
 using Azure.Core;
 using KamHttp.Helpers;
+using KamInfrastructure.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
@@ -37,8 +38,9 @@ public class ChatModel : PageModel
             string AccessToken = User.FindFirst(ClaimTypes.Authentication)?.Value ?? string.Empty;
             string UserId = User.FindFirst(ClaimTypes.PrimarySid)?.Value ?? string.Empty; 
             string Role = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty; 
+            string Name = User.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
 
-            string prompt = request.Question.Trim() + $" with user_id = {UserId} and user_role = '{Role}' and token = '{AccessToken}'";
+            string prompt = request.Question.Trim() + $" with user_id = {UserId} and user_role = '{Role}' and token = '{AccessToken}' and name = '{Name}'";
             var answer = await _mcpClient.ProcessPromptAsync(prompt);
             
             _logger.LogInformation("Answer generated successfully");
