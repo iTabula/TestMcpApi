@@ -28,17 +28,32 @@ public class LendersController : ControllerBase
     [HttpGet("/lenders/top")]
     public string GetTopLenders(
         [Description("who are the top lenders for KAM")] int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact));
 
         var grouped = data
@@ -66,20 +81,35 @@ public class LendersController : ControllerBase
     public string GetLendersByState(
         [Description("which lenders operate in this state")] string state,
         [Description("Maximum number of lenders to return")] int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
         if (string.IsNullOrWhiteSpace(state))
             return "State must be provided.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrEmpty(l.State) &&
                         l.State.Equals(state, StringComparison.OrdinalIgnoreCase))
             .Take(top)
@@ -109,20 +139,35 @@ public class LendersController : ControllerBase
     public string GetLendersByCompany(
         [Description("which lenders work at this company")] string company,
         [Description("Maximum number of lenders to return")] int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
         if (string.IsNullOrWhiteSpace(company))
             return "Company name must be provided.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrEmpty(l.CompanyName) &&
                         l.CompanyName.Contains(company, StringComparison.OrdinalIgnoreCase))
             .Take(top)
@@ -151,17 +196,32 @@ public class LendersController : ControllerBase
     [HttpGet("/lenders/va-approved")]
     public string GetVAApprovedLenders(
         [Description("which lenders are VA approved")] int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => l.VAApproved == "Yes")
             .Take(top)
             .Select(l => new
@@ -187,20 +247,35 @@ public class LendersController : ControllerBase
     [Description("Get the most popular lender company based on number of transactions")]
     [HttpGet("/lenders/most-popular-company")]
     public string GetMostPopularLenderCompany(
-        [Description("what is the most popular lender company")] int? year = null,
+        [Description("what is the most popular lender company")] string? lender = null,
+        [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
         var company = GetMostPopularValueFiltered(
             svc,
             l => l.CompanyName,
-            null,
+            lender,
             year,
             from,
             to);
@@ -215,17 +290,32 @@ public class LendersController : ControllerBase
     [Description("Get statistics for lenders including total count, average compensation, and VA approval ratio")]
     [HttpGet("/lenders/stats")]
     public string GetLenderStats(
-        [Description("what are the lender statistics for KAM")] int? year = null,
+        [Description("what are the lender statistics for KAM")] string? lender = null,
+        [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to).ToList();
+        var data = Filter(svc, lender, year, from, to).ToList();
 
         if (!data.Any())
             return "There are no lenders available for the selected filters.";
@@ -258,7 +348,8 @@ public class LendersController : ControllerBase
         [Description("who is the lender contact for this company")] string company,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -282,7 +373,8 @@ public class LendersController : ControllerBase
         [Description("which lender is associated with this ID")] string id,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -312,17 +404,32 @@ public class LendersController : ControllerBase
     [HttpGet("/lenders/top-cities")]
     public string GetTopLenderCities(
         [Description("what are the top cities with the most lenders")] int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrWhiteSpace(l.City));
 
         var grouped = data
@@ -351,17 +458,32 @@ public class LendersController : ControllerBase
     [HttpGet("/lenders/with-notes")]
     public string GetLendersWithNotes(
         [Description("which lenders have notes recorded")] int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrWhiteSpace(l.Notes) ||
                         !string.IsNullOrWhiteSpace(l.ProcessorNotes))
             .Take(top)
@@ -382,17 +504,32 @@ public class LendersController : ControllerBase
     [HttpGet("/lenders/inactive")]
     public string GetInactiveLenders(
         [Description("which lenders are inactive")] int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => l.Status != "Active")
             .Take(top)
             .ToList();
@@ -413,20 +550,35 @@ public class LendersController : ControllerBase
     public string GetLendersByWebsite(
         [Description("which lenders use this website")] string website,
         [Description("Maximum number of lenders to return")] int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
         if (string.IsNullOrWhiteSpace(website))
             return "Website value must be provided.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrWhiteSpace(l.Website) &&
                         l.Website.Contains(website, StringComparison.OrdinalIgnoreCase))
             .Take(top)
@@ -448,17 +600,32 @@ public class LendersController : ControllerBase
     public string GetTopLendersByState(
         [Description("What are the top states with the most lenders?")]
         int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrWhiteSpace(l.State));
 
         var grouped = data
@@ -488,17 +655,32 @@ public class LendersController : ControllerBase
     public string GetLendersVAApprovedRatioByState(
         [Description("Which states have the highest VA-approved lender ratios?")]
         int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrWhiteSpace(l.State));
 
         var stats = data
@@ -535,17 +717,32 @@ public class LendersController : ControllerBase
     public string GetMostCommonLenderTitle(
         [Description("What are the most common lender job titles?")]
         int top = 5,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, year, from, to)
+        var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrWhiteSpace(l.Title));
 
         var titles = data
@@ -567,16 +764,31 @@ public class LendersController : ControllerBase
     public string GetRecentlyAddedLenders(
         [Description("Who are the most recently added lenders??")]
         int top = 10,
+        [Description("Filter by lender name")] string? lender = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // If not Admin, check lender access
+        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            // If lender is specified and doesn't match user's name, deny access
+            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. You do not have permission to access this information.";
+            }
+            
+            // Filter by user's name
+            lender = name;
+        }
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
-        var data = Filter(svc, null, null, from, to)
+        var data = Filter(svc, lender, null, from, to)
             .Where(l => l.DateAdded.HasValue)
             .OrderByDescending(l => l.DateAdded)
             .Take(top)
@@ -606,11 +818,11 @@ public class LendersController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(lender))
         {
-            string normAgent = Normalize(lender);
+            string normLender = Normalize(lender);
 
             data = data.Where(t =>
                 t.LenderContact != null &&
-                Normalize(t.LenderContact).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
+                Normalize(t.LenderContact).Contains(normLender, StringComparison.OrdinalIgnoreCase));
         }
 
         if (year.HasValue)
