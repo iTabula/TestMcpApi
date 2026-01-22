@@ -99,7 +99,7 @@ namespace KamWeb.Pages
 
             if (response == null || response.status != true || response.user == null || string.IsNullOrEmpty(response.jwtToken))
             {
-                string errorMessage = response == null ? "Invalid credentials" : response.message;
+                string errorMessage = "Invalid credentials!";
                 return errorMessage;
             }
 
