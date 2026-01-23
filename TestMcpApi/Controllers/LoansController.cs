@@ -25,7 +25,23 @@ public class LoansController : ControllerBase
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
         _httpContextAccessor = httpContextAccessor;
     }
+    [McpServerTool, Description("Retrieves the current call ID")]
+    [HttpGet("/loans/call_id")]
+    public async Task<string> GetCallContext(string query)
+    {
+        // Access the current HttpContext
+        var context = _httpContextAccessor.HttpContext;
 
+        // Extract the Call ID sent by Vapi
+        if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+        {
+            // Use the callId for logging or database lookups
+            Console.WriteLine($"Processing tool for Call ID: {callId}");
+            return $"Success: Data for call {callId} retrieved.";
+        }
+
+        return "Call ID not found in request headers.";
+    }
     [McpServerTool]
     [Description("What is the secret code?")]
     [HttpGet("/loans/secret")]
