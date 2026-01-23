@@ -80,6 +80,55 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
+    [Description("What's exact number of transactions for agent?")]
+    [HttpGet("/loans/agent-no-transactions")]
+    public string GetNumTransactionsForAgent(
+    [Description("the agent name for field AgentName")] string agent_name = "unknown",
+    [Description("user_id")] int user_id = 0,
+    [Description("user_role")] string user_role = "unknown",
+    [Description("token")] string token = "unknown")
+    {
+        //// Check if user role is Admin
+        //if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        //{
+        //    return "Access denied. Only users with Admin role can access this information.";
+        //}
+
+        //// Check if service has errors
+        //if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+        //{
+        //    return "not available right now";
+        //}
+
+        // Proceed with the tool execution for Admin users
+        var data = svc.GetLoanTransactions().Result.AsEnumerable();
+        var agentCounts = data
+            .Where(lt => lt.AgentName != null)
+            .GroupBy(lt => lt.AgentName)
+            .Select(g => new
+            {
+                AgentName = g.Key,
+                Count = g.Count()
+            })
+            .OrderByDescending(x => x.Count)
+            .ToList();
+
+        if (agentCounts.Count() == 0)
+            return "There are no agent transactions available for the selected filters.";
+
+        //Try to find the name based on input
+        var result = agentCounts
+            .OrderBy(x => CalculateLevenshteinDistance(agent_name, x.AgentName))
+            .ThenByDescending(x => x.Count) // Optional: Tie-breaker using the highest count
+            .FirstOrDefault();
+
+        if (result == null)
+            return "I could not find an agent with this name.";
+
+        return $"{result.AgentName} has {result.Count} transactions";
+    }
+
+    [McpServerTool]
     [Description("Get top agents ranked by number of transactions")]
     [HttpGet("/loans/top-agents")]
     public string GetTopAgents(
@@ -1894,6 +1943,28 @@ public class LoansController : ControllerBase
                       .FirstOrDefault()?.Key ?? "N/A";
 
         return key;
+    }
+    private static int CalculateLevenshteinDistance(string s, string t)
+    {
+        int n = s.Length;
+        int m = t.Length;
+        int[,] d = new int[n + 1, m + 1];
+
+        if (n == 0) return m;
+        if (m == 0) return n;
+
+        for (int i = 0; i <= n; d[i, 0] = i++) ;
+        for (int j = 0; j <= m; d[0, j] = j++) ;
+
+        for (int i = 1; i <= n; i++)
+        {
+            for (int j = 1; j <= m; j++)
+            {
+                int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
+                d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
+            }
+        }
+        return d[n, m];
     }
 
 }
