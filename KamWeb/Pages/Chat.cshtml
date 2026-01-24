@@ -236,6 +236,9 @@
     let isListening = false;
     let isProcessing = false;
     let isSpeaking = false;
+    let silenceTimer = null;
+    let finalTranscriptAccumulated = '';
+    let shouldKeepListening = false;
 
     const startBtn = document.getElementById('startBtn');
     const status = document.getElementById('status');
@@ -254,7 +257,7 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
 
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
 
@@ -269,7 +272,13 @@
         });
 
         function startListening() {
-            recognition.start();
+            finalTranscriptAccumulated = '';
+            shouldKeepListening = true;
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log('Recognition already started or error:', e);
+            }
             isListening = true;
             startBtn.textContent = 'Stop Listening';
             startBtn.classList.add('listening');
@@ -279,6 +288,11 @@
         }
 
         function stopListening() {
+            shouldKeepListening = false;
+            if (silenceTimer) {
+                clearTimeout(silenceTimer);
+                silenceTimer = null;
+            }
             recognition.stop();
             isListening = false;
             startBtn.textContent = 'Start Conversation';
@@ -287,6 +301,12 @@
         }
 
         recognition.onresult = (event) => {
+            // Clear existing silence timer since we're receiving speech
+            if (silenceTimer) {
+                clearTimeout(silenceTimer);
+                silenceTimer = null;
+            }
+
             let interimTranscript = '';
             let finalTranscript = '';
 
@@ -299,25 +319,67 @@
                 }
             }
 
-            if (interimTranscript) {
-                questionText.textContent = interimTranscript;
+            if (finalTranscript) {
+                finalTranscriptAccumulated += ' ' + finalTranscript;
             }
 
-            if (finalTranscript) {
-                questionText.textContent = finalTranscript;
-                processQuestion(finalTranscript);
+            // Display current transcript (accumulated + interim)
+            const displayText = (finalTranscriptAccumulated + ' ' + interimTranscript).trim();
+            if (displayText) {
+                questionText.textContent = displayText;
             }
+
+            // Start 3-second silence timer
+            silenceTimer = setTimeout(() => {
+                if (shouldKeepListening && finalTranscriptAccumulated.trim()) {
+                    shouldKeepListening = false;
+                    recognition.stop();
+                    processQuestion(finalTranscriptAccumulated.trim());
+                }
+            }, 2000); // 3 seconds of silence
         };
 
         recognition.onerror = (event) => {
-            status.textContent = 'Error: ' + event.error;
+            console.log('Recognition error:', event.error);
+            
+            // Don't treat 'aborted' as a real error - it happens during restart
+            if (event.error === 'aborted' && shouldKeepListening) {
+                return;
+            }
+            
+            if (event.error === 'no-speech') {
+                // If we should keep listening, restart instead of showing error
+                if (shouldKeepListening) {
+                    return;
+                }
+                status.textContent = 'No speech detected. Click to try again.';
+            } else {
+                status.textContent = 'Error: ' + event.error;
+            }
             resetState();
         };
 
         recognition.onend = () => {
-            if (isListening && !isProcessing) {
-                status.textContent = 'No speech detected. Click to try again.';
-                resetState();
+            console.log('Recognition ended, shouldKeepListening:', shouldKeepListening);
+            
+            // If we should keep listening (user hasn't stopped manually), restart recognition
+            if (shouldKeepListening) {
+                try {
+                    recognition.start();
+                    console.log('Recognition restarted automatically');
+                } catch (e) {
+                    console.log('Could not restart recognition:', e);
+                    if (!isProcessing) {
+                        status.textContent = 'Microphone stopped. Click to restart.';
+                        resetState();
+                    }
+                }
+            } else {
+                // User stopped manually or we're processing
+                if (!isProcessing && !finalTranscriptAccumulated.trim()) {
+                    status.textContent = 'No speech detected. Click to try again.';
+                    resetState();
+                }
             }
         };
     } else {
@@ -408,6 +470,12 @@
     }
 
     function resetState() {
+        shouldKeepListening = false;
+        if (silenceTimer) {
+            clearTimeout(silenceTimer);
+            silenceTimer = null;
+        }
+        finalTranscriptAccumulated = '';
         isListening = false;
         isProcessing = false;
         isSpeaking = false;
