@@ -27,55 +27,7 @@ public class LoansController : ControllerBase
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
         _httpContextAccessor = httpContextAccessor;
     }
-    [McpServerTool]
-    [Description("Look up a customer's record using their phone number.")]
-    [HttpGet("/loans/customer_phone")]
-    public string GetCustomerDetails(
-       [Description("The customer's phone number in E.164 format.")]
-        string phoneNumber)
-    {
-        //Clean up the phone number
-        if (phoneNumber.Length > 10)
-        {
-            phoneNumber = phoneNumber.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "");
-        }
-        if (phoneNumber.Length > 10 && phoneNumber.StartsWith("+1"))
-        {
-            phoneNumber = phoneNumber.Replace("+1", "");
-        }
-        phoneNumber = phoneNumber.Trim();
-
-        //Lookup the agent's info based on the phone number
-        var users = new UserService().GetByPhone(phoneNumber);
-
-        if (users == null)
-        {
-            return $"The customer's phone number {phoneNumber} is not found";
-        }
-
-        var context = _httpContextAccessor.HttpContext;
-
-        //// Extract the Call ID sent by Vapi
-        bool AddToVapiCalls = false;
-        if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
-        {
-            AddToVapiCalls = new UserService().AddCallToVapiCallsAsync(call: new VapiCall
-            {
-                CallId = callId,
-                UserId = users.UserID,
-                Phone = phoneNumber,
-                CreatedOn = DateTime.UtcNow,
-                LastUpdatedOn = DateTime.UtcNow,
-                IsAuthenticated = 1
-            }).Result;
-        }
-
-        // Vapi will have replaced {{customer.number}} with "+1234567890" before this is called
-        string phone = Common.FormatPhoneNumber(phoneNumber);
-        string IsAuthenticatedText = AddToVapiCalls ? "have been authenticated " : "could not be authenticated";
-        string Welcome = AddToVapiCalls ? $" Welcome back {users.FirstName}" : "";
-        return $"You {IsAuthenticatedText} using your phone number {phone}.{Welcome}";
-    }
+   
 
     [McpServerTool, Description("Retrieves the current call ID")]
     [HttpGet("/loans/call_id")]
@@ -94,6 +46,7 @@ public class LoansController : ControllerBase
             //{
             //    CallId = callId,
             //    UserId = 999,
+            //    UserRole = "Senior Agent",
             //    Phone = "8583449999",
             //    CreatedOn = DateTime.UtcNow,
             //    LastUpdatedOn = DateTime.UtcNow,
@@ -143,18 +96,7 @@ public class LoansController : ControllerBase
     [Description("user_role")] string user_role = "unknown",
     [Description("token")] string token = "unknown")
     {
-        //// Check if user role is Admin
-        //if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    return "Access denied. Only users with Admin role can access this information.";
-        //}
-
-        //// Check if service has errors
-        //if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        //{
-        //    return "not available right now";
-        //}
-
+        //Step 1: Get the data First
         // Proceed with the tool execution for Admin users
         var data = svc.GetLoanTransactions().Result.AsEnumerable();
         var agentCounts = data
@@ -163,6 +105,7 @@ public class LoansController : ControllerBase
             .Select(g => new
             {
                 AgentName = g.Key,
+                AgentID = g.First().AgentID,
                 Count = g.Count()
             })
             .OrderByDescending(x => x.Count)
@@ -207,6 +150,48 @@ public class LoansController : ControllerBase
 
         if (result == null)
             return "I could not find an agent with this name.";
+
+        // Check if call coming form Web/Mobile app then you should have all three parameters with correct values because user logged in
+        if (user_id != 0 && user_role != "unknown" && token != "unknown")  
+        {
+            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. Only users with Admin role can access this information.";
+            }
+        }
+        else
+        {
+            //Coming here from a live call to VAPI phone number
+            //Get the call details from HTTP Headers Context
+            var context = _httpContextAccessor.HttpContext;
+
+            //// Extract the Call ID sent by Vapi
+            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+            {
+                //Coming here from a live call to VAPI phone number
+                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
+                if (vapiCall != null)
+                {
+                    if (vapiCall.IsAuthenticated == 0)
+                    {
+                        return "Access denied. You are not authenticated yet!";
+                    }
+
+                    if (vapiCall.UserId != int.Parse(result.AgentID.ToString()) && vapiCall.UserRole.ToLower().Trim() != "admin")
+                    {
+                        return "Access denied. you do not have permissions to lookup transactions for another Agent!";
+                    }
+                }
+                else 
+                {                     
+                    return "Access denied. Call details not found!";
+                }
+            }
+            else
+            {
+                return "Access denied. Call ID not found in request headers!";
+            }
+        }
 
         return $"{result.AgentName} has {result.Count} transactions";
     }

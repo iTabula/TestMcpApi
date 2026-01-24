@@ -5,6 +5,7 @@
     public class Users
     {
         public int UserID { get; set; }
+        public string Role { get; set; }
         public int? AddedBy { get; set; }
         public string? Address { get; set; }
         public string? BankAccountNameUnder { get; set; }

@@ -39,5 +39,6 @@ namespace TestMcpApi.Services
 
         (int totalUsers, int withNMLS, int withLicense) GetUserStats();
         Task<bool> AddCallToVapiCallsAsync(VapiCall call);
+        Task<VapiCall> GetCurrentVapiCallAsync(string CallId);
     }
 }

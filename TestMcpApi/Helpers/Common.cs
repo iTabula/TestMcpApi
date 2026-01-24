@@ -6,6 +6,9 @@ namespace TestMcpApi.Helpers
     {
         public static int CalculateLevenshteinDistance(string s, string t)
         {
+            if(string.IsNullOrEmpty(s)) return 0;
+            if (string.IsNullOrEmpty(t)) return 0;
+
             int n = s.Length;
             int m = t.Length;
             int[,] d = new int[n + 1, m + 1];

@@ -40,7 +40,7 @@ public class UserService : IUserService
                 return "Connection string 'DefaultConnection' not found in appsettings.json";
 
             using SqlConnection db = new SqlConnection(connStr);
-            const string sql = "SELECT * FROM Users ORDER BY DateAdded DESC";
+            const string sql = "SELECT * FROM UsersView ORDER BY DateAdded DESC";
             var list = db.Query<Users>(sql).AsList();
             _data.AddRange(list);
 
@@ -49,6 +49,30 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             return $"Error loading data from database: {ex.Message}";
+        }
+    }
+    public async Task<VapiCall> GetCurrentVapiCallAsync(string CallId)
+    {
+        try
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+
+            var configuration = builder.Build();
+            var connStr = configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connStr))
+                return null;
+
+            using SqlConnection db = new SqlConnection(connStr);
+            string sql = $"SELECT * FROM VapiCalls WHERE CallId = '{CallId}' ORDER BY 1 ";
+            var list = db.Query<VapiCall>(sql).FirstOrDefault();
+
+            return list;
+        }
+        catch (Exception ex)
+        {
+            return null;
         }
     }
     public async Task<bool> AddCallToVapiCallsAsync(VapiCall call)
@@ -70,8 +94,8 @@ public class UserService : IUserService
                 call.CallId = "NoCallId";
             }
             const string sql = @"
-                    INSERT INTO VapiCalls (CallId, Phone, UserId, CreatedOn, LastUpdatedOn, IsAuthenticated)
-                    VALUES (@CallId, @Phone, @UserId, @CreatedOn, @LastUpdatedOn, @IsAuthenticated);";
+                    INSERT INTO VapiCalls (CallId, Phone, UserId, UserRole, CreatedOn, LastUpdatedOn, IsAuthenticated)
+                    VALUES (@CallId, @Phone, @UserId, @UserRole, @CreatedOn, @LastUpdatedOn, @IsAuthenticated);";
 
             await db.ExecuteAsync(sql, call);
 
