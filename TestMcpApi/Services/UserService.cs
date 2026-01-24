@@ -70,6 +70,8 @@ public class UserService : IUserService
     public Users? GetByEmail(string email)
         => _data.FirstOrDefault(u => (u.Email != null && u.Email.Equals(email, StringComparison.OrdinalIgnoreCase)) ||
                                      (u.Email2 != null && u.Email2.Equals(email, StringComparison.OrdinalIgnoreCase)));
+    public Task<Users?> GetByPhone(string phoneNumber) 
+        => Task.FromResult(_data.FirstOrDefault(u => (u.Phone != null && u.Phone.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase))));
 
     public IEnumerable<Users> GetByCity(string city)
         => _data.Where(u => (u.City != null && u.City.Equals(city, StringComparison.OrdinalIgnoreCase)) ||

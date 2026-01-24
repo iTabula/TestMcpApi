@@ -66,32 +66,6 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("OTP code is")]
-    [HttpGet("/loans/OTP")]
-    public string ValidateOTP(
-        [Description("OTP code is")] string code = "0000",
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "OTP code is not available right now.";
-
-        return $"OTP code {code} is Validated";
-    }
-    [McpServerTool]
-    [Description("Look up a customer's record using their phone number.")]
-    [HttpGet("/loans/customer_phone")]
-    public static string GetCustomerDetails(
-        [Description("The customer's phone number in E.164 format.")]
-        string phoneNumber)
-    {
-        // Vapi will have replaced {{customer.number}} with "+1234567890" before this is called
-        return $"The customer's phone number is {phoneNumber}. We have looked up your phone number and we know you are Khaled";
-    }
-
-    [McpServerTool]
     [Description("What's exact number of transactions for agent?")]
     [HttpGet("/loans/agent-no-transactions")]
     public string GetNumTransactionsForAgent(
