@@ -1,7 +1,9 @@
 <Solution>
   <Project Path="KamHttp/KamHttp.csproj" Id="c8cbda55-8582-40b7-a18d-1d99f574739e" />
   <Project Path="KamInfrastructure/KamInfrastructure.csproj" Id="affaead2-fa99-481f-a642-fc2f73ca6437" />
-  <Project Path="KamMobile/KamMobile.csproj" Id="e0b24bd1-03aa-4106-be7d-5e1f474d244e" />
+  <Project Path="KamMobile/KamMobile.csproj" Id="e0b24bd1-03aa-4106-be7d-5e1f474d244e">
+    <Build Solution="Release|*" Project="false" />
+  </Project>
   <Project Path="KamWeb/KamWeb.csproj" Id="75e08509-a5b3-4313-a2ea-d76af1dfa983">
     <BuildDependency Project="WebApi/WebApi.csproj" />
   </Project>

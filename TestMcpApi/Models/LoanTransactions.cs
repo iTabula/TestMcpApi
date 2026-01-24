@@ -7,7 +7,10 @@ namespace TestMcpApi.Models
         public string? LoanTransID { get; set; }
         public DateTime? ActualClosedDate { get; set; }
         public DateTime? DateAdded { get; set; }
+        public string? AgentID { get; set; }
         public string? AgentName { get; set; }
+        public string? AgentPhone { get; set; }
+        public string? AgentEmail { get; set; }
         public string? AddedBy { get; set; }
         public string? BorrowerFirstName { get; set; }
         public string? BorrowerLastName { get; set; }
