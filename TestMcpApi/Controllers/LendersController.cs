@@ -82,6 +82,7 @@ public class LendersController : ControllerBase
 
         string phone = string.IsNullOrEmpty(result.Cell) ? (string.IsNullOrEmpty(result.WorkPhone1) ? result.WorkPhone2 : result.WorkPhone1) : result.Cell;
         phone = phone.Replace(",", "").Replace("-", "").Replace(" ", "");
+        phone = Common.FormatPhoneNumber(phone);
         string title = result.Title.Replace("--Select a Title--", "Account Executive");
         var summary = $" {title} {result.FirstName} {result.LastName} at {phone}. Email address is {result.Email}";
         return $"Lender {company_name} is found. Contact {summary}";

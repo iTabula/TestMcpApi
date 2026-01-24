@@ -1,4 +1,6 @@
-﻿namespace TestMcpApi.Helpers
+﻿using System.Text.RegularExpressions;
+
+namespace TestMcpApi.Helpers
 {
     public static class Common
     {
@@ -89,6 +91,22 @@
             else if (s2.Contains(s1[1].ToString())) result += 1;
 
             return result;
+        }
+        public static string FormatPhoneNumber(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return "Invalid Input";
+
+            // 1. Remove all non-digit characters (keeps only 0-9)
+            string cleanInput = Regex.Replace(input, @"\D", "");
+
+            // 2. Ensure the resulting string is exactly 10 digits
+            if (cleanInput.Length != 10)
+            {
+                throw new ArgumentException("Input must contain exactly 10 digits.");
+            }
+
+            // 3. Format to "### ### ####"
+            return Regex.Replace(cleanInput, @"(\d{3})(\d{3})(\d{4})", "$1 $2 $3");
         }
     }
 }
