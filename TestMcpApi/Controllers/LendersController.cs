@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Phonix;
 using System.ComponentModel;
 using System.Text.Json;
+using TestMcpApi.Helpers;
 using TestMcpApi.Models;
 using TestMcpApi.Services;
 
@@ -21,6 +23,68 @@ public class LendersController : ControllerBase
         svc = lenderService;
         _configuration = configuration;
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+    }
+
+    [McpServerTool]
+    [Description("What's the phone number or details of lender with company name?")]
+    [HttpGet("/lenders/details/{company}")]
+    public string GetLendersByCompany(
+    [Description("the lender or company name")] string company_name,
+    [Description("user_id")] int user_id = 0,
+    [Description("user_role")] string user_role = "unknown",
+    [Description("token")] string token = "unknown")
+    {
+
+        if (string.IsNullOrWhiteSpace(company_name))
+            return "Company name must be provided.";
+
+        // Proceed with the tool execution for Admin users
+        var data = svc.GetLenders().Result.AsEnumerable();
+
+        if (!data.Any())
+            return "I could not find any lenders data";
+
+        //Try to find the name based on input
+        var result = data
+            .OrderBy(x => Common.CalculateLevenshteinDistance(company_name, x.CompanyName))
+            .FirstOrDefault();
+
+        if(result == null)
+        {
+            var searchCode = Common.GetSoundex(company_name); // Implementation from previous example
+
+            result = data
+                .Where(x => Common.GetSoundex(x.CompanyName) == searchCode) // Filter for identical sounds
+                .OrderByDescending(x => Common.CalculateSoundexDifference(searchCode, Common.GetSoundex(x.CompanyName)))
+                .FirstOrDefault();
+        }
+
+        if(result == null)
+        {
+            var doubleMetaphone = new DoubleMetaphone();
+            string searchKey = doubleMetaphone.BuildKey(company_name);
+
+            // 2. Perform the search
+            result = data
+                .OrderBy(x => {
+                    // Generate the phonetic key for each item in the list
+                    string itemKey = doubleMetaphone.BuildKey(x.CompanyName);
+
+                    // Calculate distance between the phonetic keys
+                    // (Closer phonetic keys = smaller distance)
+                    return Common.CalculateLevenshteinDistance(searchKey, itemKey);
+                })
+                .FirstOrDefault();
+        }
+
+        if (result == null)
+            return "I could not find an lender with this name.";
+
+        string phone = string.IsNullOrEmpty(result.Cell) ? (string.IsNullOrEmpty(result.WorkPhone1) ? result.WorkPhone2 : result.WorkPhone1) : result.Cell;
+        phone = phone.Replace(",", "").Replace("-", "").Replace(" ", "");
+        string title = result.Title.Replace("--Select a Title--", "Account Executive");
+        var summary = $" {title} {result.FirstName} {result.LastName} at {phone}. Email address is {result.Email}";
+        return $"Lender {company_name} is found. Contact {summary}";
     }
 
     [McpServerTool]

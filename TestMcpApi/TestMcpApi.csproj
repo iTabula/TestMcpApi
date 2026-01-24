@@ -15,6 +15,7 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.2" />
 		<PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
 		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.6.0-preview.1" />
+		<PackageReference Include="Phonix" Version="1.0.2" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
 	</ItemGroup>
 

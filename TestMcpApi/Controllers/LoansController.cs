@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Phonix;
 using System.ComponentModel;
 using System.Text.Json;
+using TestMcpApi.Helpers;
 using TestMcpApi.Models;
 using TestMcpApi.Services;
 
@@ -78,6 +80,16 @@ public class LoansController : ControllerBase
 
         return $"OTP code {code} is Validated";
     }
+    [McpServerTool]
+    [Description("Look up a customer's record using their phone number.")]
+    [HttpGet("/loans/customer_phone")]
+    public static string GetCustomerDetails(
+        [Description("The customer's phone number in E.164 format.")]
+        string phoneNumber)
+    {
+        // Vapi will have replaced {{customer.number}} with "+1234567890" before this is called
+        return $"The customer's phone number is {phoneNumber}. We have looked up your phone number and we know you are Khaled";
+    }
 
     [McpServerTool]
     [Description("What's exact number of transactions for agent?")]
@@ -118,9 +130,37 @@ public class LoansController : ControllerBase
 
         //Try to find the name based on input
         var result = agentCounts
-            .OrderBy(x => CalculateLevenshteinDistance(agent_name, x.AgentName))
+            .OrderBy(x => Common.CalculateLevenshteinDistance(agent_name, x.AgentName))
             .ThenByDescending(x => x.Count) // Optional: Tie-breaker using the highest count
             .FirstOrDefault();
+
+        if (result == null)
+        {
+            var searchCode = Common.GetSoundex(agent_name); // Implementation from previous example
+
+            result = agentCounts
+                .Where(x => Common.GetSoundex(x.AgentName) == searchCode) // Filter for identical sounds
+                .OrderByDescending(x => Common.CalculateSoundexDifference(searchCode, Common.GetSoundex(x.AgentName)))
+                .FirstOrDefault();
+        }
+
+        if (result == null)
+        {
+            var doubleMetaphone = new DoubleMetaphone();
+            string searchKey = doubleMetaphone.BuildKey(agent_name);
+
+            // 2. Perform the search
+            result = agentCounts
+                .OrderBy(x => {
+                    // Generate the phonetic key for each item in the list
+                    string itemKey = doubleMetaphone.BuildKey(x.AgentName);
+
+                    // Calculate distance between the phonetic keys
+                    // (Closer phonetic keys = smaller distance)
+                    return Common.CalculateLevenshteinDistance(searchKey, itemKey);
+                })
+                .FirstOrDefault();
+        }
 
         if (result == null)
             return "I could not find an agent with this name.";
@@ -1944,27 +1984,4 @@ public class LoansController : ControllerBase
 
         return key;
     }
-    private static int CalculateLevenshteinDistance(string s, string t)
-    {
-        int n = s.Length;
-        int m = t.Length;
-        int[,] d = new int[n + 1, m + 1];
-
-        if (n == 0) return m;
-        if (m == 0) return n;
-
-        for (int i = 0; i <= n; d[i, 0] = i++) ;
-        for (int j = 0; j <= m; d[0, j] = j++) ;
-
-        for (int i = 1; i <= n; i++)
-        {
-            for (int j = 1; j <= m; j++)
-            {
-                int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
-                d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
-            }
-        }
-        return d[n, m];
-    }
-
 }
