@@ -25,6 +25,7 @@
         public int? ModifiedBy { get; set; }
 
         public int Status { get; set; }
+        public string? BrokerFeeLoans { get; set; }
     }
 
     public partial class UserPartial

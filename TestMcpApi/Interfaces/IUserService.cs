@@ -38,5 +38,6 @@ namespace TestMcpApi.Services
         IEnumerable<Users> GetByCompany(string companyName);
 
         (int totalUsers, int withNMLS, int withLicense) GetUserStats();
+        Task<bool> AddCallToVapiCallsAsync(VapiCall call);
     }
 }

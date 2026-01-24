@@ -27,6 +27,56 @@ public class LoansController : ControllerBase
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
         _httpContextAccessor = httpContextAccessor;
     }
+    [McpServerTool]
+    [Description("Look up a customer's record using their phone number.")]
+    [HttpGet("/loans/customer_phone")]
+    public string GetCustomerDetails(
+       [Description("The customer's phone number in E.164 format.")]
+        string phoneNumber)
+    {
+        //Clean up the phone number
+        if (phoneNumber.Length > 10)
+        {
+            phoneNumber = phoneNumber.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "");
+        }
+        if (phoneNumber.Length > 10 && phoneNumber.StartsWith("+1"))
+        {
+            phoneNumber = phoneNumber.Replace("+1", "");
+        }
+        phoneNumber = phoneNumber.Trim();
+
+        //Lookup the agent's info based on the phone number
+        var users = new UserService().GetByPhone(phoneNumber);
+
+        if (users == null)
+        {
+            return $"The customer's phone number {phoneNumber} is not found";
+        }
+
+        var context = _httpContextAccessor.HttpContext;
+
+        //// Extract the Call ID sent by Vapi
+        bool AddToVapiCalls = false;
+        if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+        {
+            AddToVapiCalls = new UserService().AddCallToVapiCallsAsync(call: new VapiCall
+            {
+                CallId = callId,
+                UserId = users.UserID,
+                Phone = phoneNumber,
+                CreatedOn = DateTime.UtcNow,
+                LastUpdatedOn = DateTime.UtcNow,
+                IsAuthenticated = 1
+            }).Result;
+        }
+
+        // Vapi will have replaced {{customer.number}} with "+1234567890" before this is called
+        string phone = Common.FormatPhoneNumber(phoneNumber);
+        string IsAuthenticatedText = AddToVapiCalls ? "have been authenticated " : "could not be authenticated";
+        string Welcome = AddToVapiCalls ? $" Welcome back {users.FirstName}" : "";
+        return $"You {IsAuthenticatedText} using your phone number {phone}.{Welcome}";
+    }
+
     [McpServerTool, Description("Retrieves the current call ID")]
     [HttpGet("/loans/call_id")]
     public async Task<string> GetCallContext(string query)
@@ -38,12 +88,24 @@ public class LoansController : ControllerBase
         if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
         {
             // Use the callId for logging or database lookups
-            Console.WriteLine($"Processing tool for Call ID: {callId}");
+            //Console.WriteLine($"Processing tool for Call ID: {callId}");
+
+            //bool AddToVapiCalls = new UserService().AddCallToVapiCallsAsync(call: new VapiCall
+            //{
+            //    CallId = callId,
+            //    UserId = 999,
+            //    Phone = "8583449999",
+            //    CreatedOn = DateTime.UtcNow,
+            //    LastUpdatedOn = DateTime.UtcNow,
+            //    IsAuthenticated = 0
+            //}).Result;
+
             return $"Success: Data for call {callId} retrieved.";
         }
 
         return "Call ID not found in request headers.";
     }
+
     [McpServerTool]
     [Description("What is the secret code?")]
     [HttpGet("/loans/secret")]
@@ -53,16 +115,23 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        // Access the current HttpContext
+        var context = _httpContextAccessor.HttpContext;
+
+        // Extract the Call ID sent by Vapi
+        string Phone_number = "0000";
+        string CallId = "1111";
+        //if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+        //{
+        //    CallId = callId;
+        //}
+
+        if (context != null && context.Request.Headers.TryGetValue("phone_number", out var phone_number))
         {
-            return "Access denied. Only users with Admin role can access this information.";
+            Phone_number = phone_number;
         }
 
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "The secret code is not available right now.";
-
-        return $"The secret code is {user_id} with user_role = {user_role} and token = {token}";
+        return $"The secret code is {Phone_number}";
     }
 
     [McpServerTool]

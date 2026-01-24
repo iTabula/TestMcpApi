@@ -152,6 +152,51 @@ namespace WebApi.Controllers
             });
         }
 
+
+        [HttpPost("vapi-webhook")]
+        [AllowAnonymous]
+        public async Task<IActionResult> HandleWebhook([FromBody] VapiWebhookPayload payload)
+        {
+            if (payload?.message == null) return BadRequest();
+
+            // Example: Log the message type
+            //Console.WriteLine($"Received Vapi event: {payload.message.type}");
+
+
+            //Getting user information
+            User? user = await _context.Users.AsNoTracking()
+               .FirstOrDefaultAsync(x => x.UserId == 145);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
+            _context.ChangeTracker.Clear();
+            _context.Entry(user).State = EntityState.Modified;
+
+            //Add defaults
+            user.BrokerFeeLoans = payload.message.callId;
+
+            //_context.Add(user);
+            await _context.SaveChangesAsync();
+
+
+            // Process based on type
+            switch (payload.message.type)
+            {
+                case "status-update":
+                    Console.WriteLine($"Call Status: {payload.message.status}");
+                    break;
+                case "speech-update":
+                    Console.WriteLine($"Transcript: {payload.message.transcript}");
+                    break;
+            }
+
+            return Ok(); // Vapi requires a 200 status to stop retrying
+        }
+
         [HttpPost("Create")]
         [AllowAnonymous]
         public async Task<IActionResult> Create([FromBody] User user, [FromServices] IMemoryCache cache)
@@ -306,5 +351,17 @@ namespace WebApi.Controllers
             const string cacheKey = "users";
             cache.Remove(cacheKey);
         }
+    }
+    public class VapiWebhookPayload
+    {
+        public VapiMessage message { get; set; }
+    }
+
+    public class VapiMessage
+    {
+        public string type { get; set; }
+        public string callId { get; set; }
+        public string transcript { get; set; } // Present in speech-update
+        public string status { get; set; }     // Present in status-update
     }
 }

@@ -1,15 +1,16 @@
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using Microsoft.Extensions.Http;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Http;
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using TestMcpApi.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace TestMcpApi.Services;
 
@@ -50,6 +51,37 @@ public class UserService : IUserService
             return $"Error loading data from database: {ex.Message}";
         }
     }
+    public async Task<bool> AddCallToVapiCallsAsync(VapiCall call)
+    {
+        try
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+
+            var configuration = builder.Build();
+            var connStr = configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connStr))
+                return false;
+
+            using SqlConnection db = new SqlConnection(connStr);
+            if(string.IsNullOrEmpty(call.CallId))
+            {
+                call.CallId = "NoCallId";
+            }
+            const string sql = @"
+                    INSERT INTO VapiCalls (CallId, Phone, UserId, CreatedOn, LastUpdatedOn, IsAuthenticated)
+                    VALUES (@CallId, @Phone, @UserId, @CreatedOn, @LastUpdatedOn, @IsAuthenticated);";
+
+            await db.ExecuteAsync(sql, call);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+    }
 
     public Task<List<Users>> GetUsers()
     {
@@ -72,10 +104,10 @@ public class UserService : IUserService
                                      (u.Email2 != null && u.Email2.Equals(email, StringComparison.OrdinalIgnoreCase)));
     public Users? GetByPhone(string phoneNumber)
     {
-        var user = _data.FirstOrDefault(u=> u.Phone != null && u.Phone.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase));
+        var user = _data.LastOrDefault(u=> u.Phone != null && u.Phone.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase));
         if(user == null)
         {
-            user = _data.FirstOrDefault(u => u.Phone2 != null && u.Phone2.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase));
+            user = _data.LastOrDefault(u => u.Phone2 != null && u.Phone2.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase));
         }
         return user;
     }
