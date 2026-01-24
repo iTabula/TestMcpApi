@@ -70,10 +70,14 @@ public class UserService : IUserService
     public Users? GetByEmail(string email)
         => _data.FirstOrDefault(u => (u.Email != null && u.Email.Equals(email, StringComparison.OrdinalIgnoreCase)) ||
                                      (u.Email2 != null && u.Email2.Equals(email, StringComparison.OrdinalIgnoreCase)));
-    public Task<Users?> GetByPhone(string phoneNumber)
+    public Users? GetByPhone(string phoneNumber)
     {
         var user = _data.FirstOrDefault(u=> u.Phone != null && u.Phone.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult(user);
+        if(user == null)
+        {
+            user = _data.FirstOrDefault(u => u.Phone2 != null && u.Phone2.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase));
+        }
+        return user;
     }
 
     public IEnumerable<Users> GetByCity(string city)

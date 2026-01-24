@@ -14,7 +14,7 @@ namespace TestMcpApi.Services
 
         IEnumerable<Users> GetByName(string name);
         Users? GetByEmail(string email);
-        Task<Users?> GetByPhone(string phoneNumber);
+        Users? GetByPhone(string phoneNumber);
         IEnumerable<Users> GetByCity(string city);
         IEnumerable<Users> GetByState(string state);
 

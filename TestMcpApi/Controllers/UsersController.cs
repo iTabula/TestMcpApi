@@ -29,13 +29,12 @@ public class UsersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Look up a customer's record using the incoming call phone number.")]
+    [Description("Look up a customer's record using their phone number.")]
     [HttpGet("/users/customer_phone")]
-    public async Task<string> GetCustomerDetails(
-    [Description("The customer's phone number in E.164 format.")]
+    public static string GetCustomerDetails(
+        [Description("The customer's phone number in E.164 format.")]
         string phoneNumber)
     {
-        return $"The customer's phone number {phoneNumber} is not found";
         //Clean up the phone number
         if (phoneNumber.Length > 10)
         {
@@ -46,10 +45,9 @@ public class UsersController : ControllerBase
             phoneNumber = phoneNumber.Replace("+1", "");
         }
         phoneNumber = phoneNumber.Trim();
-        return $"The customer's phone number {phoneNumber} is not found";
 
         //Lookup the agent's info based on the phone number
-        var users = await svc.GetByPhone(phoneNumber);
+        var users = new UserService().GetByPhone(phoneNumber);
 
         if (users == null)
         {
@@ -58,6 +56,6 @@ public class UsersController : ControllerBase
 
         // Vapi will have replaced {{customer.number}} with "+1234567890" before this is called
         string phone = Common.FormatPhoneNumber(phoneNumber);
-        return $"you have been authenticated using your phone number {phone}. Welcome back {users.Name}";
+        return $"you have been authenticated using your phone number {phone}. Welcome back {users.FirstName}";
     }
 }
