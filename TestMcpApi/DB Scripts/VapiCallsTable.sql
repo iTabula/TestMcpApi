@@ -3,7 +3,7 @@ GO
 
 /****** Object:  Table [dbo].[VapiCalls]    Script Date: 1/24/2026 2:15:27 PM ******/
 IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[VapiCalls]') AND type in (N'U'))
-DROP TABLE [dbo].[VapiCalls]
+DROP TABLE IF EXISTS [dbo].[VapiCalls]
 GO
 
 SET ANSI_NULLS ON

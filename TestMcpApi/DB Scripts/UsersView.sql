@@ -2,7 +2,7 @@
 GO
 
 /****** Object:  View [dbo].[UsersView]    Script Date: 1/24/2026 5:49:56 AM ******/
-DROP VIEW [dbo].[UsersView]
+DROP VIEW IF EXISTS [dbo].[UsersView]
 GO
 
 /****** Object:  View [dbo].[UsersView]    Script Date: 1/24/2026 5:49:56 AM ******/
