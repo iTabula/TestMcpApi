@@ -182,18 +182,33 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        // Step 1: Get data for phonetic matching
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            
+            // Step 2: Match phonetics
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
-        // Check if service has errors
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "not available right now";
         }
 
-        // Proceed with the tool execution for Admin users
         var data = Filter(svc, null, year, from, to).Where(t => !string.IsNullOrWhiteSpace(t.AgentName));
 
         var result = data.GroupBy(t => t.AgentName, StringComparer.OrdinalIgnoreCase)
@@ -204,8 +219,8 @@ public class LoansController : ControllerBase
         if (result.Count() == 0)
             return "There are no agent transactions available for the selected filters.";
 
+        // Step 6: Present data
         List<TopAgentResult> results = JsonSerializer.Deserialize<List<TopAgentResult>>(JsonSerializer.Serialize(result))!;
-
         string names = results.Select(r => r.Agent + " with " + r.Transactions + " transactions").Aggregate((a, b) => a + ", " + b);
         return $"The top {top} agents for KAM are: {names}";
     }
@@ -225,18 +240,48 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        var allAgents = svc.GetLoanTransactions().Result
+            .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+            .Select(lt => new { AgentName = lt.AgentName })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for agent
+        var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+        
+        // Step 3: Get user related to phonetic results
+        if (matchedAgent != null)
+        {
+            agent = matchedAgent.AgentName ?? agent;
+        }
+
+        // Step 1-3 for name parameter (if provided)
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
-        string transactions = "";
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
-            transactions = "not availabale right now";
+            return "not available right now";
         }
+
         var data = Filter(svc, agent, year, from, to)
             .Where(t => !string.IsNullOrWhiteSpace(t.LoanTransID))
             .Where(t => t.LoanAmount.HasValue)
@@ -246,14 +291,13 @@ public class LoansController : ControllerBase
         if (data == null || data.Count() == 0)
             return $"No transactions found for agent {agent} using the selected filters.";
 
+        // Step 6: Present data
         List<TransactionsResult> results = JsonSerializer.Deserialize<List<TransactionsResult>>(JsonSerializer.Serialize(data))!;
-
-        transactions = results.Select(r => "Loan #" + r.ID + ", Loan Amount: " + r.LoanAmount + ", Loan Type: " + r.LoanType + ", Loan Term: " + r.LoanTerm)
+        string transactions = results.Select(r => "Loan #" + r.ID + ", Loan Amount: " + r.LoanAmount + ", Loan Type: " + r.LoanType + ", Loan Term: " + r.LoanTerm)
             .Aggregate((a, b) => a + ", " + b);
         return $"The transactions made by {agent}, during the year {year} are: {transactions}";
     }
 
-    
     [McpServerTool]
     [Description("Get Agent responsible for a specific property address")]
     [HttpGet("/loans/agent-by-address/{address}")]
@@ -265,11 +309,28 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        // Step 1: Get data for phonetic matching on name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            
+            // Step 2: Match phonetics
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
 
@@ -280,6 +341,7 @@ public class LoansController : ControllerBase
 
         var agent = loan?.AgentName ?? "Not found";
 
+        // Step 6: Present data
         return $"The agent responsible for the property at '{address}' is: {agent}";
     }
 
@@ -297,11 +359,28 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        // Step 1: Get data for phonetic matching
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            
+            // Step 2: Match phonetics
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
+        // Step 5: Get data if authorized
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -325,6 +404,7 @@ public class LoansController : ControllerBase
             }
         }
 
+        // Step 6: Present data
         return $"The open loans are: {result}";
     }
 
@@ -346,13 +426,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -364,6 +477,7 @@ public class LoansController : ControllerBase
             result = string.IsNullOrEmpty(zip) ? "N/A" : zip;
         }
 
+        // Step 6: Present data
         return $"The most popular ZIP code is: {result}";
     }
 
@@ -383,13 +497,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string names = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -416,6 +563,7 @@ public class LoansController : ControllerBase
                            .Aggregate((a, b) => a + ", " + b);
         }
 
+        // Step 6: Present data
         return $"The {top} cities with the highest number of transactions are: {names}";
     }
 
@@ -435,13 +583,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -468,11 +649,11 @@ public class LoansController : ControllerBase
                           .Aggregate((a, b) => a + ", " + b);
         }
 
+        // Step 6: Present data
         return $"The most popular property type is: {type}";
     }
 
 
-   
     [McpServerTool]
     [Description("Get most popular title company")]
     [HttpGet("/loans/top-title-company")]
@@ -486,13 +667,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -518,6 +732,7 @@ public class LoansController : ControllerBase
                              .Aggregate((a, b) => a + ", " + b);
         }
 
+        // Step 6: Present data
         return $"The most popular title company is: {company}";
     }
 
@@ -535,13 +750,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -567,6 +815,7 @@ public class LoansController : ControllerBase
                              .Aggregate((a, b) => a + ", " + b);
         }
 
+        // Step 6: Present data
         return $"The most popular escrow company is: {company}";
     }
 
@@ -585,13 +834,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string result;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -607,6 +889,7 @@ public class LoansController : ControllerBase
             result = loans.Any() ? loans.Average().ToString("F2") : "N/A";
         }
 
+        // Step 6: Present data
         return $"The average loan amount is: {result}";
     }
 
@@ -622,13 +905,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string result;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -644,6 +960,7 @@ public class LoansController : ControllerBase
             result = loans.Any() ? loans.Max().ToString("F2") : "N/A";
         }
 
+        // Step 6: Present data
         return $"The highest loan amount is: {result}";
     }
 
@@ -659,13 +976,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string result;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -681,6 +1031,7 @@ public class LoansController : ControllerBase
             result = loans.Any() ? loans.Min().ToString("F2") : "N/A";
         }
 
+        // Step 6: Present data
         return $"The lowest loan amount is: {result}";
     }
 
@@ -698,13 +1049,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -720,6 +1104,7 @@ public class LoansController : ControllerBase
             result = data.Any() ? data.Average().ToString("F2") : "N/A";
         }
 
+        // Step 6: Present data
         return $"The average credit score is: {result}";
     }
 
@@ -734,13 +1119,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -756,6 +1174,7 @@ public class LoansController : ControllerBase
             result = data.Any() ? data.Max().ToString("F2") : "N/A";
         }
 
+        // Step 6: Present data
         return $"The highest credit score is: {result}";
     }
 
@@ -770,13 +1189,46 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check agent-specific authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
         agent = effectiveAgent;
 
+        // Step 5: Get data if authorized
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -792,6 +1244,7 @@ public class LoansController : ControllerBase
             result = data.Any() ? data.Min().ToString("F2") : "N/A";
         }
 
+        // Step 6: Present data
         return $"The lowest credit score is: {result}";
     }
 
@@ -810,11 +1263,41 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        // Step 1: Get data for phonetic matching on escrowCompany parameter
+        var allEscrowCompanies = svc.GetLoanTransactions().Result
+        .Where(lt => !string.IsNullOrWhiteSpace(lt.EscrowCompany))
+        .Select(lt => new { EscrowCompany = lt.EscrowCompany })
+        .Distinct()
+        .ToList();
+
+        // Step 2: Match phonetics for escrow company
+        var matchedEscrow = Common.MatchPhonetic(allEscrowCompanies, escrowCompany, e => e.EscrowCompany ?? string.Empty);
+        
+        // Step 3: Get company related to phonetic results
+        if (matchedEscrow != null)
+        {
+            escrowCompany = matchedEscrow.EscrowCompany ?? escrowCompany;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
+        // Step 5: Get data if authorized
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -840,6 +1323,7 @@ public class LoansController : ControllerBase
                 : "no transactions found";
         }
 
+        // Step 6: Present data
         return $"The transactions for {escrowCompany} are: {result}";
     }
 
@@ -853,11 +1337,28 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        // Step 1: Get data for phonetic matching on name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            
+            // Step 2: Match phonetics
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
+        // Step 5: Get data if authorized
         string names = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -880,10 +1381,10 @@ public class LoansController : ControllerBase
                            .Aggregate((a, b) => a + ", " + b);
         }
 
+        // Step 6: Present data
         return $"The top {top} escrow companies are: {names}";
     }
 
-  
     //Include top tile companies, number of transaction
     [McpServerTool]
     [Description("What are the names of all title companies?")]
@@ -894,11 +1395,28 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        // Step 1: Get data for phonetic matching on name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            
+            // Step 2: Match phonetics
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
+        // Step 5: Get data if authorized
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -918,11 +1436,11 @@ public class LoansController : ControllerBase
             }
         }
 
+        // Step 6: Present data
         return resultText;
     }
 
 
-    
     [McpServerTool]
     [Description("Get 1099 for an agent for a specific year")]
     [HttpGet("/loans/1099/{agent}/{year}")]
@@ -934,11 +1452,41 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        // Step 1: Get data for phonetic matching on agent parameter
+        var allAgents = svc.GetLoanTransactions().Result
+            .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+            .Select(lt => new { AgentName = lt.AgentName })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for agent
+        var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+        
+        // Step 3: Get user related to phonetic results
+        if (matchedAgent != null)
+        {
+            agent = matchedAgent.AgentName ?? agent;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
+        // Step 5: Get data if authorized
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -951,6 +1499,7 @@ public class LoansController : ControllerBase
             resultText = $"The 1099 for {agent} for the year {year} is: {amount:F2}";
         }
 
+        // Step 6: Present data
         return resultText;
     }
 
@@ -965,11 +1514,41 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        // Step 1: Get data for phonetic matching on lender parameter
+        var allLenders = svc.GetLoanTransactions().Result
+            .Where(lt => !string.IsNullOrWhiteSpace(lt.LenderName))
+            .Select(lt => new { LenderName = lt.LenderName })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for lender
+        var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderName ?? string.Empty);
+        
+        // Step 3: Get lender related to phonetic results
+        if (matchedLender != null)
+        {
+            lender = matchedLender.LenderName ?? lender;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
+        // Step 5: Get data if authorized
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -999,6 +1578,7 @@ public class LoansController : ControllerBase
             }
         }
 
+        // Step 6: Present data
         return resultText;
     }
 
