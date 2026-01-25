@@ -27,7 +27,107 @@ public class LoansController : ControllerBase
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
         _httpContextAccessor = httpContextAccessor;
     }
-   
+
+    // HELPER METHOD FOR AUTHORIZATION
+    private string? CheckAdminAuthorization(int user_id, string user_role, string token)
+    {
+        // Check if call coming from Web/Mobile app
+        if (user_id != 0 && user_role != "unknown" && token != "unknown")
+        {
+            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. Only users with Admin role can access this information.";
+            }
+        }
+        else
+        {
+            // Coming from a live call to VAPI phone number
+            var context = _httpContextAccessor.HttpContext;
+
+            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+            {
+                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
+                if (vapiCall != null)
+                {
+                    if (vapiCall.IsAuthenticated == 0)
+                    {
+                        return "Access denied. You are not authenticated yet!";
+                    }
+
+                    if (vapiCall.UserRole.ToLower().Trim() != "admin")
+                    {
+                        return "Access denied. You do not have permissions to access this information!";
+                    }
+                }
+                else
+                {
+                    return "Access denied. Call details not found!";
+                }
+            }
+            else
+            {
+                return "Access denied. Call ID not found in request headers!";
+            }
+        }
+
+        return null; // Authorization passed
+    }
+
+    // HELPER METHOD FOR AGENT-SPECIFIC AUTHORIZATION
+    private string? CheckAgentSpecificAuthorization(string? agent, string name, int user_id, string user_role, string token, out string effectiveAgent)
+    {
+        effectiveAgent = agent ?? name;
+
+        // Check if call coming from Web/Mobile app
+        if (user_id != 0 && user_role != "unknown" && token != "unknown")
+        {
+            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                // If agent is specified and doesn't match user's name, deny access
+                if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Access denied. You do not have permission to access this information.";
+                }
+
+                // Filter by user's name
+                effectiveAgent = name;
+            }
+        }
+        else
+        {
+            // Coming from a live call to VAPI phone number
+            var context = _httpContextAccessor.HttpContext;
+
+            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+            {
+                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
+                if (vapiCall != null)
+                {
+                    if (vapiCall.IsAuthenticated == 0)
+                    {
+                        return "Access denied. You are not authenticated yet!";
+                    }
+
+                    // If not admin, must query their own data
+                    if (vapiCall.UserRole.ToLower().Trim() != "admin")
+                    {
+                        effectiveAgent = name;
+                    }
+                }
+                else
+                {
+                    return "Access denied. Call details not found!";
+                }
+            }
+            else
+            {
+                return "Access denied. Call ID not found in request headers!";
+            }
+        }
+
+        return null; // Authorization passed
+    }
+
 
     [McpServerTool, Description("Retrieves the current call ID")]
     [HttpGet("/loans/call_id")]
@@ -137,7 +237,8 @@ public class LoansController : ControllerBase
 
             // 2. Perform the search
             result = agentCounts
-                .OrderBy(x => {
+                .OrderBy(x =>
+                {
                     // Generate the phonetic key for each item in the list
                     string itemKey = doubleMetaphone.BuildKey(x.AgentName);
 
@@ -152,7 +253,7 @@ public class LoansController : ControllerBase
             return "I could not find an agent with this name.";
 
         // Check if call coming form Web/Mobile app then you should have all three parameters with correct values because user logged in
-        if (user_id != 0 && user_role != "unknown" && token != "unknown")  
+        if (user_id != 0 && user_role != "unknown" && token != "unknown")
         {
             if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
             {
@@ -182,8 +283,8 @@ public class LoansController : ControllerBase
                         return "Access denied. you do not have permissions to lookup transactions for another Agent!";
                     }
                 }
-                else 
-                {                     
+                else
+                {
                     return "Access denied. Call details not found!";
                 }
             }
@@ -209,11 +310,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         // Check if service has errors
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -253,18 +353,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string transactions = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -298,6 +392,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         string agent = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -305,7 +404,6 @@ public class LoansController : ControllerBase
         }
 
         string result = svc.GetByLoanNumber(loanId)?.AgentName ?? "Not found";
-
 
         return $"The agent responsible for the loan #{loanId} is {result}";
     }
@@ -321,6 +419,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
 
@@ -348,18 +451,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -387,11 +484,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -424,6 +520,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The address of the property is not available right now.";
@@ -454,11 +555,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         string loansText = "";
 
@@ -508,6 +608,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         string lender = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -532,6 +637,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
 
@@ -556,6 +666,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         string ltv = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
@@ -581,6 +696,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "The data is not available right now.";
 
@@ -612,11 +732,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -655,11 +774,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -705,18 +823,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -747,18 +859,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string names = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -803,18 +909,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -859,18 +959,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -914,18 +1008,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -969,18 +1057,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1024,18 +1106,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1079,18 +1155,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string method = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1134,18 +1204,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1189,18 +1253,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string company = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1245,18 +1303,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string result;
 
@@ -1288,18 +1340,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string result;
 
@@ -1331,18 +1377,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string result;
 
@@ -1376,18 +1416,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string result = "";
 
@@ -1418,18 +1452,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string result = "";
 
@@ -1460,18 +1488,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string result = "";
 
@@ -1509,18 +1531,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string result = "";
 
@@ -1552,6 +1568,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         string result = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1585,11 +1606,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         string result = "";
 
@@ -1629,11 +1649,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         string names = "";
 
@@ -1670,11 +1689,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         string resultText = "";
 
@@ -1727,18 +1745,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string resultText = "";
 
@@ -1768,6 +1780,11 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         string resultText = "";
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
@@ -1806,18 +1823,12 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check agent access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If agent is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
+        // Check agent-specific authorization
+        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
 
-            // Filter by user's name
-            agent = name;
-        }
+        agent = effectiveAgent;
 
         string resultText = "";
 
@@ -1864,11 +1875,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         string resultText = "";
 
@@ -1896,11 +1906,10 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check if user role is Admin
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Access denied. Only users with Admin role can access this information.";
-        }
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         string resultText = "";
 
