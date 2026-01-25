@@ -4,6 +4,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text.Json;
+using TestMcpApi.Helpers;
 using TestMcpApi.Models;
 using TestMcpApi.Services;
 using static Azure.Core.HttpHeader;
@@ -16,12 +17,14 @@ public class RealsController : ControllerBase
     private readonly IRealTransactionService svc;
     private readonly IConfiguration _configuration;
     private readonly string connectionString = string.Empty;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public RealsController(IRealTransactionService realTransactionService, IConfiguration configuration)
+    public RealsController(IRealTransactionService realTransactionService, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
         svc = realTransactionService;
         _configuration = configuration;
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     [McpServerTool]
@@ -31,14 +34,36 @@ public class RealsController : ControllerBase
         [Description("What is the real transaction information for RealTransID?")] string realTransID,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
-        if (svc == null || !string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Real transactions data is not available right now.";
-
-
         if (string.IsNullOrWhiteSpace(realTransID))
             return "Please provide a valid RealTransID.";
+
+        // Step 1: Get data for phonetic matching on name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+
+            // Step 2: Match phonetics
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
+        if (svc == null || !string.IsNullOrEmpty(svc.ErrorLoadCsv))
+            return "Real transactions data is not available right now.";
 
         var transaction = svc.GetRealTransactionById(realTransID).Result;
 
@@ -56,6 +81,7 @@ public class RealsController : ControllerBase
             ActualClosedDate = transaction.ActualClosedDate
         };
 
+        // Step 6: Present data
         string result = $"Real transaction {dto.RealTransID}: Client '{dto.ClientFullName}', handled by Agent '{dto.AgentName}', " +
                         $"Property at '{dto.SubjectAddress}', Transaction Type '{dto.TransactionType}', Amount '{dto.RealAmount?.ToString("C") ?? "N/A"}', " +
                         $"Actual Closed Date '{dto.ActualClosedDate?.ToString("yyyy-MM-dd") ?? "N/A"}'.";
@@ -75,14 +101,49 @@ public class RealsController : ControllerBase
          [Description("Filter transactions to this date")] DateTime? to = null,
          [Description("user_id")] int user_id = 0,
          [Description("user_role")] string user_role = "unknown",
-         [Description("token")] string token = "unknown")
+         [Description("token")] string token = "unknown",
+         [Description("name")] string name = "unknown")
     {
-        string transactions = "";
+        // Step 1: Get data for phonetic matching on agent parameter
+        var allAgents = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+            .Select(t => new { AgentName = t.AgentName })
+            .Distinct()
+            .ToList();
 
+        // Step 2: Match phonetics for agent
+        var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+        // Step 3: Get user related to phonetic results
+        if (matchedAgent != null)
+        {
+            agent = matchedAgent.AgentName ?? agent;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
-            transactions = "not available right now";
-            return transactions;
+            return "not available right now";
         }
 
         var data = FilterRealTransactions(svc, agent, year, from, to)
@@ -104,7 +165,8 @@ public class RealsController : ControllerBase
 
         List<RealTransactionDto> results = JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
 
-        transactions = results
+        // Step 6: Present data
+        string transactions = results
             .Select(r =>
                 "Transaction #" + r.RealTransID +
                 ", Amount: " + (r.RealAmount?.ToString() ?? "N/A") +
@@ -127,10 +189,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
-        string transactions = "";
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
 
+            // Step 2: Match phonetics for agent
+            var matchedAgent =TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser =TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -157,7 +258,8 @@ public class RealsController : ControllerBase
         List<RealTransactionDto> results =
             JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
 
-        transactions = results
+        // Step 6: Present data
+        string transactions = results
             .Select(r =>
                 "Transaction #" + r.RealTransID +
                 ", Amount: " + (r.RealAmount?.ToString() ?? "N/A") +
@@ -180,10 +282,65 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
-        string transactions = "";
+        // Step 1: Get data for phonetic matching on titleCompany parameter
+        var allTitleCompanies = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.TitleCompany))
+            .Select(t => new { TitleCompany = t.TitleCompany })
+            .Distinct()
+            .ToList();
 
+        // Step 2: Match phonetics for title company
+        var matchedTitleCompany = TestMcpApi.Helpers.Common.MatchPhonetic(allTitleCompanies, titleCompany, tc => tc.TitleCompany ?? string.Empty);
+
+        // Step 3: Get title company related to phonetic results
+        if (matchedTitleCompany != null)
+        {
+            titleCompany = matchedTitleCompany.TitleCompany ?? titleCompany;
+        }
+
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -210,7 +367,8 @@ public class RealsController : ControllerBase
         List<RealTransactionDto> results =
             JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
 
-        transactions = results
+        // Step 6: Present data
+        string transactions = results
             .Select(r =>
                 "Transaction #" + r.RealTransID +
                 ", Amount: " + (r.RealAmount?.ToString() ?? "N/A") +
@@ -268,10 +426,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
-        string transactions = "";
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
 
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -295,7 +492,8 @@ public class RealsController : ControllerBase
         if (!data.Any())
             return $"No transactions found for escrow company {escrowCompany} using the selected filters.";
 
-        transactions = data.Select(r =>
+        // Step 6: Present data
+        string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID} for property {r.SubjectAddress}, handled by agent {r.AgentName}, client {r.ClientFullName}, type: {r.TransactionType}, amount: {(r.RealAmount?.ToString() ?? "N/A")}, closed on: {(r.ActualClosedDate?.ToShortDateString() ?? "N/A")}"
         ).Aggregate((a, b) => a + "\n" + b);
 
@@ -665,6 +863,7 @@ public class RealsController : ControllerBase
 
         var results = JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
 
+        // Step 6: Present data
         string formatted = results.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + "; " + b);
@@ -716,6 +915,7 @@ public class RealsController : ControllerBase
 
         var results = JsonSerializer.Deserialize<List<RealTransactionDto>>(JsonSerializer.Serialize(data))!;
 
+        // Step 6: Present data
         string formatted = results.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + "; " + b);
@@ -908,8 +1108,44 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on party parameter
+        var allParties = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.PartyPresented))
+            .Select(t => new { PartyPresented = t.PartyPresented })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for party
+        var matchedParty = TestMcpApi.Helpers.Common.MatchPhonetic(allParties, party, p => p.PartyPresented ?? string.Empty);
+
+        // Step 3: Get user related to phonetic results
+        if (matchedParty != null)
+        {
+            party = matchedParty.PartyPresented;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -933,6 +1169,7 @@ public class RealsController : ControllerBase
         if (!data.Any())
             return $"No transactions found where the party '{party}' was presented using the selected filters.";
 
+        // Step 6: Present data
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + ", " + b);
@@ -953,8 +1190,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -967,7 +1245,7 @@ public class RealsController : ControllerBase
                    .Select(t => new RealTransactionDto
                    {
                        RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
+                       ClientFullName = $"{t.ClientFirstName} {t.ClientLastName}".Trim(),
                        AgentName = t.AgentName,
                        SubjectAddress = t.SubjectAddress,
                        TransactionType = t.TransactionType,
@@ -978,6 +1256,7 @@ public class RealsController : ControllerBase
         if (!data.Any())
             return $"No transactions found for client type '{clientType}' using the selected filters.";
 
+        // Step 6: Present data
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + ", " + b);
@@ -998,8 +1277,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1012,7 +1332,7 @@ public class RealsController : ControllerBase
                    .Select(t => new RealTransactionDto
                    {
                        RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
+                       ClientFullName = $"{t.ClientFirstName} {t.ClientLastName}".Trim(),
                        AgentName = t.AgentName,
                        SubjectAddress = t.SubjectAddress,
                        TransactionType = t.TransactionType,
@@ -1023,6 +1343,7 @@ public class RealsController : ControllerBase
         if (!data.Any())
             return $"No transactions found for property type '{propType}' using the selected filters.";
 
+        // Step 6: Present data
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + ", " + b);
@@ -1043,8 +1364,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1057,7 +1419,7 @@ public class RealsController : ControllerBase
                    .Select(t => new RealTransactionDto
                    {
                        RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
+                       ClientFullName = $"{t.ClientFirstName} {t.ClientLastName}".Trim(),
                        AgentName = t.AgentName,
                        SubjectAddress = t.SubjectAddress,
                        TransactionType = t.TransactionType,
@@ -1068,6 +1430,7 @@ public class RealsController : ControllerBase
         if (!data.Any())
             return $"No transactions found for transaction type '{transType}' using the selected filters.";
 
+        // Step 6: Present data
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + ", " + b);
@@ -1088,8 +1451,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1102,17 +1506,18 @@ public class RealsController : ControllerBase
                    .Select(t => new RealTransactionDto
                    {
                        RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
+                       ClientFullName = $"{t.ClientFirstName} {t.ClientLastName}".Trim(),
                        AgentName = t.AgentName,
                        SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
+                       TransactionType = t.TransactionType ?? t.TransType,
+                       RealAmount = t.RealAmount ?? t.PurchasePrice,
                        ActualClosedDate = t.ActualClosedDate
                    }).ToList();
 
         if (!data.Any())
             return $"No transactions found with finance info '{financeInfo}' using the selected filters.";
 
+        // Step 6: Present data
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + ", " + b);
@@ -1133,8 +1538,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1146,17 +1592,18 @@ public class RealsController : ControllerBase
                    .Select(t => new RealTransactionDto
                    {
                        RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
+                       ClientFullName = $"{t.ClientFirstName} {t.ClientLastName}".Trim(),
                        AgentName = t.AgentName,
                        SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
+                       TransactionType = t.TransactionType ?? t.TransType,
+                       RealAmount = t.RealAmount ?? t.PurchasePrice,
                        ActualClosedDate = t.ActualClosedDate
                    }).ToList();
 
         if (!data.Any())
             return $"No transactions found with {carForms} CAR forms using the selected filters.";
 
+        // Step 6: Present data
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + ", " + b);
@@ -1177,8 +1624,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1190,775 +1678,23 @@ public class RealsController : ControllerBase
                    .Select(t => new RealTransactionDto
                    {
                        RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
+                       ClientFullName = $"{t.ClientFirstName} {t.ClientLastName}".Trim(),
                        AgentName = t.AgentName,
                        SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
+                       TransactionType = t.TransactionType ?? t.TransType,
+                       RealAmount = t.RealAmount ?? t.PurchasePrice,
                        ActualClosedDate = t.ActualClosedDate
                    }).ToList();
 
         if (!data.Any())
             return $"No transactions found for NMLS number {nmlsNumber} using the selected filters.";
 
+        // Step 6: Present data
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
             .Aggregate((a, b) => a + ", " + b);
 
         return $"The top {top} transactions for NMLS number {nmlsNumber}{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List transactions by home inspection name")]
-    [HttpGet("/reals/by-home-inspection-name/{inspectionName}")]
-    public string GetByHomeInspectionName(
-        [Description("List the transactions associated with the specified home inspection company or inspector")]
-        string inspectionName,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(t.HomeInspectionName) &&
-                               t.HomeInspectionName.Equals(inspectionName, StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found for home inspection '{inspectionName}' using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions for home inspection '{inspectionName}'{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List transactions by pest inspection name")]
-    [HttpGet("/reals/by-pest-inspection-name/{inspectionName}")]
-    public string GetByPestInspectionName(
-        [Description("List the transactions associated with the specified pest inspection company or inspector")]
-        string inspectionName,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(t.PestInspectionName) &&
-                               t.PestInspectionName.Equals(inspectionName, StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found for pest inspection '{inspectionName}' using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions for pest inspection '{inspectionName}'{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List transactions by TC flag")]
-    [HttpGet("/reals/by-tc-flag/{tcFlag}")]
-    public string GetByTCFlag(
-        [Description("List the transactions associated with the specified TC flag")]
-        string tcFlag,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(t.TCFlag) &&
-                               t.TCFlag.Equals(tcFlag, StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found for TC flag '{tcFlag}' using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions for TC flag '{tcFlag}'{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-
-    [McpServerTool]
-    [Description("List transactions by TC number")]
-    [HttpGet("/reals/by-tc/{tc}")]
-    public string GetByTC(
-        [Description("List the transactions associated with the specified TC number")]
-        int tc,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => t.TC.HasValue && t.TC.Value == tc)
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found for TC number '{tc}' using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions for TC number '{tc}'{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List transactions within a specified price range")]
-    [HttpGet("/reals/by-price-range")]
-    public string GetByPriceRange(
-        [Description("List the transactions with RealAmount within the specified range")] int top = 10,
-        [Description("Minimum price")] decimal minPrice = 0,
-        [Description("Maximum price")] decimal maxPrice = 0,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => t.RealAmount.HasValue && t.RealAmount.Value >= minPrice && t.RealAmount.Value <= maxPrice)
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found within the price range {minPrice} - {maxPrice} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions within the price range {minPrice} - {maxPrice}{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List transactions within a specified Actual Closed Date range")]
-    [HttpGet("/reals/by-closed-date")]
-    public string GetByActualClosedDateRange(
-        [Description("List the transactions that were actually closed within the specified date range")] int top = 10,
-        [Description("From date")] DateTime? from = null,
-        [Description("To date")] DateTime? to = null,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => t.ActualClosedDate.HasValue && t.ActualClosedDate.Value >= from && t.ActualClosedDate.Value <= to)
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found between {from?.ToShortDateString()} and {to?.ToShortDateString()}{(agent != null ? $" for agent {agent}" : "")}.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions closed between {from?.ToShortDateString()} and {to?.ToShortDateString()}{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List all open real estate transactions")]
-    [HttpGet("/reals/open-transactions")]
-    public string GetOpenTransactions(
-        [Description("List the transactions that are still open and not closed")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => string.IsNullOrWhiteSpace(t.ActiveStatus) || !string.Equals(t.ActiveStatus, "Closed", StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No open transactions found{(agent != null ? $" for agent {agent}" : "")} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {(r.ActualClosedDate.HasValue ? r.ActualClosedDate.Value.ToShortDateString() : "N/A")}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} open transactions{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List all real estate transactions that have completed home inspections")]
-    [HttpGet("/reals/home-inspection-done")]
-    public string GetWithHomeInspectionDone(
-        [Description("List the transactions where the home inspection has been completed")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(t.HomeInspectionDone) &&
-                               string.Equals(t.HomeInspectionDone, "Yes", StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions with completed home inspections found{(agent != null ? $" for agent {agent}" : "")} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {(r.ActualClosedDate.HasValue ? r.ActualClosedDate.Value.ToShortDateString() : "N/A")}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions with completed home inspections{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List all real estate transactions that have not completed home inspections")]
-    [HttpGet("/reals/home-inspection-not-done")]
-    public string GetWithHomeInspectionNotDone(
-        [Description("List the transactions where the home inspection has not been completed")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => string.IsNullOrWhiteSpace(t.HomeInspectionDone) ||
-                               !string.Equals(t.HomeInspectionDone, "Yes", StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions with pending home inspections found{(agent != null ? $" for agent {agent}" : "")} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {(r.ActualClosedDate.HasValue ? r.ActualClosedDate.Value.ToShortDateString() : "N/A")}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions with pending home inspections{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List all real estate transactions that have completed pest inspections")]
-    [HttpGet("/reals/pest-inspection-done")]
-    public string GetWithPestInspectionDone(
-        [Description("List the transactions where the pest inspection has been completed")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(t.PestInspectionDone) &&
-                               string.Equals(t.PestInspectionDone, "Yes", StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions with completed pest inspections found{(agent != null ? $" for agent {agent}" : "")} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {(r.ActualClosedDate.HasValue ? r.ActualClosedDate.Value.ToShortDateString() : "N/A")}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions with completed pest inspections{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List all real estate transactions that have not completed pest inspections")]
-    [HttpGet("/reals/pest-inspection-not-done")]
-    public string GetWithPestInspectionNotDone(
-        [Description("List the transactions where the pest inspection has not been completed")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => string.IsNullOrWhiteSpace(t.PestInspectionDone) ||
-                               !string.Equals(t.PestInspectionDone, "Yes", StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions with pending pest inspections found{(agent != null ? $" for agent {agent}" : "")} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {(r.ActualClosedDate.HasValue ? r.ActualClosedDate.Value.ToShortDateString() : "N/A")}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions with pending pest inspections{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List real estate transactions by TC Fees range")]
-    [HttpGet("/reals/tc-fees-range")]
-    public string GetByTCFeesRange(
-        [Description("List the transactions with TC Fees within the specified minimum and maximum values")] int top = 10,
-        [Description("Minimum TC fee")] decimal? minFee = null,
-        [Description("Maximum TC fee")] decimal? maxFee = null,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var years = year.HasValue ? new[] { year.Value } : null;
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => t.TCFees.HasValue &&
-                              (!minFee.HasValue || t.TCFees.Value >= minFee.Value) &&
-                              (!maxFee.HasValue || t.TCFees.Value <= maxFee.Value))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found with TC Fees in the range {(minFee.HasValue ? minFee.Value.ToString("C") : "N/A")} - {(maxFee.HasValue ? maxFee.Value.ToString("C") : "N/A")}{(agent != null ? $" for agent {agent}" : "")} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {(r.ActualClosedDate.HasValue ? r.ActualClosedDate.Value.ToShortDateString() : "N/A")}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions with TC Fees in the selected range{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List real estate transactions by payable to")]
-    [HttpGet("/reals/payable-to/{payableTo}")]
-    public string GetByPayableTo(
-        [Description("List the transactions where the payment is payable to the specified recipient")]
-        string payableTo,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(t.PayableTo) &&
-                               string.Equals(t.PayableTo, payableTo, StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found payable to '{payableTo}'{(agent != null ? $" for agent {agent}" : "")} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {(r.ActualClosedDate.HasValue ? r.ActualClosedDate.Value.ToShortDateString() : "N/A")}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions payable to '{payableTo}'{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("List real estate transactions by routing number")]
-    [HttpGet("/reals/routing-number/{routingNumber}")]
-    public string GetByRoutingNumber(
-        [Description("List the transactions that use the specified routing number")]
-        string routingNumber,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(t.RoutingNumber) &&
-                               string.Equals(t.RoutingNumber, routingNumber, StringComparison.OrdinalIgnoreCase))
-                   .Take(top)
-                   .Select(t => new RealTransactionDto
-                   {
-                       RealTransID = t.RealTransID,
-                       ClientFullName = $"{t.ClientFirstName} {t.ClientMiddleName} {t.ClientLastName}".Trim(),
-                       AgentName = t.AgentName,
-                       SubjectAddress = t.SubjectAddress,
-                       TransactionType = t.TransactionType,
-                       RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
-                   }).ToList();
-
-        if (!data.Any())
-            return $"No transactions found with routing number '{routingNumber}'{(agent != null ? $" for agent {agent}" : "")} using the selected filters.";
-
-        string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {(r.ActualClosedDate.HasValue ? r.ActualClosedDate.Value.ToShortDateString() : "N/A")}")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The top {top} transactions with routing number '{routingNumber}'{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
-    }
-
-    [McpServerTool]
-    [Description("Get the transaction type for a property using its address")]
-    [HttpGet("/reals/trans-type-for-address/{subjectAddress}")]
-    public string GetTransTypeByPropertyAddress(
-        [Description("What is the transaction type for the property at this address?")]
-        string subjectAddress)
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var transaction = svc.GetByPropertyAddress(subjectAddress);
-
-        if (transaction == null || string.IsNullOrWhiteSpace(transaction.TransType))
-            return $"No transaction type found for the property at '{subjectAddress}'.";
-
-        return $"The transaction type for the property at '{subjectAddress}' is: {transaction.TransType}";
-    }
-
-    [McpServerTool]
-    [Description("Get the party presented for a property using its address")]
-    [HttpGet("/reals/party-presented-for-address/{subjectAddress}")]
-    public string GetPartyPresentedByPropertyAddress(
-        [Description("Who is the party presented for the property at this address?")]
-        string subjectAddress,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var transaction = svc.GetByPropertyAddress(subjectAddress);
-
-        if (transaction == null || string.IsNullOrWhiteSpace(transaction.PartyPresented))
-            return $"No party presented found for the property at '{subjectAddress}'.";
-
-        return $"The party presented for the property at '{subjectAddress}' is: {transaction.PartyPresented}";
-    }
-
-    [McpServerTool]
-    [Description("Get the client type for a property using its address")]
-    [HttpGet("/reals/client-type-for-address/{subjectAddress}")]
-    public string GetClientTypeByPropertyAddress(
-        [Description("What is the client type for the property at this address?")]
-        string subjectAddress,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var transaction = svc.GetByPropertyAddress(subjectAddress);
-
-        if (transaction == null || string.IsNullOrWhiteSpace(transaction.ClientType))
-            return $"No client type found for the property at '{subjectAddress}'.";
-
-        return $"The client type for the property at '{subjectAddress}' is: {transaction.ClientType}";
-    }
-
-    [McpServerTool]
-    [Description("Get the price for a property using its address")]
-    [HttpGet("/reals/price-for-property/{subjectAddress}")]
-    public string GetPriceByPropertyAddress(
-        [Description("What is the price for the property at this address?")]
-        string subjectAddress,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var transaction = svc.GetByPropertyAddress(subjectAddress);
-
-        if (transaction == null || !transaction.Price.HasValue)
-            return $"No price information found for the property at '{subjectAddress}'.";
-
-        return $"The price for the property at '{subjectAddress}' is: {transaction.Price.Value:C}";
-    }
-
-    [McpServerTool]
-    [Description("Get the number of CAR forms for a property using its address")]
-    [HttpGet("/reals/carforms-for-property/{subjectAddress}")]
-    public string GetCARFormsByPropertyAddress(
-        [Description("How many CAR forms are associated with the property at this address?")]
-        string subjectAddress,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var transaction = svc.GetByPropertyAddress(subjectAddress);
-
-        if (transaction == null || !transaction.CARForms.HasValue)
-            return $"No CAR forms information found for the property at '{subjectAddress}'.";
-
-        return $"The property at '{subjectAddress}' has {transaction.CARForms.Value} CAR form(s).";
-    }
-
-    [McpServerTool]
-    [Description("Get the NMLS number for a property using its address")]
-    [HttpGet("/reals/nmls-for-property/{subjectAddress}")]
-    public string GetNMLSNumberByPropertyAddress(
-        [Description("What is the NMLS number associated with the property at this address?")]
-        string subjectAddress,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
-    {
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The real estate transactions data is not available right now.";
-        }
-
-        var transaction = svc.GetByPropertyAddress(subjectAddress);
-
-        if (transaction == null || string.IsNullOrWhiteSpace(transaction.NMLSNumber))
-            return $"No NMLS number found for the property at '{subjectAddress}'.";
-
-        return $"The NMLS number for the property at '{subjectAddress}' is {transaction.NMLSNumber}.";
     }
 
     [McpServerTool]
@@ -2489,7 +2225,7 @@ public class RealsController : ControllerBase
             DateTime? to = null)
     {
         var data = FilterRealTransactions(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrWhiteSpace(selector(t)))
+                   .Where(t => !string.IsNullOrEmpty(selector(t)))
                    .Where(t => selector(t) != "NULL");
 
         var key = data.GroupBy(selector, StringComparer.OrdinalIgnoreCase)
