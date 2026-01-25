@@ -28,107 +28,7 @@ public class LendersController : ControllerBase
         _httpContextAccessor = httpContextAccessor;
     }
 
-    // HELPER METHOD FOR AUTHORIZATION
-    private string? CheckAdminAuthorization(int user_id, string user_role, string token)
-    {
-        // Check if call coming from Web/Mobile app
-        if (user_id != 0 && user_role != "unknown" && token != "unknown")
-        {
-            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. Only users with Admin role can access this information.";
-            }
-        }
-        else
-        {
-            // Coming from a live call to VAPI phone number
-            var context = _httpContextAccessor.HttpContext;
-
-            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
-            {
-                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
-                if (vapiCall != null)
-                {
-                    if (vapiCall.IsAuthenticated == 0)
-                    {
-                        return "Access denied. You are not authenticated yet!";
-                    }
-
-                    if (vapiCall.UserRole.ToLower().Trim() != "admin")
-                    {
-                        return "Access denied. You do not have permissions to access this information!";
-                    }
-                }
-                else
-                {
-                    return "Access denied. Call details not found!";
-                }
-            }
-            else
-            {
-                return "Access denied. Call ID not found in request headers!";
-            }
-        }
-
-        return null; // Authorization passed
-    }
-
-    // HELPER METHOD FOR LENDER-SPECIFIC AUTHORIZATION
-    private string? CheckLenderSpecificAuthorization(string? lender, string name, int user_id, string user_role, string token, out string effectiveLender)
-    {
-        effectiveLender = lender ?? name;
-
-        // Check if call coming from Web/Mobile app
-        if (user_id != 0 && user_role != "unknown" && token != "unknown")
-        {
-            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-            {
-                // If lender is specified and doesn't match user's name, deny access
-                if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-                {
-                    return "Access denied. You do not have permission to access this information.";
-                }
-
-                // Filter by user's name
-                effectiveLender = name;
-            }
-        }
-        else
-        {
-            // Coming from a live call to VAPI phone number
-            var context = _httpContextAccessor.HttpContext;
-
-            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
-            {
-                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
-                if (vapiCall != null)
-                {
-                    if (vapiCall.IsAuthenticated == 0)
-                    {
-                        return "Access denied. You are not authenticated yet!";
-                    }
-
-                    // If not admin, must query their own data
-                    if (vapiCall.UserRole.ToLower().Trim() != "admin")
-                    {
-                        effectiveLender = name;
-                    }
-                }
-                else
-                {
-                    return "Access denied. Call details not found!";
-                }
-            }
-            else
-            {
-                return "Access denied. Call ID not found in request headers!";
-            }
-        }
-
-        return null; // Authorization passed
-    }
-
-    [McpServerTool]
+        [McpServerTool]
     [Description("What's the phone number or details of lender with company name?")]
     [HttpGet("/lenders/details/{company}")]
     public string GetLendersByCompany(
@@ -138,7 +38,7 @@ public class LendersController : ControllerBase
     [Description("token")] string token = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -195,6 +95,7 @@ public class LendersController : ControllerBase
         return $"Lender {company_name} is found. Contact {summary}";
     }
 
+    //Include name, city, state, number of transactions
     [McpServerTool]
     [Description("Get top lenders ranked by number of transactions")]
     [HttpGet("/lenders/top")]
@@ -210,7 +111,7 @@ public class LendersController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
@@ -257,7 +158,7 @@ public class LendersController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
@@ -294,58 +195,6 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("List lenders by company name")]
-    [HttpGet("/lenders/by-company/{company}")]
-    public string GetLendersByCompany(
-        [Description("which lenders work at this company")] string company,
-        [Description("Maximum number of lenders to return")] int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
-        if (authError != null)
-            return authError;
-
-        lender = effectiveLender;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        if (string.IsNullOrWhiteSpace(company))
-            return "Company name must be provided.";
-
-        var data = Filter(svc, lender, year, from, to)
-            .Where(l => !string.IsNullOrEmpty(l.CompanyName) &&
-                        l.CompanyName.Contains(company, StringComparison.OrdinalIgnoreCase))
-            .Take(top)
-            .Select(l => new
-            {
-                l.LenderContact,
-                l.WorkPhone1,
-                l.Email
-            });
-
-        if (!data.Any())
-            return $"No lenders were found for the company {company} using the selected filters.";
-
-        var results = JsonSerializer.Deserialize<List<LenderCompanyResult>>(
-            JsonSerializer.Serialize(data))!;
-
-        var summary = results
-            .Select(r => $"{r.LenderContact} (Phone: {r.Phone}, Email: {r.Email})")
-            .Aggregate((a, b) => a + ", " + b);
-
-        return $"The lenders working at {company} are: {summary}";
-    }
-
-    [McpServerTool]
     [Description("List VA approved lenders")]
     [HttpGet("/lenders/va-approved")]
     public string GetVAApprovedLenders(
@@ -360,7 +209,7 @@ public class LendersController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
@@ -391,43 +240,7 @@ public class LendersController : ControllerBase
         return $"The VA approved lenders are: {summary}";
     }
 
-    [McpServerTool]
-    [Description("Get the most popular lender company based on number of transactions")]
-    [HttpGet("/lenders/most-popular-company")]
-    public string GetMostPopularLenderCompany(
-        [Description("what is the most popular lender company")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
-        if (authError != null)
-            return authError;
-
-        lender = effectiveLender;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        var company = GetMostPopularValueFiltered(
-            svc,
-            l => l.CompanyName,
-            lender,
-            year,
-            from,
-            to);
-
-        if (company == "N/A")
-            return "There is no lender company data available for the selected filters.";
-
-        return $"The most popular lender company is {company}.";
-    }
-
+   
     [McpServerTool]
     [Description("Get statistics for lenders including total count, average compensation, and VA approval ratio")]
     [HttpGet("/lenders/stats")]
@@ -442,7 +255,7 @@ public class LendersController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
@@ -477,75 +290,8 @@ public class LendersController : ControllerBase
         return $"The lender statistics are: total lenders {result.TotalTransactions}, average compensation {result.AvgAmount}, and VA approval ratio {result.VARatio} percent.";
     }
 
-    [McpServerTool]
-    [Description("Get the primary lender contact for a specific company")]
-    [HttpGet("/lenders/contact-by-company/{company}")]
-    public string GetLenderContactByCompany(
-        [Description("who is the lender contact for this company")] string company,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        if (string.IsNullOrWhiteSpace(company))
-            return "Company name must be provided.";
-
-        var lender = svc.GetByCompany(company)
-            .FirstOrDefault(l => !string.IsNullOrWhiteSpace(l.LenderContact));
-
-        if (lender == null)
-            return $"No lender contact was found for the company {company}.";
-
-        return $"The primary lender contact for {company} is {lender.LenderContact}.";
-    }
-
-    [McpServerTool]
-    [Description("Get lender information by ID")]
-    [HttpGet("/lenders/by-id/{id}")]
-    public string GetLenderByID(
-        [Description("which lender is associated with this ID")] string id,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        if (string.IsNullOrWhiteSpace(id))
-            return "Username must be provided.";
-
-        var lender = svc.GetLenders().Result
-            .FirstOrDefault(l => l.LenderID.ToString() == id);
-
-        if (lender == null)
-            return $"No lender was found with the ID {id}.";
-
-        var result = new LenderUsernameResult
-        {
-            CompanyName = lender.CompanyName,
-            LenderContact = lender.LenderContact,
-            Email = lender.Email,
-            Phone = lender.WorkPhone1
-        };
-
-        return $"The lender associated with the ID {id} is {result.LenderContact} from {result.CompanyName}.";
-    }
-
-    [McpServerTool]
+    
+      [McpServerTool]
     [Description("Get the top cities with the most lenders")]
     [HttpGet("/lenders/top-cities")]
     public string GetTopLenderCities(
@@ -560,7 +306,7 @@ public class LendersController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
@@ -593,275 +339,10 @@ public class LendersController : ControllerBase
         return $"The top {top} cities with the most lenders are: {cities}.";
     }
 
-    [McpServerTool]
-    [Description("List lenders that have notes or processor notes")]
-    [HttpGet("/lenders/with-notes")]
-    public string GetLendersWithNotes(
-        [Description("which lenders have notes recorded")] int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
-        if (authError != null)
-            return authError;
+    
 
-        lender = effectiveLender;
 
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        var data = Filter(svc, lender, year, from, to)
-            .Where(l => !string.IsNullOrWhiteSpace(l.Notes) ||
-                        !string.IsNullOrWhiteSpace(l.ProcessorNotes))
-            .Take(top)
-            .ToList();
-
-        if (!data.Any())
-            return "There are no lenders with notes available for the selected filters.";
-
-        var names = data
-            .Select(l => l.CompanyName ?? l.LenderContact ?? "Unknown lender")
-            .Aggregate((a, b) => $"{a}, {b}");
-
-        return $"The lenders with notes are: {names}.";
-    }
-
-    [McpServerTool]
-    [Description("List inactive lenders")]
-    [HttpGet("/lenders/inactive")]
-    public string GetInactiveLenders(
-        [Description("which lenders are inactive")] int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
-        if (authError != null)
-            return authError;
-
-        lender = effectiveLender;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        var data = Filter(svc, lender, year, from, to)
-            .Where(l => l.Status != "Active")
-            .Take(top)
-            .ToList();
-
-        if (!data.Any())
-            return "There are no inactive lenders for the selected filters.";
-
-        var names = data
-            .Select(l => l.CompanyName ?? l.LenderContact ?? "Unknown lender")
-            .Aggregate((a, b) => $"{a}, {b}");
-
-        return $"The inactive lenders are: {names}.";
-    }
-
-    [McpServerTool]
-    [Description("List lenders by website domain")]
-    [HttpGet("/lenders/by-website/{website}")]
-    public string GetLendersByWebsite(
-        [Description("which lenders use this website")] string website,
-        [Description("Maximum number of lenders to return")] int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
-        if (authError != null)
-            return authError;
-
-        lender = effectiveLender;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        if (string.IsNullOrWhiteSpace(website))
-            return "Website value must be provided.";
-
-        var data = Filter(svc, lender, year, from, to)
-            .Where(l => !string.IsNullOrWhiteSpace(l.Website) &&
-                        l.Website.Contains(website, StringComparison.OrdinalIgnoreCase))
-            .Take(top)
-            .ToList();
-
-        if (!data.Any())
-            return $"There are no lenders associated with the website {website}.";
-
-        var names = data
-            .Select(l => l.CompanyName ?? l.LenderContact ?? "Unknown lender")
-            .Aggregate((a, b) => $"{a}, {b}");
-
-        return $"The lenders associated with the website {website} are: {names}.";
-    }
-
-    [McpServerTool]
-    [Description("Get the top states with the most lenders")]
-    [HttpGet("/lenders/top-states")]
-    public string GetTopLendersByState(
-        [Description("What are the top states with the most lenders?")]
-        int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
-        if (authError != null)
-            return authError;
-
-        lender = effectiveLender;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        var data = Filter(svc, lender, year, from, to)
-            .Where(l => !string.IsNullOrWhiteSpace(l.State));
-
-        var grouped = data
-            .GroupBy(l => l.State, StringComparer.OrdinalIgnoreCase)
-            .OrderByDescending(g => g.Count())
-            .Take(top)
-            .Select(g => new TopLenderStateResult
-            {
-                State = g.Key,
-                Count = g.Count()
-            })
-            .ToList();
-
-        if (!grouped.Any())
-            return "There are no lender state records available.";
-
-        var states = grouped
-            .Select(s => $"{s.State} ({s.Count})")
-            .Aggregate((a, b) => $"{a}, {b}");
-
-        return $"The top {top} states with the most lenders are: {states}.";
-    }
-
-    [McpServerTool]
-    [Description("Get VA approved lender ratio by state")]
-    [HttpGet("/lenders/va-ratio-by-state")]
-    public string GetLendersVAApprovedRatioByState(
-        [Description("Which states have the highest VA-approved lender ratios?")]
-        int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
-        if (authError != null)
-            return authError;
-
-        lender = effectiveLender;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        var data = Filter(svc, lender, year, from, to)
-            .Where(l => !string.IsNullOrWhiteSpace(l.State));
-
-        var stats = data
-            .GroupBy(l => l.State, StringComparer.OrdinalIgnoreCase)
-            .Select(g =>
-            {
-                var total = g.Count();
-                var va = g.Count(l => l.VAApproved == "Yes");
-                return new LenderVAStateStats
-                {
-                    State = g.Key,
-                    Total = total,
-                    VAApproved = va,
-                    Ratio = total == 0 ? 0 : Math.Round((double)va / total, 2)
-                };
-            })
-            .OrderByDescending(s => s.Ratio)
-            .Take(top)
-            .ToList();
-
-        if (!stats.Any())
-            return "There are no VA approval statistics available.";
-
-        var result = stats
-            .Select(s => $"{s.State}: {s.Ratio:P0}")
-            .Aggregate((a, b) => $"{a}, {b}");
-
-        return $"The states with the highest VA-approved lender ratios are: {result}.";
-    }
-
-    [McpServerTool]
-    [Description("Get the most common lender job titles")]
-    [HttpGet("/lenders/common-titles")]
-    public string GetMostCommonLenderTitle(
-        [Description("What are the most common lender job titles?")]
-        int top = 5,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
-        if (authError != null)
-            return authError;
-
-        lender = effectiveLender;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "Lender data is not available right now.";
-
-        var data = Filter(svc, lender, year, from, to)
-            .Where(l => !string.IsNullOrWhiteSpace(l.Title));
-
-        var titles = data
-            .GroupBy(l => l.Title!, StringComparer.OrdinalIgnoreCase)
-            .OrderByDescending(g => g.Count())
-            .Take(top)
-            .Select(g => $"{g.Key} ({g.Count()})")
-            .ToList();
-
-        if (!titles.Any())
-            return "There are no lender titles available.";
-
-        return $"The most common lender titles are: {string.Join(", ", titles)}.";
-    }
-
+      
     [McpServerTool]
     [Description("Get recently added lenders")]
     [HttpGet("/lenders/recent")]
@@ -877,7 +358,7 @@ public class LendersController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check lender-specific authorization
-        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
@@ -916,11 +397,11 @@ public class LendersController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(lender))
         {
-            string normLender = Normalize(lender);
+            string normLender = TestMcpApi.Helpers.Common.Normalize(lender);
 
             data = data.Where(t =>
                 t.LenderContact != null &&
-                Normalize(t.LenderContact).Contains(normLender, StringComparison.OrdinalIgnoreCase));
+                TestMcpApi.Helpers.Common.Normalize(t.LenderContact).Contains(normLender, StringComparison.OrdinalIgnoreCase));
         }
 
         if (year.HasValue)
@@ -933,14 +414,6 @@ public class LendersController : ControllerBase
             data = data.Where(t => t.DateAdded.HasValue && t.DateAdded.Value <= to.Value);
 
         return data;
-    }
-
-    private static string Normalize(string value)
-    {
-        return string
-            .Join(" ", value.Split(' ', StringSplitOptions.RemoveEmptyEntries)) // remove duplicate spaces
-            .Trim()
-            .ToLowerInvariant();
     }
 
 

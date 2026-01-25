@@ -96,9 +96,19 @@ public class UsersController : ControllerBase
             return "There are no agent available for this name.";
 
         //Try to find the name based on input
+        var doubleMetaphone = new DoubleMetaphone();
+        string searchKey = doubleMetaphone.BuildKey(agent_name);
+
+        // 2. Perform the search
         var result = data
-            .OrderBy(x => Common.CalculateLevenshteinDistance(agent_name, x.Name))
-            .ThenByDescending(x => x.UserID) // Optional: Tie-breaker using the highest count
+            .OrderBy(x => {
+                // Generate the phonetic key for each item in the list
+                string itemKey = doubleMetaphone.BuildKey(x.Name);
+
+                // Calculate distance between the phonetic keys
+                // (Closer phonetic keys = smaller distance)
+                return Common.CalculateLevenshteinDistance(searchKey, itemKey);
+            })
             .FirstOrDefault();
 
         if (result == null)
@@ -113,19 +123,9 @@ public class UsersController : ControllerBase
 
         if (result == null)
         {
-            var doubleMetaphone = new DoubleMetaphone();
-            string searchKey = doubleMetaphone.BuildKey(agent_name);
-
-            // 2. Perform the search
             result = data
-                .OrderBy(x => {
-                    // Generate the phonetic key for each item in the list
-                    string itemKey = doubleMetaphone.BuildKey(x.Name);
-
-                    // Calculate distance between the phonetic keys
-                    // (Closer phonetic keys = smaller distance)
-                    return Common.CalculateLevenshteinDistance(searchKey, itemKey);
-                })
+                .OrderBy(x => Common.CalculateLevenshteinDistance(agent_name, x.Name))
+                .ThenByDescending(x => x.UserID) // Optional: Tie-breaker using the highest count
                 .FirstOrDefault();
         }
 
@@ -174,7 +174,7 @@ public class UsersController : ControllerBase
             }
         }
         string phone = Common.FormatPhoneNumber(result.Phone);
-        return $"{result.Name} phone number {phone}";
+        return $"{result.Name} phone number {phone} and email {result.Email}";
     }
 
 }

@@ -1,9 +1,117 @@
 ﻿using System.Text.RegularExpressions;
+using TestMcpApi.Models;
+using TestMcpApi.Services;
 
 namespace TestMcpApi.Helpers
 {
     public static class Common
     {
+        public static string Normalize(string value)
+        {
+            return string
+                .Join(" ", value.Split(' ', StringSplitOptions.RemoveEmptyEntries)) // remove duplicate spaces
+                .Trim()
+                .ToLowerInvariant();
+        }
+        // HELPER METHOD FOR AUTHORIZATION
+        public static string? CheckAdminAuthorization(IHttpContextAccessor _httpContextAccessor, int user_id, string user_role, string token)
+        {
+            // Check if call coming from Web/Mobile app
+            if (user_id != 0 && user_role != "unknown" && token != "unknown")
+            {
+                if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Access denied. Only users with Admin role can access this information.";
+                }
+            }
+            else
+            {
+                // Coming from a live call to VAPI phone number
+                var context = _httpContextAccessor.HttpContext;
+
+                if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+                {
+                    VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
+                    if (vapiCall != null)
+                    {
+                        if (vapiCall.IsAuthenticated == 0)
+                        {
+                            return "Access denied. You are not authenticated yet!";
+                        }
+
+                        if (vapiCall.UserRole.ToLower().Trim() != "admin")
+                        {
+                            return "Access denied. You do not have permissions to access this information!";
+                        }
+                    }
+                    else
+                    {
+                        return "Access denied. Call details not found!";
+                    }
+                }
+                else
+                {
+                    return "Access denied. Call ID not found in request headers!";
+                }
+            }
+
+            return null; // Authorization passed
+        }
+
+        // HELPER METHOD FOR AGENT-SPECIFIC AUTHORIZATION
+        public static string? CheckSpecificAuthorization(IHttpContextAccessor _httpContextAccessor, string? agent, string name, int user_id, string user_role, string token, out string effectiveAgent)
+        {
+            effectiveAgent = agent ?? name;
+
+            // Check if call coming from Web/Mobile app
+            if (user_id != 0 && user_role != "unknown" && token != "unknown")
+            {
+                if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                {
+                    // If agent is specified and doesn't match user's name, deny access
+                    if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "Access denied. You do not have permission to access this information.";
+                    }
+
+                    // Filter by user's name
+                    effectiveAgent = name;
+                }
+            }
+            else
+            {
+                // Coming from a live call to VAPI phone number
+                var context = _httpContextAccessor.HttpContext;
+
+                if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+                {
+                    VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
+                    if (vapiCall != null)
+                    {
+                        if (vapiCall.IsAuthenticated == 0)
+                        {
+                            return "Access denied. You are not authenticated yet!";
+                        }
+
+                        // If not admin, must query their own data
+                        if (vapiCall.UserRole.ToLower().Trim() != "admin")
+                        {
+                            effectiveAgent = name;
+                        }
+                    }
+                    else
+                    {
+                        return "Access denied. Call details not found!";
+                    }
+                }
+                else
+                {
+                    return "Access denied. Call ID not found in request headers!";
+                }
+            }
+
+            return null; // Authorization passed
+        }
         public static int CalculateLevenshteinDistance(string s, string t)
         {
             if(string.IsNullOrEmpty(s)) return 0;

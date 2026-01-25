@@ -28,107 +28,6 @@ public class LoansController : ControllerBase
         _httpContextAccessor = httpContextAccessor;
     }
 
-    // HELPER METHOD FOR AUTHORIZATION
-    private string? CheckAdminAuthorization(int user_id, string user_role, string token)
-    {
-        // Check if call coming from Web/Mobile app
-        if (user_id != 0 && user_role != "unknown" && token != "unknown")
-        {
-            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. Only users with Admin role can access this information.";
-            }
-        }
-        else
-        {
-            // Coming from a live call to VAPI phone number
-            var context = _httpContextAccessor.HttpContext;
-
-            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
-            {
-                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
-                if (vapiCall != null)
-                {
-                    if (vapiCall.IsAuthenticated == 0)
-                    {
-                        return "Access denied. You are not authenticated yet!";
-                    }
-
-                    if (vapiCall.UserRole.ToLower().Trim() != "admin")
-                    {
-                        return "Access denied. You do not have permissions to access this information!";
-                    }
-                }
-                else
-                {
-                    return "Access denied. Call details not found!";
-                }
-            }
-            else
-            {
-                return "Access denied. Call ID not found in request headers!";
-            }
-        }
-
-        return null; // Authorization passed
-    }
-
-    // HELPER METHOD FOR AGENT-SPECIFIC AUTHORIZATION
-    private string? CheckAgentSpecificAuthorization(string? agent, string name, int user_id, string user_role, string token, out string effectiveAgent)
-    {
-        effectiveAgent = agent ?? name;
-
-        // Check if call coming from Web/Mobile app
-        if (user_id != 0 && user_role != "unknown" && token != "unknown")
-        {
-            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-            {
-                // If agent is specified and doesn't match user's name, deny access
-                if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-                {
-                    return "Access denied. You do not have permission to access this information.";
-                }
-
-                // Filter by user's name
-                effectiveAgent = name;
-            }
-        }
-        else
-        {
-            // Coming from a live call to VAPI phone number
-            var context = _httpContextAccessor.HttpContext;
-
-            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
-            {
-                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
-                if (vapiCall != null)
-                {
-                    if (vapiCall.IsAuthenticated == 0)
-                    {
-                        return "Access denied. You are not authenticated yet!";
-                    }
-
-                    // If not admin, must query their own data
-                    if (vapiCall.UserRole.ToLower().Trim() != "admin")
-                    {
-                        effectiveAgent = name;
-                    }
-                }
-                else
-                {
-                    return "Access denied. Call details not found!";
-                }
-            }
-            else
-            {
-                return "Access denied. Call ID not found in request headers!";
-            }
-        }
-
-        return null; // Authorization passed
-    }
-
-
     [McpServerTool, Description("Retrieves the current call ID")]
     [HttpGet("/loans/call_id")]
     public async Task<string> GetCallContext(string query)
@@ -159,33 +58,6 @@ public class LoansController : ControllerBase
         return "Call ID not found in request headers.";
     }
 
-    [McpServerTool]
-    [Description("What is the secret code?")]
-    [HttpGet("/loans/secret")]
-    public string GetSecretCode(
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Access the current HttpContext
-        var context = _httpContextAccessor.HttpContext;
-
-        // Extract the Call ID sent by Vapi
-        string Phone_number = "0000";
-        string CallId = "1111";
-        //if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
-        //{
-        //    CallId = callId;
-        //}
-
-        if (context != null && context.Request.Headers.TryGetValue("phone_number", out var phone_number))
-        {
-            Phone_number = phone_number;
-        }
-
-        return $"The secret code is {Phone_number}";
-    }
 
     [McpServerTool]
     [Description("What's exact number of transactions for agent?")]
@@ -311,7 +183,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -354,7 +226,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -381,33 +253,7 @@ public class LoansController : ControllerBase
         return $"The transactions made by {agent}, during the year {year} are: {transactions}";
     }
 
-    [McpServerTool]
-    [Description("Get Agent responsible for a specific loan")]
-    [HttpGet("/loans/agent-by-id/{loanId}")]
-    public string GetAgentByLoan(
-        [Description("who is the agent responsible for the loan")]
-        string loanId,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        string agent = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            agent = "not availabale right now";
-        }
-
-        string result = svc.GetByLoanNumber(loanId)?.AgentName ?? "Not found";
-
-        return $"The agent responsible for the loan #{loanId} is {result}";
-    }
-
+    
     [McpServerTool]
     [Description("Get Agent responsible for a specific property address")]
     [HttpGet("/loans/agent-by-address/{address}")]
@@ -420,7 +266,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -437,330 +283,7 @@ public class LoansController : ControllerBase
         return $"The agent responsible for the property at '{address}' is: {agent}";
     }
 
-    [McpServerTool]
-    [Description("Get total number of transactions for an agent")]
-    [HttpGet("/loans/total-for-agent/{agent}")]
-    public string GetTotalTransactionsByAgent(
-        [Description("How many transactions did the agent make, in the year")]
-        string agent,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The total number of transactions is not available right now.";
-        }
-
-        var count = Filter(svc, agent, year, from, to).Count();
-
-        if (year.HasValue)
-        {
-            return $"The total number of transactions made by {agent} in {year} is {count}.";
-        }
-
-        return $"The total number of transactions made by {agent} is {count}.";
-    }
-
-    [McpServerTool]
-    [Description("Get all agent names, optionally sorted")]
-    [HttpGet("/loans/agents")]
-    public string GetAllAgents(
-        [Description("Sort agent names alphabetically")] bool sortByName = true,
-        [Description("Sort in descending order")] bool descending = false,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The agent names are not available right now.";
-        }
-
-        var agents = svc.GetAllAgents(sortByName, descending)
-            .Where(a => !string.IsNullOrWhiteSpace(a)).ToList();
-
-        if (!agents.Any())
-        {
-            return "There are no agents available.";
-        }
-
-        var names = agents.Aggregate((a, b) => a + ", " + b);
-
-        return $"The agent names are: {names}.";
-    }
-
-
-    // LOAN-RELATED TOOLS
-
-    [McpServerTool]
-    [Description("Get subject address by loan number")]
-    [HttpGet("/loans/address-by-id/{loanId}")]
-    public string GetAddressByLoan(
-        [Description("What is the address of the property for this specific loan?")] string loanId,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            return "The address of the property is not available right now.";
-        }
-
-        var address = svc.GetSubjectAddress(loanId);
-
-        if (string.IsNullOrEmpty(address))
-        {
-            return $"The address of the property for loan #{loanId} was not found.";
-        }
-
-        return $"The address of the property for loan #{loanId} is {address}.";
-    }
-
-
-    [McpServerTool]
-    [Description("Get the loans in a specific state")]
-    [HttpGet("/loans/state/{state}")]
-    public string GetLoansByState(
-        [Description("Which state do you want to get loans for?")] string state,
-        [Description("Maximum number of loans to return")] int top = 10,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        string loansText = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            loansText = $"The loans for state {state} are not available right now.";
-            return loansText;
-        }
-
-        var data = Filter(svc, null, year, from, to)
-                   .Where(t => t.SubjectState != null && t.SubjectState.Equals(state, StringComparison.OrdinalIgnoreCase)
-                   && !string.IsNullOrWhiteSpace(t.SubjectState));
-
-        var result = data.Take(top)
-                     .Select(t => new LoanSummaryResult
-                     {
-                         LoanID = t.LoanTransID ?? "N/A",
-                         Agent = t.AgentName ?? "N/A",
-                         LoanAmount = t.LoanAmount,
-                         LoanType = t.LoanType ?? "N/A",
-                         DateAdded = t.DateAdded?.ToShortDateString() ?? "N/A"
-                     });
-
-        List<LoanSummaryResult> results = JsonSerializer.Deserialize<List<LoanSummaryResult>>(JsonSerializer.Serialize(result))!;
-
-        if (!results.Any())
-        {
-            loansText = $"There are no loans found for state {state}.";
-            return loansText;
-        }
-
-        loansText = results
-            .Select(r => $"Loan #{r.LoanID}, Agent: {r.Agent}, Amount: {r.LoanAmount}, Type: {r.LoanType}, Date Added: {r.DateAdded}")
-            .Aggregate((a, b) => a + "; " + b);
-
-        return $"The loans in state {state} are: {loansText}";
-    }
-
-
-    [McpServerTool]
-    [Description("Get lender for a specific loan")]
-    [HttpGet("/loans/id/lender-by-id/{loanId}")]
-    public string GetLender(
-        [Description("Who is the lender for this specific loan?")] string loanId,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        string lender = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            lender = "not available right now";
-        }
-        else
-        {
-            lender = svc.GetLender(loanId) ?? "Not found";
-        }
-
-        return $"The lender for loan #{loanId} is {lender}";
-    }
-
-    [McpServerTool]
-    [Description("Get lender for a specific property address")]
-    [HttpGet("/loans/address/lender-by-address/{address}")]
-    public string GetLenderByAddress(
-        [Description("Who is the lender for this specific property address?")]
-        string address,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "The data is not available right now.";
-
-        var loan = svc.GetLoanTransactions().Result
-                      .FirstOrDefault(t =>
-                          !string.IsNullOrEmpty(t.SubjectAddress) &&
-                          t.SubjectAddress.Equals(address, StringComparison.OrdinalIgnoreCase));
-
-        var lender = loan?.LenderName ?? "Not found";
-
-        return $"The lender for the property at '{address}' is: {lender}";
-    }
-
-
-    [McpServerTool]
-    [Description("Get LTV of a specific loan")]
-    [HttpGet("/loans/ltv-by-id/{loanId}")]
-    public string GetLTV(
-        [Description("What is the LTV for this specific loan?")] string loanId,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        string ltv = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            ltv = "not available right now";
-        }
-        else
-        {
-            var value = svc.GetLTV(loanId);
-            ltv = value.HasValue ? value.Value.ToString("F2") : "Not found";
-        }
-
-        return $"The LTV for loan #{loanId} is {ltv}";
-    }
-
-    [McpServerTool]
-    [Description("Get LTV of a specific property address")]
-    [HttpGet("/loans/ltv-by-address/{address}")]
-    public string GetLTVByAddress(
-        [Description("What is the LTV for this property address?")]
-        string address,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "The data is not available right now.";
-
-        var loan = svc.GetLoanTransactions().Result
-                      .FirstOrDefault(t =>
-                          !string.IsNullOrEmpty(t.SubjectAddress) &&
-                          t.SubjectAddress.Equals(address, StringComparison.OrdinalIgnoreCase));
-
-        if (loan == null)
-            return $"The LTV for the property at '{address}' is: Not found";
-
-        var ltv = loan.LTV?.ToString("F2") ?? "Not found";
-
-        return $"The LTV for the property at '{address}' is: {ltv}";
-    }
-
-
-    [McpServerTool]
-    [Description("Get the IDs of loans with a specific status (Active = Submitted / Not Submitted)")]
-    [HttpGet("/loans/status/{status}")]
-    public string GetLoanIdsByStatus(
-        [Description("What are the loan IDs with this status?")] string status,
-        [Description("Maximum number of loan IDs to return")] int top = 10,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        string result = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var loans = Filter(svc, null, year, from, to)
-                        .Where(t => t.Active != null && t.Active.Equals(status, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(t.Active))
-                        .Take(top)
-                        .Select(t => t.LoanTransID)
-                        .Where(id => !string.IsNullOrEmpty(id))
-                        .ToList();
-
-            if (!loans.Any())
-                result = "No loans found with the specified status";
-            else
-                result = loans.Aggregate((a, b) => a + ", " + b)!;
-        }
-
-        return $"The loan IDs with status '{status}' are: {result}";
-    }
-
-
+    //Return open loans not submitted yet: Agent Name, Loan number, loan term, borrower name, property address, city, state, 
     [McpServerTool]
     [Description("Get loans that haven't been closed yet")]
     [HttpGet("/loans/open")]
@@ -775,7 +298,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -824,7 +347,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -845,6 +368,7 @@ public class LoansController : ControllerBase
     }
 
 
+    //Return city, state
     [McpServerTool]
     [Description("Get top cities ranked by number of transactions")]
     [HttpGet("/loans/top-cities")]
@@ -860,7 +384,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -896,6 +420,8 @@ public class LoansController : ControllerBase
     }
 
 
+
+    //Get the most popular loans: property type, transaction type, mortgage type, loan type
     [McpServerTool]
     [Description("Get most popular property type")]
     [HttpGet("/loans/top-property-type")]
@@ -910,7 +436,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -946,251 +472,7 @@ public class LoansController : ControllerBase
     }
 
 
-    [McpServerTool]
-    [Description("Get most popular transaction type")]
-    [HttpGet("/loans/top-transaction-type")]
-    public string GetMostPopularTransactionType(
-        [Description("What is the most popular transaction type?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        string type = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            type = "not available right now";
-        }
-        else
-        {
-            var data = Filter(svc, agent, year, from, to)
-                .Where(t => !string.IsNullOrWhiteSpace(t.TransactionType));
-
-            var result = data.GroupBy(t => t.TransactionType, StringComparer.OrdinalIgnoreCase)
-                             .OrderByDescending(g => g.Count())
-                             .Take(1)
-                             .Select(g => new { TransactionType = g.Key, Transactions = g.Count() });
-
-            if (!result.Any() || result.Count() == 0)
-            {
-                return "Result Not Available";
-            }
-
-            List<TopTransactionTypeResult> results = JsonSerializer.Deserialize<List<TopTransactionTypeResult>>(JsonSerializer.Serialize(result))!;
-
-            type = results.Select(r => r.TransactionType + " with " + r.Transactions + " transactions")
-                          .Aggregate((a, b) => a + ", " + b);
-        }
-
-        return $"The most popular transaction type is: {type}";
-    }
-
-    [McpServerTool]
-    [Description("Get most popular mortgage type")]
-    [HttpGet("/loans/top-mortgage-type")]
-    public string GetMostPopularMortgageType(
-        [Description("What is the most popular mortgage type?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        string type = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            type = "not available right now";
-        }
-        else
-        {
-            var data = Filter(svc, agent, year, from, to)
-                .Where(t => !string.IsNullOrWhiteSpace(t.MortgageType));
-
-            var result = data.GroupBy(t => t.MortgageType, StringComparer.OrdinalIgnoreCase)
-                             .OrderByDescending(g => g.Count())
-                             .Take(1)
-                             .Select(g => new { MortgageType = g.Key, Transactions = g.Count() });
-
-            if (!result.Any() || result.Count() == 0)
-            {
-                return "Result Not Available";
-            }
-
-            List<TopMortgageTypeResult> results = JsonSerializer.Deserialize<List<TopMortgageTypeResult>>(JsonSerializer.Serialize(result))!;
-
-            type = results.Select(r => r.MortgageType + " with " + r.Transactions + " transactions")
-                          .Aggregate((a, b) => a + ", " + b);
-        }
-
-        return $"The most popular mortgage type is: {type}";
-    }
-
-    [McpServerTool]
-    [Description("Get most popular brokering type")]
-    [HttpGet("/loans/top-brokering-type")]
-    public string GetMostPopularBrokeringType(
-        [Description("What is the most popular brokering type?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        string type = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            type = "not available right now";
-        }
-        else
-        {
-            var data = Filter(svc, agent, year, from, to)
-                .Where(t => !string.IsNullOrWhiteSpace(t.BrokeringType));
-
-            var result = data.GroupBy(t => t.BrokeringType, StringComparer.OrdinalIgnoreCase)
-                             .OrderByDescending(g => g.Count())
-                             .Take(1)
-                             .Select(g => new { BrokeringType = g.Key, Transactions = g.Count() });
-
-            if (!result.Any() || result.Count() == 0)
-            {
-                return "Result Not Available";
-            }
-
-            List<TopBrokeringTypeResult> results = JsonSerializer.Deserialize<List<TopBrokeringTypeResult>>(JsonSerializer.Serialize(result))!;
-
-            type = results.Select(r => r.BrokeringType + " with " + r.Transactions + " transactions")
-                          .Aggregate((a, b) => a + ", " + b);
-        }
-
-        return $"The most popular brokering type is: {type}";
-    }
-
-    [McpServerTool]
-    [Description("Get most popular loan type")]
-    [HttpGet("/loans/top-loan-type")]
-    public string GetMostPopularLoanType(
-        [Description("What is the most popular loan type?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        string type = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            type = "not available right now";
-        }
-        else
-        {
-            var data = Filter(svc, agent, year, from, to)
-                .Where(t => !string.IsNullOrWhiteSpace(t.LoanType));
-
-            var result = data.GroupBy(t => t.LoanType, StringComparer.OrdinalIgnoreCase)
-                             .OrderByDescending(g => g.Count())
-                             .Take(1)
-                             .Select(g => new { LoanType = g.Key, Transactions = g.Count() });
-
-            if (!result.Any() || result.Count() == 0)
-            {
-                return "Result Not Available";
-            }
-
-            List<TopLoanTypeResult> results = JsonSerializer.Deserialize<List<TopLoanTypeResult>>(JsonSerializer.Serialize(result))!;
-            type = results.Select(r => r.LoanType + " with " + r.Transactions + " transactions")
-                          .Aggregate((a, b) => a + ", " + b);
-        }
-
-        return $"The most popular loan type is: {type}";
-    }
-
-
-    [McpServerTool]
-    [Description("Get most popular escrow method send type")]
-    [HttpGet("/loans/top-escrow-send-type")]
-    public string GetMostPopularEscrowMethod(
-        [Description("What is the most popular escrow method send type?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        string method = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            method = "not available right now";
-        }
-        else
-        {
-            var data = Filter(svc, agent, year, from, to)
-                .Where(t => !string.IsNullOrWhiteSpace(t.EscrowMethodSendType));
-
-            var result = data.GroupBy(t => t.EscrowMethodSendType, StringComparer.OrdinalIgnoreCase)
-                             .OrderByDescending(g => g.Count())
-                             .Take(1)
-                             .Select(g => new { EscrowMethod = g.Key, Transactions = g.Count() });
-
-            if (!result.Any() || result.Count() == 0)
-            {
-                return "Result Not Available";
-            }
-
-            List<TopEscrowMethodResult> results = JsonSerializer.Deserialize<List<TopEscrowMethodResult>>(JsonSerializer.Serialize(result))!;
-            method = results.Select(r => r.EscrowMethod + " with " + r.Transactions + " transactions")
-                            .Aggregate((a, b) => a + ", " + b);
-        }
-
-        return $"The most popular escrow method send type is: {method}";
-    }
-
-
+   
     [McpServerTool]
     [Description("Get most popular title company")]
     [HttpGet("/loans/top-title-company")]
@@ -1205,7 +487,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -1254,7 +536,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -1289,7 +571,7 @@ public class LoansController : ControllerBase
     }
 
 
-    // LOAN AMOUNT STATISTICS
+    // replace all of them with Give me the statiscs of my loans
 
     [McpServerTool]
     [Description("Average loan amount (overall, by agent or by year)")]
@@ -1304,7 +586,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -1341,7 +623,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -1378,7 +660,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -1417,7 +699,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -1453,7 +735,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -1489,7 +771,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
 
@@ -1515,85 +797,7 @@ public class LoansController : ControllerBase
 
 
 
-    // ESCROW-RELATED TOOLS
-
-    [McpServerTool]
-    [Description("Get number of loans for a specific escrow company")]
-    [HttpGet("/loans/total-by-escrow/{escrowCompany}")]
-    public string GetLoansByEscrow(
-        [Description("What are the loans for a specific escrow company?")] string escrowCompany,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        string result = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var data = Filter(svc, agent, year, from, to)
-                       .Where(t => !string.IsNullOrEmpty(t.EscrowCompany) &&
-                                   t.EscrowCompany.Equals(escrowCompany, StringComparison.OrdinalIgnoreCase));
-
-
-            result = data.Any() ? data.Count().ToString() : "0";
-        }
-
-        return $"The number of loans for {escrowCompany} is: {result}";
-    }
-
-
-    [McpServerTool]
-    [Description("Get all escrow companies")]
-    [HttpGet("/loans/escrow-companies")]
-    public string GetAllEscrowCompanies(
-        [Description("What are the names of all escrow companies")] string dummy = "",
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        string result = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var companies = svc.GetLoanTransactions().Result
-                              .Select(t => t.EscrowCompany)
-                              .Where(c => !string.IsNullOrEmpty(c))
-                              .Distinct()
-                              .ToList();
-
-            result = companies.Any() ? string.Join(", ", companies) : "none found";
-        }
-
-        return $"The escrow companies are: {result}";
-    }
-
-
+    //Similar to get last transactions for agent
     [McpServerTool]
     [Description("Get transactions for a specific escrow company")]
     [HttpGet("/loans/ecrowCompany/{escrowCompany}")]
@@ -1607,7 +811,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -1650,7 +854,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -1679,98 +883,8 @@ public class LoansController : ControllerBase
         return $"The top {top} escrow companies are: {names}";
     }
 
-    [McpServerTool]
-    [Description("Get Escrow Company statistics (total loans, average, highest, lowest loan amounts)")]
-    [HttpGet("/loans/escrow-statistics/{escrowCompany}")]
-    public string GetEscrowCompanyStats(
-        [Description("What are the total loans and loan amount statistics for a specific escrow company?")] string escrowCompany,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        string resultText = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            resultText = "not available right now";
-        }
-        else
-        {
-            var loans = svc.GetByEscrowCompany(escrowCompany)
-                           .Where(t => t.LoanAmount.HasValue)
-                           .ToList();
-
-            if (!loans.Any())
-            {
-                resultText = $"The escrow company {escrowCompany} has no loans.";
-            }
-            else
-            {
-                var amounts = loans.Select(t => t.LoanAmount!.Value);
-                EscrowCompanyStatsResult stats = new EscrowCompanyStatsResult
-                {
-                    TotalLoans = loans.Count,
-                    AverageLoanAmount = amounts.Average(),
-                    HighestLoanAmount = amounts.Max(),
-                    LowestLoanAmount = amounts.Min()
-                };
-
-                resultText = $"The escrow company {escrowCompany} has {stats.TotalLoans} loans with an average loan amount of {stats.AverageLoanAmount:F2}, " +
-                             $"highest loan amount of {stats.HighestLoanAmount:F2}, and lowest loan amount of {stats.LowestLoanAmount:F2}.";
-            }
-        }
-
-        return resultText;
-    }
-
-    // OTHER TOOLS
-
-    [McpServerTool]
-    [Description("Get total number of transactions for a lender")]
-    [HttpGet("/loans/total-by-lender/{lender}")]
-    public string GetTotalTransactionsByLender(
-        [Description("How many transactions did this lender make?")] string lender,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        string resultText = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            resultText = "not available right now";
-        }
-        else
-        {
-            var count = Filter(svc, agent, year, from, to)
-                        .Where(t => !string.IsNullOrEmpty(t.LoanTransID))
-                        .Count(t => t.LenderName != null && t.LenderName.Equals(lender, StringComparison.OrdinalIgnoreCase));
-
-            resultText = $"The total number of transactions for lender {lender} is: {count}";
-        }
-
-        return resultText;
-    }
-
-
+  
+    //Include top tile companies, number of transaction
     [McpServerTool]
     [Description("What are the names of all title companies?")]
     [HttpGet("/loans/title-companies")]
@@ -1781,7 +895,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -1808,62 +922,7 @@ public class LoansController : ControllerBase
     }
 
 
-    [McpServerTool]
-    [Description("Get transactions for a specific title company")]
-    [HttpGet("/loans/title-company/{titleCompany}")]
-    public string GetTransactionsByTitleCompany(
-        [Description("Which transactions were made by this title company?")] string titleCompany,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Check agent-specific authorization
-        var authError = CheckAgentSpecificAuthorization(agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        string resultText = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            resultText = "not available right now";
-        }
-        else
-        {
-            var data = Filter(svc, agent, year, from, to)
-                       .Where(t => t.TitleCompany != null && t.TitleCompany.Equals(titleCompany, StringComparison.OrdinalIgnoreCase))
-                       .Take(top)
-                       .Select(t => new TransactionDto
-                       {
-                           LoanTransID = t.LoanTransID,
-                           AgentName = t.AgentName,
-                           LoanAmount = t.LoanAmount,
-                           LoanDate = t.DateAdded
-                       })
-                       .ToList();
-
-            if (!data.Any())
-            {
-                resultText = $"No transactions found for the title company {titleCompany}";
-            }
-            else
-            {
-                var serialized = JsonSerializer.Serialize(data);
-                resultText = $"The transactions for the title company {titleCompany} are: {serialized}";
-            }
-        }
-
-        return resultText;
-    }
-
+    
     [McpServerTool]
     [Description("Get 1099 for an agent for a specific year")]
     [HttpGet("/loans/1099/{agent}/{year}")]
@@ -1876,7 +935,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -1907,7 +966,7 @@ public class LoansController : ControllerBase
         [Description("name")] string name = "unknown")
     {
         // Check authorization
-        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
@@ -1959,11 +1018,11 @@ public class LoansController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(agent))
         {
-            string normAgent = Normalize(agent);
+            string normAgent = TestMcpApi.Helpers.Common.Normalize(agent);
 
             data = data.Where(t =>
                 t.AgentName != null &&
-                Normalize(t.AgentName).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
+                TestMcpApi.Helpers.Common.Normalize(t.AgentName).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
         }
 
 
@@ -1977,14 +1036,6 @@ public class LoansController : ControllerBase
             data = data.Where(t => t.DateAdded.HasValue && t.DateAdded.Value <= to.Value);
 
         return data;
-    }
-
-    private static string Normalize(string value)
-    {
-        return string
-            .Join(" ", value.Split(' ', StringSplitOptions.RemoveEmptyEntries)) // remove duplicate spaces
-            .Trim()
-            .ToLowerInvariant();
     }
 
 

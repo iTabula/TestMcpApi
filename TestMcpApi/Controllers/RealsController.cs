@@ -2459,11 +2459,11 @@ public class RealsController : ControllerBase
         // Filter by agent (case-insensitive)
         if (!string.IsNullOrWhiteSpace(agent))
         {
-            string normAgent = Normalize(agent);
+            string normAgent = TestMcpApi.Helpers.Common.Normalize(agent);
 
             data = data.Where(t =>
                 t.AgentName != null &&
-                Normalize(t.AgentName).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
+                TestMcpApi.Helpers.Common.Normalize(t.AgentName).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
         }
 
         // Filter by year
@@ -2478,14 +2478,6 @@ public class RealsController : ControllerBase
             data = data.Where(t => t.ActualClosedDate.HasValue && t.ActualClosedDate.Value <= to.Value);
 
         return data;
-    }
-
-    private static string Normalize(string value)
-    {
-        return string
-            .Join(" ", value.Split(' ', StringSplitOptions.RemoveEmptyEntries)) // remove duplicate spaces
-            .Trim()
-            .ToLowerInvariant();
     }
 
     private static string GetMostPopularValueFilteredReal(
