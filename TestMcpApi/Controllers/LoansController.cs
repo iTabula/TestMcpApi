@@ -170,6 +170,64 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
+    [Description("Get contact information for a specific agent")]
+    [HttpGet("/loans/agent-contact-info/{agent}")]
+    public string AgentContactInfo(
+        [Description("What's the contact info of agent?")] string agent,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
+    {
+        // Step 1: Get data for phonetic matching on agent parameter
+        var allUsers = new UserService().GetUsers().Result;
+
+        // Step 2: Match phonetics for agent
+        var matchedAgent = Common.MatchPhonetic(allUsers, agent, u => u.Name ?? string.Empty);
+
+        // Step 3: Get user related to phonetic results
+        if (matchedAgent != null)
+        {
+            agent = matchedAgent.Name ?? agent;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
+        var agentUser = allUsers.FirstOrDefault(u =>
+            u.Name != null &&
+            u.Name.Equals(agent, StringComparison.OrdinalIgnoreCase));
+
+        if (agentUser == null)
+        {
+            return $"No contact information found for agent {agent}.";
+        }
+
+        string phone = string.IsNullOrWhiteSpace(agentUser.Phone) ? "Not available" : Common.FormatPhoneNumber(agentUser.Phone);
+        string email = string.IsNullOrWhiteSpace(agentUser.Email) ? "Not available" : agentUser.Email;
+
+        // Step 6: Present data
+        return $"Contact information for {agent}: Phone: {phone}, Email: {email}";
+    }
+
+    [McpServerTool]
     [Description("Get top agents ranked by number of transactions")]
     [HttpGet("/loans/top-agents")]
     public string GetTopAgents(
@@ -1247,7 +1305,6 @@ public class LoansController : ControllerBase
         // Step 6: Present data
         return $"The lowest credit score is: {result}";
     }
-
 
 
     //Similar to get last transactions for agent
