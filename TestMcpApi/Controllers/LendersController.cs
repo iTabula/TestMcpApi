@@ -28,66 +28,64 @@ public class LendersController : ControllerBase
         _httpContextAccessor = httpContextAccessor;
     }
 
-        [McpServerTool]
+    [McpServerTool]
     [Description("What's the phone number or details of lender with company name?")]
     [HttpGet("/lenders/details/{company}")]
     public string GetLendersByCompany(
-    [Description("the lender or company name")] string company_name,
-    [Description("user_id")] int user_id = 0,
-    [Description("user_role")] string user_role = "unknown",
-    [Description("token")] string token = "unknown")
+        [Description("the lender or company name")] string company_name,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
-        // Check authorization
+        if (string.IsNullOrWhiteSpace(company_name))
+            return "Company name must be provided.";
+
+        // Step 1: Get data for phonetic matching on company_name parameter
+        var allLenders = svc.GetLenders().Result.AsEnumerable();
+
+        if (!allLenders.Any())
+            return "I could not find any lenders data";
+
+        // Step 2: Match phonetics for company
+        var matchedLender = Common.MatchPhonetic(allLenders, company_name, l => l.CompanyName ?? string.Empty);
+
+        // Step 3: Get lender related to phonetic results
+        if (matchedLender != null)
+        {
+            company_name = matchedLender.CompanyName ?? company_name;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
         if (authError != null)
             return authError;
 
-        if (string.IsNullOrWhiteSpace(company_name))
-            return "Company name must be provided.";
-
-        // Proceed with the tool execution for Admin users
-        var data = svc.GetLenders().Result.AsEnumerable();
-
-        if (!data.Any())
-            return "I could not find any lenders data";
-
-        //Try to find the name based on input
-        var result = data
-            .OrderBy(x => Common.CalculateLevenshteinDistance(company_name, x.CompanyName))
-            .FirstOrDefault();
-
-        if(result == null)
-        {
-            var searchCode = Common.GetSoundex(company_name); // Implementation from previous example
-
-            result = data
-                .Where(x => Common.GetSoundex(x.CompanyName) == searchCode) // Filter for identical sounds
-                .OrderByDescending(x => Common.CalculateSoundexDifference(searchCode, Common.GetSoundex(x.CompanyName)))
-                .FirstOrDefault();
-        }
-
-        if(result == null)
-        {
-            var doubleMetaphone = new DoubleMetaphone();
-            string searchKey = doubleMetaphone.BuildKey(company_name);
-
-            // 2. Perform the search
-            result = data
-                .OrderBy(x => {
-                    // Generate the phonetic key for each item in the list
-                    string itemKey = doubleMetaphone.BuildKey(x.CompanyName);
-
-                    // Calculate distance between the phonetic keys
-                    // (Closer phonetic keys = smaller distance)
-                    return Common.CalculateLevenshteinDistance(searchKey, itemKey);
-                })
-                .FirstOrDefault();
-        }
+        // Step 5: Get data if authorized
+        var result = allLenders
+            .FirstOrDefault(x => x.CompanyName != null && 
+                               x.CompanyName.Equals(company_name, StringComparison.OrdinalIgnoreCase));
 
         if (result == null)
-            return "I could not find an lender with this name.";
+            return "I could not find a lender with this name.";
 
-        string phone = string.IsNullOrEmpty(result.Cell) ? (string.IsNullOrEmpty(result.WorkPhone1) ? result.WorkPhone2 : result.WorkPhone1) : result.Cell;
+        // Step 6: Present data
+        string phone = string.IsNullOrEmpty(result.Cell) ? 
+                      (string.IsNullOrEmpty(result.WorkPhone1) ? result.WorkPhone2 : result.WorkPhone1) : 
+                      result.Cell;
         phone = phone.Replace(",", "").Replace("-", "").Replace(" ", "");
         phone = Common.FormatPhoneNumber(phone);
         string title = result.Title.Replace("--Select a Title--", "Account Executive");
@@ -95,7 +93,6 @@ public class LendersController : ControllerBase
         return $"Lender {company_name} is found. Contact {summary}";
     }
 
-    //Include name, city, state, number of transactions
     [McpServerTool]
     [Description("Get top lenders ranked by number of transactions")]
     [HttpGet("/lenders/top")]
@@ -110,13 +107,46 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check lender-specific authorization
+        // Step 1: Get data for phonetic matching on lender parameter
+        if (!string.IsNullOrEmpty(lender))
+        {
+            var allLenders = svc.GetLenders().Result
+                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
+                .Select(l => new { LenderContact = l.LenderContact })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for lender
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+
+            // Step 3: Get lender related to phonetic results
+            if (matchedLender != null)
+            {
+                lender = matchedLender.LenderContact;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
         lender = effectiveLender;
 
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
@@ -132,6 +162,7 @@ public class LendersController : ControllerBase
         if (!grouped.Any())
             return "There are no lender transactions available for the selected filters.";
 
+        // Step 6: Present data
         var results = JsonSerializer.Deserialize<List<TopLenderResult>>(
             JsonSerializer.Serialize(grouped))!;
 
@@ -157,18 +188,51 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check lender-specific authorization
+        if (string.IsNullOrWhiteSpace(state))
+            return "State must be provided.";
+
+        // Step 1: Get data for phonetic matching on lender parameter
+        if (!string.IsNullOrEmpty(lender))
+        {
+            var allLenders = svc.GetLenders().Result
+                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
+                .Select(l => new { LenderContact = l.LenderContact })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for lender
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+
+            // Step 3: Get lender related to phonetic results
+            if (matchedLender != null)
+            {
+                lender = matchedLender.LenderContact;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
         lender = effectiveLender;
 
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
-
-        if (string.IsNullOrWhiteSpace(state))
-            return "State must be provided.";
 
         var data = Filter(svc, lender, year, from, to)
             .Where(l => !string.IsNullOrEmpty(l.State) &&
@@ -184,6 +248,7 @@ public class LendersController : ControllerBase
         if (!data.Any())
             return $"No lenders were found in the state {state} using the selected filters.";
 
+        // Step 6: Present data
         var results = JsonSerializer.Deserialize<List<LenderStateResult>>(
             JsonSerializer.Serialize(data))!;
 
@@ -208,13 +273,46 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check lender-specific authorization
+        // Step 1: Get data for phonetic matching on lender parameter
+        if (!string.IsNullOrEmpty(lender))
+        {
+            var allLenders = svc.GetLenders().Result
+                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
+                .Select(l => new { LenderContact = l.LenderContact })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for lender
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+
+            // Step 3: Get lender related to phonetic results
+            if (matchedLender != null)
+            {
+                lender = matchedLender.LenderContact;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
         lender = effectiveLender;
 
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
@@ -230,6 +328,7 @@ public class LendersController : ControllerBase
         if (!data.Any())
             return "There are no VA approved lenders available for the selected filters.";
 
+        // Step 6: Present data
         var results = JsonSerializer.Deserialize<List<VALenderResult>>(
             JsonSerializer.Serialize(data))!;
 
@@ -240,7 +339,6 @@ public class LendersController : ControllerBase
         return $"The VA approved lenders are: {summary}";
     }
 
-   
     [McpServerTool]
     [Description("Get statistics for lenders including total count, average compensation, and VA approval ratio")]
     [HttpGet("/lenders/stats")]
@@ -254,13 +352,46 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check lender-specific authorization
+        // Step 1: Get data for phonetic matching on lender parameter
+        if (!string.IsNullOrEmpty(lender))
+        {
+            var allLenders = svc.GetLenders().Result
+                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
+                .Select(l => new { LenderContact = l.LenderContact })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for lender
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+
+            // Step 3: Get lender related to phonetic results
+            if (matchedLender != null)
+            {
+                lender = matchedLender.LenderContact;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
         lender = effectiveLender;
 
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
@@ -280,6 +411,7 @@ public class LendersController : ControllerBase
         var vaApprovedCount = data.Count(l => l.VAApproved == "Yes");
         var vaRatio = total == 0 ? 0 : Math.Round((decimal)vaApprovedCount / total * 100, 2);
 
+        // Step 6: Present data
         var result = new LenderStatsResult
         {
             TotalTransactions = total,
@@ -290,8 +422,7 @@ public class LendersController : ControllerBase
         return $"The lender statistics are: total lenders {result.TotalTransactions}, average compensation {result.AvgAmount}, and VA approval ratio {result.VARatio} percent.";
     }
 
-    
-      [McpServerTool]
+    [McpServerTool]
     [Description("Get the top cities with the most lenders")]
     [HttpGet("/lenders/top-cities")]
     public string GetTopLenderCities(
@@ -305,13 +436,46 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check lender-specific authorization
+        // Step 1: Get data for phonetic matching on lender parameter
+        if (!string.IsNullOrEmpty(lender))
+        {
+            var allLenders = svc.GetLenders().Result
+                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
+                .Select(l => new { LenderContact = l.LenderContact })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for lender
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+
+            // Step 3: Get lender related to phonetic results
+            if (matchedLender != null)
+            {
+                lender = matchedLender.LenderContact;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
         lender = effectiveLender;
 
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
@@ -332,6 +496,7 @@ public class LendersController : ControllerBase
         if (!grouped.Any())
             return "There are no lender city records available for the selected filters.";
 
+        // Step 6: Present data
         var cities = grouped
             .Select(c => $"{c.City} with {c.Count} lenders")
             .Aggregate((a, b) => $"{a}, {b}");
@@ -339,10 +504,6 @@ public class LendersController : ControllerBase
         return $"The top {top} cities with the most lenders are: {cities}.";
     }
 
-    
-
-
-      
     [McpServerTool]
     [Description("Get recently added lenders")]
     [HttpGet("/lenders/recent")]
@@ -357,13 +518,46 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // Check lender-specific authorization
+        // Step 1: Get data for phonetic matching on lender parameter
+        if (!string.IsNullOrEmpty(lender))
+        {
+            var allLenders = svc.GetLenders().Result
+                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
+                .Select(l => new { LenderContact = l.LenderContact })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for lender
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+
+            // Step 3: Get lender related to phonetic results
+            if (matchedLender != null)
+            {
+                lender = matchedLender.LenderContact;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
         var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, lender, name, user_id, user_role, token, out string effectiveLender);
         if (authError != null)
             return authError;
 
         lender = effectiveLender;
 
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
@@ -376,14 +570,13 @@ public class LendersController : ControllerBase
         if (!data.Any())
             return "There are no recently added lenders.";
 
+        // Step 6: Present data
         var lenders = data
             .Select(l => $"{l.CompanyName ?? l.LenderContact} ({l.DateAdded:yyyy-MM-dd})")
             .Aggregate((a, b) => $"{a}, {b}");
 
         return $"The most recently added lenders are: {lenders}.";
     }
-
-
 
     //HELPERS
     private static IEnumerable<Lender> Filter(
@@ -415,7 +608,6 @@ public class LendersController : ControllerBase
 
         return data;
     }
-
 
     private static IEnumerable<Lender> FilterByLenderAndYear(
     ILenderService svc,
@@ -450,5 +642,4 @@ public class LendersController : ControllerBase
 
         return key;
     }
-
 }
