@@ -17,12 +17,115 @@ public class LendersController : ControllerBase
     private readonly ILenderService svc;
     private readonly IConfiguration _configuration;
     private readonly string connectionString = string.Empty;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public LendersController(ILenderService lenderService, IConfiguration configuration)
+    public LendersController(ILenderService lenderService, IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor)
     {
         svc = lenderService;
         _configuration = configuration;
         connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    // HELPER METHOD FOR AUTHORIZATION
+    private string? CheckAdminAuthorization(int user_id, string user_role, string token)
+    {
+        // Check if call coming from Web/Mobile app
+        if (user_id != 0 && user_role != "unknown" && token != "unknown")
+        {
+            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Access denied. Only users with Admin role can access this information.";
+            }
+        }
+        else
+        {
+            // Coming from a live call to VAPI phone number
+            var context = _httpContextAccessor.HttpContext;
+
+            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+            {
+                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
+                if (vapiCall != null)
+                {
+                    if (vapiCall.IsAuthenticated == 0)
+                    {
+                        return "Access denied. You are not authenticated yet!";
+                    }
+
+                    if (vapiCall.UserRole.ToLower().Trim() != "admin")
+                    {
+                        return "Access denied. You do not have permissions to access this information!";
+                    }
+                }
+                else
+                {
+                    return "Access denied. Call details not found!";
+                }
+            }
+            else
+            {
+                return "Access denied. Call ID not found in request headers!";
+            }
+        }
+
+        return null; // Authorization passed
+    }
+
+    // HELPER METHOD FOR LENDER-SPECIFIC AUTHORIZATION
+    private string? CheckLenderSpecificAuthorization(string? lender, string name, int user_id, string user_role, string token, out string effectiveLender)
+    {
+        effectiveLender = lender ?? name;
+
+        // Check if call coming from Web/Mobile app
+        if (user_id != 0 && user_role != "unknown" && token != "unknown")
+        {
+            if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                // If lender is specified and doesn't match user's name, deny access
+                if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Access denied. You do not have permission to access this information.";
+                }
+
+                // Filter by user's name
+                effectiveLender = name;
+            }
+        }
+        else
+        {
+            // Coming from a live call to VAPI phone number
+            var context = _httpContextAccessor.HttpContext;
+
+            if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
+            {
+                VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
+                if (vapiCall != null)
+                {
+                    if (vapiCall.IsAuthenticated == 0)
+                    {
+                        return "Access denied. You are not authenticated yet!";
+                    }
+
+                    // If not admin, must query their own data
+                    if (vapiCall.UserRole.ToLower().Trim() != "admin")
+                    {
+                        effectiveLender = name;
+                    }
+                }
+                else
+                {
+                    return "Access denied. Call details not found!";
+                }
+            }
+            else
+            {
+                return "Access denied. Call ID not found in request headers!";
+            }
+        }
+
+        return null; // Authorization passed
     }
 
     [McpServerTool]
@@ -34,6 +137,10 @@ public class LendersController : ControllerBase
     [Description("user_role")] string user_role = "unknown",
     [Description("token")] string token = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
         if (string.IsNullOrWhiteSpace(company_name))
             return "Company name must be provided.";
@@ -102,18 +209,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -155,18 +256,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -213,18 +308,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -270,18 +359,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -321,18 +404,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -364,18 +441,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -416,6 +487,11 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
@@ -441,6 +517,11 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
+        // Check authorization
+        var authError = CheckAdminAuthorization(user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
 
@@ -478,18 +559,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -532,18 +607,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -578,18 +647,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -624,18 +687,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -674,18 +731,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -729,18 +780,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -791,18 +836,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
@@ -837,18 +876,12 @@ public class LendersController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("name")] string name = "unknown")
     {
-        // If not Admin, check lender access
-        if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            // If lender is specified and doesn't match user's name, deny access
-            if (!string.IsNullOrEmpty(lender) && !Normalize(lender).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
-            {
-                return "Access denied. You do not have permission to access this information.";
-            }
-            
-            // Filter by user's name
-            lender = name;
-        }
+        // Check lender-specific authorization
+        var authError = CheckLenderSpecificAuthorization(lender, name, user_id, user_role, token, out string effectiveLender);
+        if (authError != null)
+            return authError;
+
+        lender = effectiveLender;
 
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
             return "Lender data is not available right now.";
