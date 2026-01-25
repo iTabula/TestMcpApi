@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using TestMcpApi.Models;
 using TestMcpApi.Services;
+using Phonix;
 
 namespace TestMcpApi.Helpers
 {
@@ -13,6 +14,60 @@ namespace TestMcpApi.Helpers
                 .Trim()
                 .ToLowerInvariant();
         }
+        
+        /// <summary>
+        /// Performs phonetic matching on a collection of items using DoubleMetaphone, Soundex, and Levenshtein distance algorithms.
+        /// </summary>
+        /// <typeparam name="T">The type of items in the collection</typeparam>
+        /// <param name="data">The collection of items to search through</param>
+        /// <param name="searchInput">The input string to match against</param>
+        /// <param name="nameSelector">A function to extract the string property to match from each item</param>
+        /// <returns>The best matching item, or null if no items exist</returns>
+        public static T? MatchPhonetic<T>(IEnumerable<T> data, string searchInput, Func<T, string> nameSelector) where T : class
+        {
+            if (data == null || !data.Any())
+                return null;
+
+            if (string.IsNullOrWhiteSpace(searchInput))
+                return null;
+
+            // 1. Try DoubleMetaphone with Levenshtein distance
+            var doubleMetaphone = new DoubleMetaphone();
+            string searchKey = doubleMetaphone.BuildKey(searchInput);
+
+            var result = data
+                .OrderBy(x => {
+                    // Generate the phonetic key for each item in the list
+                    string itemKey = doubleMetaphone.BuildKey(nameSelector(x));
+
+                    // Calculate distance between the phonetic keys
+                    // (Closer phonetic keys = smaller distance)
+                    return CalculateLevenshteinDistance(searchKey, itemKey);
+                })
+                .FirstOrDefault();
+
+            if (result == null)
+            {
+                // 2. Try Soundex matching
+                var searchCode = GetSoundex(searchInput);
+
+                result = data
+                    .Where(x => GetSoundex(nameSelector(x)) == searchCode) // Filter for identical sounds
+                    .OrderByDescending(x => CalculateSoundexDifference(searchCode, GetSoundex(nameSelector(x))))
+                    .FirstOrDefault();
+            }
+
+            if (result == null)
+            {
+                // 3. Fallback to pure Levenshtein distance
+                result = data
+                    .OrderBy(x => CalculateLevenshteinDistance(searchInput, nameSelector(x)))
+                    .FirstOrDefault();
+            }
+
+            return result;
+        }
+
         // HELPER METHOD FOR AUTHORIZATION
         public static string? CheckAdminAuthorization(IHttpContextAccessor _httpContextAccessor, int user_id, string user_role, string token)
         {
