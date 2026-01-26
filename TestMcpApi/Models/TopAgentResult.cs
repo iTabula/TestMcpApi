@@ -6,22 +6,24 @@
         public int Transactions { get; set; }
     }
 
-    public class TransactionsResult
+    public class LoanTransactionResult
     {
-        public string ID { get; set; }
-        public decimal LoanAmount { get; set; }
-        public string LoanType { get; set; }
-        public decimal LoanTerm { get; set; }
-    }
-
-    public class LoanSummaryResult
-    {
-        public string LoanID { get; set; } = string.Empty;
-        public string? Agent { get; set; }
+        public string? LoanTransID { get; set; }
+        public string? AgentName { get; set; }
         public decimal? LoanAmount { get; set; }
         public string? LoanType { get; set; }
+        public decimal? LoanTerm { get; set; }
+        public string? BorrowerName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? SubjectCity { get; set; }
+        public string? SubjectState { get; set; }
+        public string? Active { get; set; }
         public string? DateAdded { get; set; }
+        public DateTime? LoanDate { get; set; }
     }
+
     public class TopCityResult
     {
         public string City { get; set; }
@@ -67,27 +69,12 @@
         public string EscrowCompany { get; set; }
         public int Transactions { get; set; }
     }
-    public class EscrowTransactionDto
-    {
-        public string LoanTransID { get; set; }
-        public string AgentName { get; set; }
-        public decimal? LoanAmount { get; set; }
-        public string SubjectCity { get; set; }
-        public string SubjectState { get; set; }
-    }
     public class EscrowCompanyStatsResult
     {
         public int TotalLoans { get; set; }
         public decimal AverageLoanAmount { get; set; }
         public decimal HighestLoanAmount { get; set; }
         public decimal LowestLoanAmount { get; set; }
-    }
-    public class TransactionDto
-    {
-        public string LoanTransID { get; set; } = "";
-        public string AgentName { get; set; } = "";
-        public decimal? LoanAmount { get; set; }
-        public DateTime? LoanDate { get; set; }
     }
     public class LenderStatsResult
     {

@@ -344,14 +344,34 @@ public class LoansController : ControllerBase
             .Where(t => !string.IsNullOrWhiteSpace(t.LoanTransID))
             .Where(t => t.LoanAmount.HasValue)
             .Take(top)
-            .Select(g => new { ID = g.LoanTransID, LoanAmount = g.LoanAmount, LoanType = g.LoanType, LoanTerm = g.LoanTerm });
+            .Select(g => new LoanTransactionResult
+            {
+                LoanTransID = g.LoanTransID,
+                AgentName = g.AgentName,
+                LoanAmount = g.LoanAmount,
+                LoanType = g.LoanType,
+                LoanTerm = g.LoanTerm,
+                BorrowerName = $"{g.BorrowerFirstName} {g.BorrowerLastName}".Trim(),
+                PhoneNumber = g.AgentPhone,
+                Address = g.SubjectAddress,
+                City = g.SubjectCity,
+                SubjectCity = g.SubjectCity,
+                SubjectState = g.SubjectState,
+                Active = g.Active,
+                DateAdded = g.DateAdded?.ToString("yyyy-MM-dd")
+            });
 
         if (data == null || data.Count() == 0)
             return $"No transactions found for agent {agent} using the selected filters.";
 
         // Step 6: Present data
-        List<TransactionsResult> results = JsonSerializer.Deserialize<List<TransactionsResult>>(JsonSerializer.Serialize(data))!;
-        string transactions = results.Select(r => "Loan #" + r.ID + ", Loan Amount: " + r.LoanAmount + ", Loan Type: " + r.LoanType + ", Loan Term: " + r.LoanTerm)
+        List<LoanTransactionResult> results = data.ToList();
+        string transactions = results.Select(r => 
+            $"Loan #{r.LoanTransID}, Agent: {r.AgentName}, Borrower: {r.BorrowerName}, " +
+            $"Loan Amount: {r.LoanAmount}, Loan Type: {r.LoanType}, Loan Term: {r.LoanTerm}, " +
+            $"Phone: {r.PhoneNumber}, Address: {r.Address}, City: {r.City}, " +
+            $"Subject City: {r.SubjectCity}, Subject State: {r.SubjectState}, " +
+            $"Active: {r.Active}, Date Added: {r.DateAdded}")
             .Aggregate((a, b) => a + ", " + b);
         return $"The transactions made by {agent}, during the year {year} are: {transactions}";
     }
@@ -449,16 +469,34 @@ public class LoansController : ControllerBase
             var loans = Filter(svc, null, year, from, to)
                         .Where(t => !string.IsNullOrWhiteSpace(t.LoanTransID) && t.ActualClosedDate == null)
                         .Take(top)
-                        .Select(t => new { ID = t.LoanTransID, Agent = t.AgentName, LoanAmount = t.LoanAmount, LoanType = t.LoanType })
+                        .Select(t => new LoanTransactionResult
+                        {
+                            LoanTransID = t.LoanTransID,
+                            AgentName = t.AgentName,
+                            LoanAmount = t.LoanAmount,
+                            LoanType = t.LoanType,
+                            LoanTerm = t.LoanTerm,
+                            BorrowerName = $"{t.BorrowerFirstName} {t.BorrowerLastName}".Trim(),
+                            PhoneNumber = t.AgentPhone,
+                            Address = t.SubjectAddress,
+                            City = t.SubjectCity,
+                            SubjectCity = t.SubjectCity,
+                            SubjectState = t.SubjectState,
+                            Active = t.Active,
+                            DateAdded = t.DateAdded?.ToString("yyyy-MM-dd")
+                        })
                         .ToList();
 
             if (!loans.Any())
                 result = "No open loans found";
             else
             {
-                result = loans.Take(top).Select(l =>
-                    $"Loan #{l.ID}, Agent: {l.Agent}, Loan Amount: {l.LoanAmount}, Loan Type: {l.LoanType}")
-                    .Aggregate((a, b) => a + ", " + b);
+                result = string.Join(", ", loans.Select(l =>
+                    $"Loan #{l.LoanTransID}, Agent: {l.AgentName}, Borrower: {l.BorrowerName}, " +
+                    $"Loan Amount: {l.LoanAmount}, Loan Type: {l.LoanType}, Loan Term: {l.LoanTerm}, " +
+                    $"Phone: {l.PhoneNumber}, Address: {l.Address}, City: {l.City}, " +
+                    $"Subject City: {l.SubjectCity}, Subject State: {l.SubjectState}, " +
+                    $"Active: {l.Active}, Date Added: {l.DateAdded}"));
             }
         }
 
@@ -1365,19 +1403,37 @@ public class LoansController : ControllerBase
         {
             var transactions = svc.GetByEscrowCompany(escrowCompany)
                  .Where(t => !string.IsNullOrEmpty(t.LoanTransID))
-                                  .Take(top)
-                                  .Select(t => new EscrowTransactionDto
-                                  {
-                                      LoanTransID = t.LoanTransID,
-                                      AgentName = t.AgentName,
-                                      LoanAmount = t.LoanAmount,
-                                      SubjectCity = t.SubjectCity,
-                                      SubjectState = t.SubjectState
-                                  }).ToList();
+                              .Take(top)
+                              .Select(t => new LoanTransactionResult
+                              {
+                                  LoanTransID = t.LoanTransID,
+                                  AgentName = t.AgentName,
+                                  LoanAmount = t.LoanAmount,
+                                  LoanType = t.LoanType,
+                                  LoanTerm = t.LoanTerm,
+                                  BorrowerName = $"{t.BorrowerFirstName} {t.BorrowerLastName}".Trim(),
+                                  PhoneNumber = t.AgentPhone,
+                                  Address = t.SubjectAddress,
+                                  City = t.SubjectCity,
+                                  SubjectCity = t.SubjectCity,
+                                  SubjectState = t.SubjectState,
+                                  Active = t.Active,
+                                  DateAdded = t.DateAdded?.ToString("yyyy-MM-dd")
+                              }).ToList();
 
-            result = transactions.Any()
-                ? JsonSerializer.Serialize(transactions)
-                : "no transactions found";
+            if (!transactions.Any())
+            {
+                result = "no transactions found";
+            }
+            else
+            {
+                result = string.Join(", ", transactions.Select(r =>
+                    $"Loan #{r.LoanTransID}, Agent: {r.AgentName}, Borrower: {r.BorrowerName}, " +
+                    $"Loan Amount: {r.LoanAmount}, Loan Type: {r.LoanType}, Loan Term: {r.LoanTerm}, " +
+                    $"Phone: {r.PhoneNumber}, Address: {r.Address}, City: {r.City}, " +
+                    $"Subject City: {r.SubjectCity}, Subject State: {r.SubjectState}, " +
+                    $"Active: {r.Active}, Date Added: {r.DateAdded}"));
+            }
         }
 
         // Step 6: Present data
