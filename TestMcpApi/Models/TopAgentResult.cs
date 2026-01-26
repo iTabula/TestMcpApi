@@ -27,6 +27,7 @@
     public class TopCityResult
     {
         public string City { get; set; }
+        public string State { get; set; }
         public int Transactions { get; set; }
     }
     public class TopPropertyTypeResult
