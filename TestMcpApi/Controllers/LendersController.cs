@@ -578,6 +578,67 @@ public class LendersController : ControllerBase
         return $"The most recently added lenders are: {lenders}.";
     }
 
+    [McpServerTool]
+    [Description("Get notes and processor notes for a specific lender company")]
+    [HttpGet("/lenders/notes/{companyName}")]
+    public string GetLenderNotes(
+        [Description("The lender company name to get notes for")] string company_name,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
+    {
+        if (string.IsNullOrWhiteSpace(company_name))
+            return "Company name must be provided.";
+
+        // Step 1: Get data for phonetic matching on company_name parameter
+        var allLenders = svc.GetLenders().Result.AsEnumerable();
+
+        if (!allLenders.Any())
+            return "I could not find any lenders data";
+
+        // Step 2: Match phonetics for company
+        var matchedLender = Common.MatchPhonetic(allLenders, company_name, l => l.CompanyName ?? string.Empty);
+
+        // Step 3: Get lender related to phonetic results
+        if (matchedLender != null)
+        {
+            company_name = matchedLender.CompanyName ?? company_name;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
+        var result = allLenders
+            .FirstOrDefault(x => x.CompanyName != null && 
+                               x.CompanyName.Equals(company_name, StringComparison.OrdinalIgnoreCase));
+
+        if (result == null)
+            return $"I could not find a lender with the company name '{company_name}'.";
+
+        // Step 6: Present data
+        var notes = string.IsNullOrWhiteSpace(result.Notes) ? "No notes available" : result.Notes;
+        var processorNotes = string.IsNullOrWhiteSpace(result.ProcessorNotes) ? "No processor notes available" : result.ProcessorNotes;
+
+        return $"Notes for {company_name}:\n\nNotes: {notes}\n\nProcessor Notes: {processorNotes}";
+    }
+
     //HELPERS
     private static IEnumerable<Lender> Filter(
         ILenderService svc,
