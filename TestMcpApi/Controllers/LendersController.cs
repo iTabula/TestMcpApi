@@ -586,7 +586,8 @@ public class LendersController : ControllerBase
         DateTime? from = null,
         DateTime? to = null)
     {
-        var data = svc.GetLenders().Result.AsEnumerable();
+        var data = svc.GetLenders().Result.AsEnumerable()
+        .Where(l => l.Status != null && l.Status.Equals("Active", StringComparison.OrdinalIgnoreCase));
 
         if (!string.IsNullOrWhiteSpace(lender))
         {
