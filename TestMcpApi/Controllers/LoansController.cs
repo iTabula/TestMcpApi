@@ -1392,4 +1392,79 @@ public class LoansController : ControllerBase
 
         return key;
     }
+
+    [McpServerTool]
+    [Description("Get agent earnings for KAM including number of transactions and total commission amount")]
+    [HttpGet("/loans/agent-kam-earnings/{agent}/{year}")]
+    public string GetAgentKamEarnings(
+        [Description("How much did this agent make for KAM in a specific year?")] string agent,
+        [Description("Year to get earnings")] int year,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
+    {
+        // Step 1: Get data for phonetic matching on agent parameter
+        var allAgents = svc.GetLoanTransactions().Result
+            .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+            .Select(lt => new { AgentName = lt.AgentName })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for agent
+        var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+        
+        // Step 3: Get user related to phonetic results
+        if (matchedAgent != null)
+        {
+            agent = matchedAgent.AgentName ?? agent;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
+        string resultText = "";
+
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+        {
+            resultText = "not available right now";
+        }
+        else
+        {
+            var transactions = Filter(svc, agent, year, null, null)
+                .Where(t => t.LoanAmount.HasValue)
+                .ToList();
+
+            if (!transactions.Any())
+            {
+                resultText = $"{agent} had no transactions for KAM in {year}.";
+            }
+            else
+            {
+                int numTransactions = transactions.Count;
+                decimal totalCommission = svc.GetAgent1099(agent, year);
+                
+                resultText = $"{agent} made ${totalCommission:N2} for KAM in {year} with {numTransactions} transaction{(numTransactions != 1 ? "s" : "")}.";
+            }
+        }
+
+        // Step 6: Present data
+        return resultText;
+    }
 }
