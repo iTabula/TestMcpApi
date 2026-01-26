@@ -134,6 +134,13 @@
         public string? TransactionType { get; set; }
         public decimal? RealAmount { get; set; }
         public DateTime? ActualClosedDate { get; set; }
+        public string? LenderName { get; set; }
+        public string? TitleCompanyName { get; set; }
+        public string? RealTerm { get; set; }
+        public decimal? AppraisedValue { get; set; }
+        public string? PropertyAddress { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
     }
     public class EscrowInfo
     {

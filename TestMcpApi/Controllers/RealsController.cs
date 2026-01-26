@@ -95,7 +95,14 @@ public class RealsController : ControllerBase
                         TransactionType = t.TransactionType ?? t.TransType,
                         RealAmount = t.RealAmount ?? t.PurchasePrice,
                         SubjectAddress = t.SubjectAddress,
-                        ActualClosedDate = t.ActualClosedDate
+                        ActualClosedDate = t.ActualClosedDate,
+                        LenderName = t.LenderName,
+                        TitleCompanyName = t.TitleCompany,
+                        RealTerm = t.RealTerm,
+                        AppraisedValue = t.AppraisedValue,
+                        PropertyAddress = t.SubjectAddress,
+                        City = t.SubjectCity,
+                        State = t.SubjectState
                     });
 
         if (!data.Any())
@@ -107,10 +114,16 @@ public class RealsController : ControllerBase
         string transactions = results
             .Select(r =>
                 "Transaction #" + r.RealTransID +
-                ", Amount: " + (r.RealAmount?.ToString() ?? "N/A") +
+                ", Amount: " + (r.RealAmount?.ToString("C") ?? "N/A") +
                 ", Type: " + r.TransactionType +
-                ", Address: " + r.SubjectAddress)
-            .Aggregate((a, b) => a + ", " + b);
+                ", Address: " + r.SubjectAddress +
+                ", City: " + (r.City ?? "N/A") +
+                ", State: " + (r.State ?? "N/A") +
+                ", Lender: " + (r.LenderName ?? "N/A") +
+                ", Title Company: " + (r.TitleCompanyName ?? "N/A") +
+                ", Term: " + (r.RealTerm?.ToString() ?? "N/A") +
+                ", Appraised Value: " + (r.AppraisedValue?.ToString("C") ?? "N/A"))
+            .Aggregate((a, b) => a + "; " + b);
 
         return $"The transactions made by {agent}, during the year {year} are: {transactions}";
     }
@@ -203,7 +216,14 @@ public class RealsController : ControllerBase
                         SubjectAddress = t.SubjectAddress,
                         TransactionType = t.TransactionType ?? t.TransType,
                         RealAmount = t.RealAmount ?? t.PurchasePrice,
-                        ActualClosedDate = t.ActualClosedDate
+                        ActualClosedDate = t.ActualClosedDate,
+                        LenderName = t.LenderName,
+                        TitleCompanyName = t.TitleCompany,
+                        RealTerm = t.RealTerm,
+                        AppraisedValue = t.AppraisedValue,
+                        PropertyAddress = t.SubjectAddress,
+                        City = t.SubjectCity,
+                        State = t.SubjectState
                     });
 
         if (!data.Any())
@@ -216,10 +236,15 @@ public class RealsController : ControllerBase
         string transactions = results
             .Select(r =>
                 "Transaction #" + r.RealTransID +
-                ", Amount: " + (r.RealAmount?.ToString() ?? "N/A") +
+                ", Amount: " + (r.RealAmount?.ToString("C") ?? "N/A") +
                 ", Type: " + r.TransactionType +
-                ", Address: " + r.SubjectAddress)
-            .Aggregate((a, b) => a + ", " + b);
+                ", Address: " + r.SubjectAddress +
+                ", City: " + (r.City ?? "N/A") +
+                ", State: " + (r.State ?? "N/A") +
+                ", Lender: " + (r.LenderName ?? "N/A") +
+                ", Term: " + (r.RealTerm?.ToString() ?? "N/A") +
+                ", Appraised Value: " + (r.AppraisedValue?.ToString("C") ?? "N/A"))
+            .Aggregate((a, b) => a + "; " + b);
 
         return $"The real estate transactions managed by the title company {titleCompany} are: {transactions}";
     }
@@ -254,10 +279,24 @@ public class RealsController : ControllerBase
             SubjectAddress = transaction.SubjectAddress,
             TransactionType = transaction.TransactionType ?? transaction.TransType,
             RealAmount = transaction.RealAmount ?? transaction.PurchasePrice,
-            ActualClosedDate = transaction.ActualClosedDate
+            ActualClosedDate = transaction.ActualClosedDate,
+            LenderName = transaction.LenderName,
+            TitleCompanyName = transaction.TitleCompany,
+            RealTerm = transaction.RealTerm,
+            AppraisedValue = transaction.AppraisedValue,
+            PropertyAddress = transaction.SubjectAddress,
+            City = transaction.SubjectCity,
+            State = transaction.SubjectState
         };
 
-        return $"Transaction #{result.RealTransID} for property {result.SubjectAddress}, handled by agent {result.AgentName}, client {result.ClientFullName}, type: {result.TransactionType}, amount: {(result.RealAmount?.ToString() ?? "N/A")}, closed on: {(result.ActualClosedDate?.ToShortDateString() ?? "N/A")}";
+        return $"Transaction #{result.RealTransID} for property {result.SubjectAddress}, " +
+               $"City: {result.City ?? "N/A"}, State: {result.State ?? "N/A"}, " +
+               $"handled by agent {result.AgentName}, client {result.ClientFullName}, " +
+               $"type: {result.TransactionType}, amount: {(result.RealAmount?.ToString("C") ?? "N/A")}, " +
+               $"closed on: {(result.ActualClosedDate?.ToShortDateString() ?? "N/A")}, " +
+               $"lender: {result.LenderName ?? "N/A"}, title company: {result.TitleCompanyName ?? "N/A"}, " +
+               $"term: {(result.RealTerm?.ToString() ?? "N/A")}, " +
+               $"appraised value: {(result.AppraisedValue?.ToString("C") ?? "N/A")}";
     }
 
     [McpServerTool]
@@ -332,7 +371,14 @@ public class RealsController : ControllerBase
                        SubjectAddress = t.SubjectAddress,
                        TransactionType = t.TransactionType ?? t.TransType,
                        RealAmount = t.RealAmount ?? t.PurchasePrice,
-                       ActualClosedDate = t.ActualClosedDate
+                       ActualClosedDate = t.ActualClosedDate,
+                       LenderName = t.LenderName,
+                       TitleCompanyName = t.TitleCompany,
+                       RealTerm = t.RealTerm,
+                       AppraisedValue = t.AppraisedValue,
+                       PropertyAddress = t.SubjectAddress,
+                       City = t.SubjectCity,
+                       State = t.SubjectState
                    }).ToList();
 
         if (!data.Any())
@@ -340,7 +386,14 @@ public class RealsController : ControllerBase
 
         // Step 6: Present data
         string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID} for property {r.SubjectAddress}, handled by agent {r.AgentName}, client {r.ClientFullName}, type: {r.TransactionType}, amount: {(r.RealAmount?.ToString() ?? "N/A")}, closed on: {(r.ActualClosedDate?.ToShortDateString() ?? "N/A")}"
+            $"Transaction #{r.RealTransID} for property {r.SubjectAddress}, " +
+            $"City: {r.City ?? "N/A"}, State: {r.State ?? "N/A"}, " +
+            $"handled by agent {r.AgentName}, client {r.ClientFullName}, " +
+            $"type: {r.TransactionType}, amount: {(r.RealAmount?.ToString("C") ?? "N/A")}, " +
+            $"closed on: {(r.ActualClosedDate?.ToShortDateString() ?? "N/A")}, " +
+            $"lender: {r.LenderName ?? "N/A"}, title company: {r.TitleCompanyName ?? "N/A"}, " +
+            $"term: {(r.RealTerm?.ToString() ?? "N/A")}, " +
+            $"appraised value: {(r.AppraisedValue?.ToString("C") ?? "N/A")}"
         ).Aggregate((a, b) => a + "\n" + b);
 
         return $"The top {data.Count} transactions for escrow company {escrowCompany} are:\n{transactions}";
@@ -731,7 +784,14 @@ public class RealsController : ControllerBase
                        SubjectAddress = t.SubjectAddress,
                        TransactionType = t.TransactionType,
                        RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
+                       ActualClosedDate = t.ActualClosedDate,
+                       LenderName = t.LenderName,
+                       TitleCompanyName = t.TitleCompany,
+                       RealTerm = t.RealTerm,
+                       AppraisedValue = t.AppraisedValue,
+                       PropertyAddress = t.SubjectAddress,
+                       City = t.SubjectCity,
+                       State = t.SubjectState
                    }).ToList();
 
         if (!data.Any())
@@ -818,7 +878,14 @@ public class RealsController : ControllerBase
                        SubjectAddress = t.SubjectAddress,
                        TransactionType = t.TransactionType,
                        RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
+                       ActualClosedDate = t.ActualClosedDate,
+                       LenderName = t.LenderName,
+                       TitleCompanyName = t.TitleCompany,
+                       RealTerm = t.RealTerm,
+                       AppraisedValue = t.AppraisedValue,
+                       PropertyAddress = t.SubjectAddress,
+                       City = t.SubjectCity,
+                       State = t.SubjectState
                    }).ToList();
 
         if (!data.Any())
@@ -905,7 +972,14 @@ public class RealsController : ControllerBase
                        SubjectAddress = t.SubjectAddress,
                        TransactionType = t.TransactionType,
                        RealAmount = t.RealAmount,
-                       ActualClosedDate = t.ActualClosedDate
+                       ActualClosedDate = t.ActualClosedDate,
+                       LenderName = t.LenderName,
+                       TitleCompanyName = t.TitleCompany,
+                       RealTerm = t.RealTerm,
+                       AppraisedValue = t.AppraisedValue,
+                       PropertyAddress = t.SubjectAddress,
+                       City = t.SubjectCity,
+                       State = t.SubjectState
                    }).ToList();
 
         if (!data.Any())
@@ -992,7 +1066,14 @@ public class RealsController : ControllerBase
                        SubjectAddress = t.SubjectAddress,
                        TransactionType = t.TransactionType ?? t.TransType,
                        RealAmount = t.RealAmount ?? t.PurchasePrice,
-                       ActualClosedDate = t.ActualClosedDate
+                       ActualClosedDate = t.ActualClosedDate,
+                       LenderName = t.LenderName,
+                       TitleCompanyName = t.TitleCompany,
+                       RealTerm = t.RealTerm,
+                       AppraisedValue = t.AppraisedValue,
+                       PropertyAddress = t.SubjectAddress,
+                       City = t.SubjectCity,
+                       State = t.SubjectState
                    }).ToList();
 
         if (!data.Any())
