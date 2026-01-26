@@ -31,7 +31,7 @@ public class LendersController : ControllerBase
     [McpServerTool]
     [Description("What's the phone number or details of lender with company name?")]
     [HttpGet("/lenders/details/{company}")]
-    public string GetLendersByCompany(
+    public string GetLenderContactInfo(
         [Description("the lender or company name")] string company_name,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
