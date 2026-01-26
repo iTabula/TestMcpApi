@@ -157,7 +157,12 @@ public class LendersController : ControllerBase
             .GroupBy(l => l.CompanyName, StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(g => g.Count())
             .Take(top)
-            .Select(g => new { Lender = g.Key, Transactions = g.Count() });
+            .Select(g => new { 
+                Lender = g.Key, 
+                Transactions = g.Count(),
+                City = g.FirstOrDefault()?.City,
+                State = g.FirstOrDefault()?.State
+            });
 
         if (!grouped.Any())
             return "There are no lender transactions available for the selected filters.";
@@ -167,7 +172,14 @@ public class LendersController : ControllerBase
             JsonSerializer.Serialize(grouped))!;
 
         var summary = results
-            .Select(r => $"{r.Lender} with {r.Transactions} transactions")
+            .Select(r => {
+                var location = !string.IsNullOrWhiteSpace(r.City) && !string.IsNullOrWhiteSpace(r.State)
+                    ? $" ({r.City}, {r.State})"
+                    : !string.IsNullOrWhiteSpace(r.City)
+                        ? $" ({r.City})"
+                        : "";
+                return $"{r.Lender}{location} with {r.Transactions} transactions";
+            })
             .Aggregate((a, b) => a + ", " + b);
 
         return $"The top {top} lenders for KAM are: {summary}";

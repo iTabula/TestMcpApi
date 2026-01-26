@@ -168,6 +168,8 @@
     {
         public string? Lender { get; set; }
         public int Transactions { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
     }
     public class LenderStateResult
     {
