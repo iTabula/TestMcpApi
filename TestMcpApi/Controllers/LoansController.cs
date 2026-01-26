@@ -800,435 +800,6 @@ public class LoansController : ControllerBase
     }
 
 
-    // replace all of them with Give me the statiscs of my loans
-
-    [McpServerTool]
-    [Description("Average loan amount (overall, by agent or by year)")]
-    [HttpGet("/loans/average")]
-    public string GetAverageLoanAmount(
-        [Description("What is the average loan amount?")]
-        string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on agent parameter
-        if (!string.IsNullOrEmpty(agent))
-        {
-            var allAgents = svc.GetLoanTransactions().Result
-                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
-                .Select(lt => new { AgentName = lt.AgentName })
-                .Distinct()
-                .ToList();
-
-            // Step 2: Match phonetics for agent
-            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-            
-            // Step 3: Get user related to phonetic results
-            if (matchedAgent != null)
-            {
-                agent = matchedAgent.AgentName;
-            }
-        }
-
-        // Step 1-3 for name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        // Step 5: Get data if authorized
-        string result;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var loans = FilterByAgentAndYear(svc, agent, year)
-                        .Where(t => t.LoanAmount.HasValue)
-                        .Select(t => t.LoanAmount!.Value);
-
-            result = loans.Any() ? loans.Average().ToString("F2") : "N/A";
-        }
-
-        // Step 6: Present data
-        return $"The average loan amount is: {result}";
-    }
-
-    [McpServerTool]
-    [Description("Highest loan amount (overall, by agent or by year)")]
-    [HttpGet("/loans/max")]
-    public string GetHighestLoanAmount(
-        [Description("What is the highest loan amount?")]
-        string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on agent parameter
-        if (!string.IsNullOrEmpty(agent))
-        {
-            var allAgents = svc.GetLoanTransactions().Result
-                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
-                .Select(lt => new { AgentName = lt.AgentName })
-                .Distinct()
-                .ToList();
-
-            // Step 2: Match phonetics for agent
-            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-            
-            // Step 3: Get user related to phonetic results
-            if (matchedAgent != null)
-            {
-                agent = matchedAgent.AgentName;
-            }
-        }
-
-        // Step 1-3 for name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        // Step 5: Get data if authorized
-        string result;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var loans = FilterByAgentAndYear(svc, agent, year)
-                        .Where(t => t.LoanAmount.HasValue)
-                        .Select(t => t.LoanAmount!.Value);
-
-            result = loans.Any() ? loans.Max().ToString("F2") : "N/A";
-        }
-
-        // Step 6: Present data
-        return $"The highest loan amount is: {result}";
-    }
-
-    [McpServerTool]
-    [Description("Lowest loan amount (overall, by agent or by year)")]
-    [HttpGet("/loans/min")]
-    public string GetLowestLoanAmount(
-        [Description("What is the lowest loan amount?")]
-        string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on agent parameter
-        if (!string.IsNullOrEmpty(agent))
-        {
-            var allAgents = svc.GetLoanTransactions().Result
-                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
-                .Select(lt => new { AgentName = lt.AgentName })
-                .Distinct()
-                .ToList();
-
-            // Step 2: Match phonetics for agent
-            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-            
-            // Step 3: Get user related to phonetic results
-            if (matchedAgent != null)
-            {
-                agent = matchedAgent.AgentName;
-            }
-        }
-
-        // Step 1-3 for name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        // Step 5: Get data if authorized
-        string result;
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var loans = FilterByAgentAndYear(svc, agent, year)
-                        .Where(t => t.LoanAmount.HasValue)
-                        .Select(t => t.LoanAmount!.Value);
-
-            result = loans.Any() ? loans.Min().ToString("F2") : "N/A";
-        }
-
-        // Step 6: Present data
-        return $"The lowest loan amount is: {result}";
-    }
-
-
-    // CREDIT SCORE STATISTICS
-
-    [McpServerTool]
-    [Description("Get average credit score (overall, by agent or by year)")]
-    [HttpGet("/loans/credit-score/average")]
-    public string GetAverageCreditScore(
-        [Description("What is the average credit score for the agent?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on agent parameter
-        if (!string.IsNullOrEmpty(agent))
-        {
-            var allAgents = svc.GetLoanTransactions().Result
-                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
-                .Select(lt => new { AgentName = lt.AgentName })
-                .Distinct()
-                .ToList();
-
-            // Step 2: Match phonetics for agent
-            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-            
-            // Step 3: Get user related to phonetic results
-            if (matchedAgent != null)
-            {
-                agent = matchedAgent.AgentName;
-            }
-        }
-
-        // Step 1-3 for name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        // Step 5: Get data if authorized
-        string result = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var data = FilterByAgentAndYear(svc, agent, year)
-                       .Where(t => t.CreditScore.HasValue)
-                       .Select(t => t.CreditScore!.Value);
-
-            result = data.Any() ? data.Average().ToString("F2") : "N/A";
-        }
-
-        // Step 6: Present data
-        return $"The average credit score is: {result}";
-    }
-
-    [McpServerTool]
-    [Description("Get highest credit score (overall, by agent or by year)")]
-    [HttpGet("/loans/credit-score/max")]
-    public string GetHighestCreditScore(
-        [Description("What is the highest credit score for the agent?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on agent parameter
-        if (!string.IsNullOrEmpty(agent))
-        {
-            var allAgents = svc.GetLoanTransactions().Result
-                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
-                .Select(lt => new { AgentName = lt.AgentName })
-                .Distinct()
-                .ToList();
-
-            // Step 2: Match phonetics for agent
-            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-            
-            // Step 3: Get user related to phonetic results
-            if (matchedAgent != null)
-            {
-                agent = matchedAgent.AgentName;
-            }
-        }
-
-        // Step 1-3 for name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        // Step 5: Get data if authorized
-        string result = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var data = FilterByAgentAndYear(svc, agent, year)
-                       .Where(t => t.CreditScore.HasValue)
-                       .Select(t => t.CreditScore!.Value);
-
-            result = data.Any() ? data.Max().ToString("F2") : "N/A";
-        }
-
-        // Step 6: Present data
-        return $"The highest credit score is: {result}";
-    }
-
-    [McpServerTool]
-    [Description("Get lowest credit score (overall, by agent or by year)")]
-    [HttpGet("/loans/credit-score/min")]
-    public string GetLowestCreditScore(
-        [Description("What is the lowest credit score for the agent?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on agent parameter
-        if (!string.IsNullOrEmpty(agent))
-        {
-            var allAgents = svc.GetLoanTransactions().Result
-                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
-                .Select(lt => new { AgentName = lt.AgentName })
-                .Distinct()
-                .ToList();
-
-            // Step 2: Match phonetics for agent
-            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-            
-            // Step 3: Get user related to phonetic results
-            if (matchedAgent != null)
-            {
-                agent = matchedAgent.AgentName;
-            }
-        }
-
-        // Step 1-3 for name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        // Step 5: Get data if authorized
-        string result = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            result = "not available right now";
-        }
-        else
-        {
-            var data = FilterByAgentAndYear(svc, agent, year)
-                       .Where(t => t.CreditScore.HasValue)
-                       .Select(t => t.CreditScore!.Value);
-
-            result = data.Any() ? data.Min().ToString("F2") : "N/A";
-        }
-
-        // Step 6: Present data
-        return $"The lowest credit score is: {result}";
-    }
-
-
     //Similar to get last transactions for agent
     [McpServerTool]
     [Description("Get transactions for a specific escrow company")]
@@ -1647,6 +1218,99 @@ public class LoansController : ControllerBase
                $"City: {city}, " +
                $"State: {state}";
     }
+
+    [McpServerTool]
+    [Description("Get comprehensive loan statistics including loan amounts and credit scores")]
+    [HttpGet("/loans/statistics")]
+    public string GetLoansStatistics(
+        [Description("Get statistics for all loans or filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
+    {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+        {
+            return "Loan statistics are not available right now";
+        }
+
+        var filteredData = FilterByAgentAndYear(svc, agent, year);
+        
+        // Calculate loan amount statistics
+        var loanAmounts = filteredData
+            .Where(t => t.LoanAmount.HasValue)
+            .Select(t => t.LoanAmount!.Value)
+            .ToList();
+
+        string avgLoan = loanAmounts.Any() ? loanAmounts.Average().ToString("F2") : "N/A";
+        string maxLoan = loanAmounts.Any() ? loanAmounts.Max().ToString("F2") : "N/A";
+        string minLoan = loanAmounts.Any() ? loanAmounts.Min().ToString("F2") : "N/A";
+
+        // Calculate credit score statistics
+        var creditScores = filteredData
+            .Where(t => t.CreditScore.HasValue)
+            .Select(t => t.CreditScore!.Value)
+            .ToList();
+
+        string avgCredit = creditScores.Any() ? creditScores.Average().ToString("F2") : "N/A";
+        string maxCredit = creditScores.Any() ? creditScores.Max().ToString("F2") : "N/A";
+        string minCredit = creditScores.Any() ? creditScores.Min().ToString("F2") : "N/A";
+
+        // Step 6: Present data
+        string filterInfo = !string.IsNullOrEmpty(agent) ? $" for {agent}" : "";
+        filterInfo += year.HasValue ? $" in {year}" : "";
+
+        return $"Loan statistics{filterInfo}: " +
+               $"Average loan amount: {avgLoan}, " +
+               $"Highest loan amount: {maxLoan}, " +
+               $"Lowest loan amount: {minLoan}, " +
+               $"Average credit score: {avgCredit}, " +
+               $"Highest credit score: {maxCredit}, " +
+               $"Lowest credit score: {minCredit}";
+    }
+
+
 
     //HELPERS
     private static IEnumerable<LoanTransaction> Filter(
