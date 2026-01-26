@@ -639,6 +639,75 @@ public class LendersController : ControllerBase
         return $"Notes for {company_name}:\n\nNotes: {notes}\n\nProcessor Notes: {processorNotes}";
     }
 
+    [McpServerTool]
+    [Description("Get the website URL for a specific lender company")]
+    [HttpGet("/lenders/website/{companyName}")]
+    public string GetLenderWebsite(
+        [Description("The lender company name to get the website for")] string company_name,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
+    {
+        if (string.IsNullOrWhiteSpace(company_name))
+            return "Company name must be provided.";
+
+        // Step 1: Get data for phonetic matching on company_name parameter
+        var allLenders = svc.GetLenders().Result.AsEnumerable();
+
+        if (!allLenders.Any())
+            return "I could not find any lenders data";
+
+        // Step 2: Match phonetics for company
+        var matchedLender = Common.MatchPhonetic(allLenders, company_name, l => l.CompanyName ?? string.Empty);
+
+        // Step 3: Get lender related to phonetic results
+        if (matchedLender != null)
+        {
+            company_name = matchedLender.CompanyName ?? company_name;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
+        var result = allLenders
+            .FirstOrDefault(x => x.CompanyName != null && 
+                               x.CompanyName.Equals(company_name, StringComparison.OrdinalIgnoreCase));
+
+        if (result == null)
+            return $"I could not find a lender with the company name '{company_name}'.";
+
+        // Step 6: Present data
+        if (string.IsNullOrWhiteSpace(result.Website))
+            return $"{company_name} does not have a website on record.";
+
+        // Ensure the URL has a protocol
+        string website = result.Website.Trim();
+        if (!website.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+            !website.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            website = "https://" + website;
+        }
+
+        return $"The website for {company_name} is: {website}";
+    }
+
     //HELPERS
     private static IEnumerable<Lender> Filter(
         ILenderService svc,
