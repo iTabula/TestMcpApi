@@ -646,7 +646,7 @@ public class LoansController : ControllerBase
             var result = data.GroupBy(t => t.SubjectCity, StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(top)
-                             .Select(g => new { City = g.Key, Transactions = g.Count() });
+                             .Select(g => new { City = g.Key, State = g.First().SubjectState, Transactions = g.Count() });
 
             if (!result.Any() || result.Count() == 0)
             {
@@ -655,7 +655,7 @@ public class LoansController : ControllerBase
 
             List<TopCityResult> results = JsonSerializer.Deserialize<List<TopCityResult>>(JsonSerializer.Serialize(result))!;
 
-            names = results.Select(r => r.City + " with " + r.Transactions + " transactions")
+            names = results.Select(r => $"{r.City}, {r.State} with {r.Transactions} transactions")
                            .Aggregate((a, b) => a + ", " + b);
         }
 
