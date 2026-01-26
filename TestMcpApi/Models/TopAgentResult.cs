@@ -14,6 +14,8 @@
         public string? LoanType { get; set; }
         public decimal? LoanTerm { get; set; }
         public string? BorrowerName { get; set; }
+        public string? LenderName { get; set; }  // ADDED
+        public string? TitleCompany { get; set; }  // ADDED
         public string? PhoneNumber { get; set; }
         public string? Address { get; set; }
         public string? City { get; set; }

@@ -352,6 +352,8 @@ public class LoansController : ControllerBase
                 LoanType = g.LoanType,
                 LoanTerm = g.LoanTerm,
                 BorrowerName = $"{g.BorrowerFirstName} {g.BorrowerLastName}".Trim(),
+                LenderName = g.LenderName,  
+                TitleCompany = g.TitleCompany,  
                 PhoneNumber = g.AgentPhone,
                 Address = g.SubjectAddress,
                 City = g.SubjectCity,
@@ -368,6 +370,7 @@ public class LoansController : ControllerBase
         List<LoanTransactionResult> results = data.ToList();
         string transactions = results.Select(r => 
             $"Loan #{r.LoanTransID}, Agent: {r.AgentName}, Borrower: {r.BorrowerName}, " +
+            $"Lender: {r.LenderName}, Title Company: {r.TitleCompany}, " +
             $"Loan Amount: {r.LoanAmount}, Loan Type: {r.LoanType}, Loan Term: {r.LoanTerm}, " +
             $"Phone: {r.PhoneNumber}, Address: {r.Address}, City: {r.City}, " +
             $"Subject City: {r.SubjectCity}, Subject State: {r.SubjectState}, " +
@@ -477,6 +480,8 @@ public class LoansController : ControllerBase
                             LoanType = t.LoanType,
                             LoanTerm = t.LoanTerm,
                             BorrowerName = $"{t.BorrowerFirstName} {t.BorrowerLastName}".Trim(),
+                            LenderName = t.LenderName,  // ADDED
+                            TitleCompany = t.TitleCompany,  // ADDED
                             PhoneNumber = t.AgentPhone,
                             Address = t.SubjectAddress,
                             City = t.SubjectCity,
@@ -493,9 +498,9 @@ public class LoansController : ControllerBase
             {
                 result = string.Join(", ", loans.Select(l =>
                     $"Loan #{l.LoanTransID}, Agent: {l.AgentName}, Borrower: {l.BorrowerName}, " +
-                    $"Loan Amount: {l.LoanAmount}, Loan Type: {l.LoanType}, Loan Term: {l.LoanTerm}, " +
-                    $"Phone: {l.PhoneNumber}, Address: {l.Address}, City: {l.City}, " +
-                    $"Subject City: {l.SubjectCity}, Subject State: {l.SubjectState}, " +
+                    $"Lender: {l.LenderName}, Title Company: {l.TitleCompany}, " +
+                    $"Loan Term: {l.LoanTerm}, Loan Amount: {l.LoanAmount}, Loan Type: {l.LoanType}, " +
+                    $"Address: {l.Address}, City: {l.City}, State: {l.SubjectState}, " +
                     $"Active: {l.Active}, Date Added: {l.DateAdded}"));
             }
         }
@@ -1402,24 +1407,26 @@ public class LoansController : ControllerBase
         else
         {
             var transactions = svc.GetByEscrowCompany(escrowCompany)
-                 .Where(t => !string.IsNullOrEmpty(t.LoanTransID))
-                              .Take(top)
-                              .Select(t => new LoanTransactionResult
-                              {
-                                  LoanTransID = t.LoanTransID,
-                                  AgentName = t.AgentName,
-                                  LoanAmount = t.LoanAmount,
-                                  LoanType = t.LoanType,
-                                  LoanTerm = t.LoanTerm,
-                                  BorrowerName = $"{t.BorrowerFirstName} {t.BorrowerLastName}".Trim(),
-                                  PhoneNumber = t.AgentPhone,
-                                  Address = t.SubjectAddress,
-                                  City = t.SubjectCity,
-                                  SubjectCity = t.SubjectCity,
-                                  SubjectState = t.SubjectState,
-                                  Active = t.Active,
-                                  DateAdded = t.DateAdded?.ToString("yyyy-MM-dd")
-                              }).ToList();
+     .Where(t => !string.IsNullOrEmpty(t.LoanTransID))
+                  .Take(top)
+                  .Select(t => new LoanTransactionResult
+                  {
+                      LoanTransID = t.LoanTransID,
+                      AgentName = t.AgentName,
+                      LoanAmount = t.LoanAmount,
+                      LoanType = t.LoanType,
+                      LoanTerm = t.LoanTerm,
+                      BorrowerName = $"{t.BorrowerFirstName} {t.BorrowerLastName}".Trim(),
+                      LenderName = t.LenderName,  // ADDED
+                      TitleCompany = t.TitleCompany,  // ADDED
+                      PhoneNumber = t.AgentPhone,
+                      Address = t.SubjectAddress,
+                      City = t.SubjectCity,
+                      SubjectCity = t.SubjectCity,
+                      SubjectState = t.SubjectState,
+                      Active = t.Active,
+                      DateAdded = t.DateAdded?.ToString("yyyy-MM-dd")
+                  }).ToList();
 
             if (!transactions.Any())
             {
@@ -1429,9 +1436,9 @@ public class LoansController : ControllerBase
             {
                 result = string.Join(", ", transactions.Select(r =>
                     $"Loan #{r.LoanTransID}, Agent: {r.AgentName}, Borrower: {r.BorrowerName}, " +
-                    $"Loan Amount: {r.LoanAmount}, Loan Type: {r.LoanType}, Loan Term: {r.LoanTerm}, " +
-                    $"Phone: {r.PhoneNumber}, Address: {r.Address}, City: {r.City}, " +
-                    $"Subject City: {r.SubjectCity}, Subject State: {r.SubjectState}, " +
+                    $"Lender: {r.LenderName}, Title Company: {r.TitleCompany}, " +  // ADDED
+                    $"Loan Term: {r.LoanTerm}, Loan Amount: {r.LoanAmount}, Loan Type: {r.LoanType}, " +
+                    $"Address: {r.Address}, City: {r.City}, State: {r.SubjectState}, " +
                     $"Active: {r.Active}, Date Added: {r.DateAdded}"));
             }
         }
