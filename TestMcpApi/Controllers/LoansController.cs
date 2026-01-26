@@ -526,8 +526,22 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var zip = GetMostPopularValueFiltered(svc, t => t.SubjectPostalCode, agent, year, from, to);
-            result = string.IsNullOrEmpty(zip) ? "N/A" : zip;
+            var data = Filter(svc, agent, year, from, to)
+                   .Where(t => !string.IsNullOrEmpty(t.SubjectPostalCode))
+                   .Where(t => t.SubjectPostalCode != "NULL");
+
+            var zipResult = data.GroupBy(t => t.SubjectPostalCode, StringComparer.OrdinalIgnoreCase)
+                      .OrderByDescending(g => g.Count())
+                      .FirstOrDefault();
+        
+            if (zipResult == null)
+            {
+                result = "N/A";
+            }
+            else
+            {
+                result = $"{zipResult.Key} with {zipResult.Count()} transactions";
+            }
         }
 
         // Step 6: Present data
