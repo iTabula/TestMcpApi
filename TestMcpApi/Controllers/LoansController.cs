@@ -379,7 +379,6 @@ public class LoansController : ControllerBase
         return $"The transactions made by {agent}, during the year {year} are: {transactions}";
     }
 
-    //Return open loans not submitted yet: Agent Name, Loan number, loan term, borrower name, property address, city, state, 
     [McpServerTool]
     [Description("Get loans that haven't been closed yet")]
     [HttpGet("/loans/open")]
@@ -536,7 +535,6 @@ public class LoansController : ControllerBase
     }
 
 
-    //Return city, state
     [McpServerTool]
     [Description("Get top cities ranked by number of transactions")]
     [HttpGet("/loans/top-cities")]
@@ -623,12 +621,12 @@ public class LoansController : ControllerBase
 
 
 
-    //Get the most popular loans: property type, transaction type, mortgage type, loan type
     [McpServerTool]
-    [Description("Get most popular property type")]
-    [HttpGet("/loans/top-property-type")]
-    public string GetMostPopularPropType(
-        [Description("What is the most popular property type?")] string? agent = null,
+    [Description("Get the most popular type for a given category (Property, Transaction, Mortgage, or Loan)")]
+    [HttpGet("/loans/most-popular-type/{category}")]
+    public string GetMostPopularType(
+        [Description("What is the most popular (Property, Transaction, Mortgage, or Loan) type?")] string category,
+        [Description("Filter by agent name")] string? agent = null,
         [Description("Filter by specific year")] int? year = null,
         [Description("Filter transactions from this date")] DateTime? from = null,
         [Description("Filter transactions to this date")] DateTime? to = null,
@@ -648,7 +646,7 @@ public class LoansController : ControllerBase
 
             // Step 2: Match phonetics for agent
             var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-            
+
             // Step 3: Get user related to phonetic results
             if (matchedAgent != null)
             {
@@ -661,7 +659,7 @@ public class LoansController : ControllerBase
         {
             var allUsers = new UserService().GetUsers().Result;
             var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
+
             if (matchedUser != null)
             {
                 name = matchedUser.Name ?? name;
@@ -684,110 +682,38 @@ public class LoansController : ControllerBase
         }
         else
         {
-            var data = Filter(svc, agent, year, from, to)
-                .Where(t => !string.IsNullOrWhiteSpace(t.PropType));
+            // Normalize the category parameter
+            string normalizedCategory = category.Trim().ToLower();
 
-            var result = data.GroupBy(t => t.PropType, StringComparer.OrdinalIgnoreCase)
+            // Determine which field to query based on category
+            Func<LoanTransaction, string?> selector = normalizedCategory switch
+            {
+                "property" => t => t.PropType,
+                "transaction" => t => t.TransactionType,
+                "mortgage" => t => t.MortgageType,
+                "loan" => t => t.LoanType,
+                _ => throw new ArgumentException($"Invalid category '{category}'. Valid options are: Property, Transaction, Mortgage, or Loan.")
+            };
+
+            var data = Filter(svc, agent, year, from, to)
+                .Where(t => !string.IsNullOrWhiteSpace(selector(t)));
+
+            var result = data.GroupBy(t => selector(t), StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
                              .Take(1)
-                             .Select(g => new { PropType = g.Key, Transactions = g.Count() });
+                             .Select(g => new { Type = g.Key, Transactions = g.Count() })
+                             .FirstOrDefault();
 
-            if (!result.Any() || result.Count() == 0)
+            if (result == null)
             {
-                return "Result Not Available";
+                return $"No {normalizedCategory} type data available for the selected filters.";
             }
 
-            List<TopPropertyTypeResult> results = JsonSerializer.Deserialize<List<TopPropertyTypeResult>>(JsonSerializer.Serialize(result))!;
-
-            type = results.Select(r => r.PropType + " with " + r.Transactions + " transactions")
-                          .Aggregate((a, b) => a + ", " + b);
+            type = $"{result.Type} with {result.Transactions} transactions";
         }
 
         // Step 6: Present data
-        return $"The most popular property type is: {type}";
-    }
-
-
-    [McpServerTool]
-    [Description("Get most popular title company")]
-    [HttpGet("/loans/top-title-company")]
-    public string GetMostPopularTitleCompany(
-        [Description("What is the most popular title company?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on agent parameter
-        if (!string.IsNullOrEmpty(agent))
-        {
-            var allAgents = svc.GetLoanTransactions().Result
-                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
-                .Select(lt => new { AgentName = lt.AgentName })
-                .Distinct()
-                .ToList();
-
-            // Step 2: Match phonetics for agent
-            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-            
-            // Step 3: Get user related to phonetic results
-            if (matchedAgent != null)
-            {
-                agent = matchedAgent.AgentName;
-            }
-        }
-
-        // Step 1-3 for name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
-        if (authError != null)
-            return authError;
-
-        agent = effectiveAgent;
-
-        // Step 5: Get data if authorized
-        string company = "";
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            company = "not available right now";
-        }
-        else
-        {
-            var data = Filter(svc, agent, year, from, to)
-                .Where(t => !string.IsNullOrWhiteSpace(t.TitleCompany));
-
-            var result = data.GroupBy(t => t.TitleCompany, StringComparer.OrdinalIgnoreCase)
-                             .OrderByDescending(g => g.Count())
-                             .Take(1)
-                             .Select(g => new { TitleCompany = g.Key, Transactions = g.Count() });
-
-            if (!result.Any() || result.Count() == 0)
-            {
-                return "Result Not Available";
-            }
-
-            List<TopTitleCompanyResult> results = JsonSerializer.Deserialize<List<TopTitleCompanyResult>>(JsonSerializer.Serialize(result))!;
-            company = results.Select(r => r.TitleCompany + " with " + r.Transactions + " transactions")
-                             .Aggregate((a, b) => a + ", " + b);
-        }
-
-        // Step 6: Present data
-        return $"The most popular title company is: {company}";
+        return $"The most popular {category.ToLower()} type is: {type}";
     }
 
 
