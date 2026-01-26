@@ -1707,7 +1707,8 @@ public class LoansController : ControllerBase
         DateTime? from = null,
         DateTime? to = null)
     {
-        var data = svc.GetLoanTransactions().Result.AsEnumerable();
+        var data = svc.GetLoanTransactions().Result
+            .OrderByDescending(t => t.DateAdded).AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(agent))
         {
@@ -1717,7 +1718,6 @@ public class LoansController : ControllerBase
                 t.AgentName != null &&
                 TestMcpApi.Helpers.Common.Normalize(t.AgentName).Contains(normAgent, StringComparison.OrdinalIgnoreCase));
         }
-
 
         if (year.HasValue)
             data = data.Where(t => t.DateAdded.HasValue && t.DateAdded.Value.Year == year.Value);
