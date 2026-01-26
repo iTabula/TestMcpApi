@@ -251,9 +251,9 @@ public class RealsController : ControllerBase
 
     // property info - LTV, lender, 
     [McpServerTool]
-    [Description("Get a real estate transaction by property address")]
+    [Description("Get real estate transaction info for a specific property address")]
     [HttpGet("/reals/property/{subjectAddress}")]
-    public string GetRealTransactionByPropertyAddress(
+    public string GetRealPropertyAddressInfo(
         [Description("Get the real estate transaction information for the property at this address")] string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
