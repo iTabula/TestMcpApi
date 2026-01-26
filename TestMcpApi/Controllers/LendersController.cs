@@ -111,18 +111,18 @@ public class LendersController : ControllerBase
         if (!string.IsNullOrEmpty(lender))
         {
             var allLenders = svc.GetLenders().Result
-                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
-                .Select(l => new { LenderContact = l.LenderContact })
+                .Where(l => !string.IsNullOrWhiteSpace(l.CompanyName))
+                .Select(l => new { CompanyName = l.CompanyName })
                 .Distinct()
                 .ToList();
 
             // Step 2: Match phonetics for lender
-            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.CompanyName ?? string.Empty);
 
             // Step 3: Get lender related to phonetic results
             if (matchedLender != null)
             {
-                lender = matchedLender.LenderContact;
+                lender = matchedLender.CompanyName;
             }
         }
 
@@ -151,10 +151,10 @@ public class LendersController : ControllerBase
             return "Lender data is not available right now.";
 
         var data = Filter(svc, lender, year, from, to)
-            .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact));
+            .Where(l => !string.IsNullOrWhiteSpace(l.CompanyName));
 
         var grouped = data
-            .GroupBy(l => l.LenderContact, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(l => l.CompanyName, StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(g => g.Count())
             .Take(top)
             .Select(g => new { Lender = g.Key, Transactions = g.Count() });
@@ -195,18 +195,18 @@ public class LendersController : ControllerBase
         if (!string.IsNullOrEmpty(lender))
         {
             var allLenders = svc.GetLenders().Result
-                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
-                .Select(l => new { LenderContact = l.LenderContact })
+                .Where(l => !string.IsNullOrWhiteSpace(l.CompanyName))
+                .Select(l => new { CompanyName = l.CompanyName })
                 .Distinct()
                 .ToList();
 
             // Step 2: Match phonetics for lender
-            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.CompanyName ?? string.Empty);
 
             // Step 3: Get lender related to phonetic results
             if (matchedLender != null)
             {
-                lender = matchedLender.LenderContact;
+                lender = matchedLender.CompanyName;
             }
         }
 
@@ -277,18 +277,18 @@ public class LendersController : ControllerBase
         if (!string.IsNullOrEmpty(lender))
         {
             var allLenders = svc.GetLenders().Result
-                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
-                .Select(l => new { LenderContact = l.LenderContact })
+                .Where(l => !string.IsNullOrWhiteSpace(l.CompanyName))
+                .Select(l => new { CompanyName = l.CompanyName })
                 .Distinct()
                 .ToList();
 
             // Step 2: Match phonetics for lender
-            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.CompanyName ?? string.Empty);
 
             // Step 3: Get lender related to phonetic results
             if (matchedLender != null)
             {
-                lender = matchedLender.LenderContact;
+                lender = matchedLender.CompanyName;
             }
         }
 
@@ -356,18 +356,18 @@ public class LendersController : ControllerBase
         if (!string.IsNullOrEmpty(lender))
         {
             var allLenders = svc.GetLenders().Result
-                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
-                .Select(l => new { LenderContact = l.LenderContact })
+                .Where(l => !string.IsNullOrWhiteSpace(l.CompanyName))
+                .Select(l => new { CompanyName = l.CompanyName })
                 .Distinct()
                 .ToList();
 
             // Step 2: Match phonetics for lender
-            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.CompanyName ?? string.Empty);
 
             // Step 3: Get lender related to phonetic results
             if (matchedLender != null)
             {
-                lender = matchedLender.LenderContact;
+                lender = matchedLender.CompanyName;
             }
         }
 
@@ -440,18 +440,18 @@ public class LendersController : ControllerBase
         if (!string.IsNullOrEmpty(lender))
         {
             var allLenders = svc.GetLenders().Result
-                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
-                .Select(l => new { LenderContact = l.LenderContact })
+                .Where(l => !string.IsNullOrWhiteSpace(l.CompanyName))
+                .Select(l => new { CompanyName = l.CompanyName })
                 .Distinct()
                 .ToList();
 
             // Step 2: Match phonetics for lender
-            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.CompanyName ?? string.Empty);
 
             // Step 3: Get lender related to phonetic results
             if (matchedLender != null)
             {
-                lender = matchedLender.LenderContact;
+                lender = matchedLender.CompanyName;
             }
         }
 
@@ -522,18 +522,18 @@ public class LendersController : ControllerBase
         if (!string.IsNullOrEmpty(lender))
         {
             var allLenders = svc.GetLenders().Result
-                .Where(l => !string.IsNullOrWhiteSpace(l.LenderContact))
-                .Select(l => new { LenderContact = l.LenderContact })
+                .Where(l => !string.IsNullOrWhiteSpace(l.CompanyName))
+                .Select(l => new { CompanyName = l.CompanyName })
                 .Distinct()
                 .ToList();
 
             // Step 2: Match phonetics for lender
-            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.LenderContact ?? string.Empty);
+            var matchedLender = Common.MatchPhonetic(allLenders, lender, l => l.CompanyName ?? string.Empty);
 
             // Step 3: Get lender related to phonetic results
             if (matchedLender != null)
             {
-                lender = matchedLender.LenderContact;
+                lender = matchedLender.CompanyName;
             }
         }
 
@@ -593,8 +593,8 @@ public class LendersController : ControllerBase
             string normLender = TestMcpApi.Helpers.Common.Normalize(lender);
 
             data = data.Where(t =>
-                t.LenderContact != null &&
-                TestMcpApi.Helpers.Common.Normalize(t.LenderContact).Contains(normLender, StringComparison.OrdinalIgnoreCase));
+                t.CompanyName != null &&
+                TestMcpApi.Helpers.Common.Normalize(t.CompanyName).Contains(normLender, StringComparison.OrdinalIgnoreCase));
         }
 
         if (year.HasValue)
@@ -616,7 +616,7 @@ public class LendersController : ControllerBase
     {
         var data = svc.GetLenders().Result.AsEnumerable();
         if (!string.IsNullOrEmpty(lender))
-            data = data.Where(t => t.LenderContact != null && t.LenderContact.Equals(lender, StringComparison.OrdinalIgnoreCase));
+            data = data.Where(t => t.CompanyName != null && t.CompanyName.Equals(lender, StringComparison.OrdinalIgnoreCase));
 
         if (year.HasValue)
             data = data.Where(t => t.DateAdded.HasValue && t.DateAdded.Value.Year == year.Value);
