@@ -379,53 +379,6 @@ public class LoansController : ControllerBase
         return $"The transactions made by {agent}, during the year {year} are: {transactions}";
     }
 
-    [McpServerTool]
-    [Description("Get Agent responsible for a specific property address")]
-    [HttpGet("/loans/agent-by-address/{address}")]
-    public string GetAgentByAddress(
-        [Description("Who is the agent responsible for this property address?")]
-        string address,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            
-            // Step 2: Match phonetics
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            // Step 3: Get user related to phonetic results
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        // Step 5: Get data if authorized
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-            return "The data is not available right now.";
-
-        var loan = svc.GetLoanTransactions().Result
-                      .FirstOrDefault(t =>
-                          !string.IsNullOrEmpty(t.SubjectAddress) &&
-                          t.SubjectAddress.Equals(address, StringComparison.OrdinalIgnoreCase));
-
-        var agent = loan?.AgentName ?? "Not found";
-
-        // Step 6: Present data
-        return $"The agent responsible for the property at '{address}' is: {agent}";
-    }
-
     //Return open loans not submitted yet: Agent Name, Loan number, loan term, borrower name, property address, city, state, 
     [McpServerTool]
     [Description("Get loans that haven't been closed yet")]
@@ -1702,9 +1655,72 @@ public class LoansController : ControllerBase
         return resultText;
     }
 
+    [McpServerTool]
+    [Description("Get all information for a specific property address")]
+    [HttpGet("/loans/property-info/{address}")]
+    public string GetPropertyAddressInfo(
+        [Description("Get complete information about this property address")]
+        string address,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
+    {
+        // Step 1: Get data for phonetic matching on name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            
+            // Step 2: Match phonetics
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
 
+        // Step 4: Authorization
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        if (authError != null)
+            return authError;
 
+        // Step 5: Get data if authorized
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+            return "The data is not available right now.";
 
+        var loan = svc.GetLoanTransactions().Result
+                      .FirstOrDefault(t =>
+                          !string.IsNullOrEmpty(t.SubjectAddress) &&
+                          t.SubjectAddress.Equals(address, StringComparison.OrdinalIgnoreCase));
+
+        if (loan == null)
+        {
+            return $"No property information found for address '{address}'.";
+        }
+
+        // Step 6: Present data with all required fields
+        var borrowerName = $"{loan.BorrowerFirstName} {loan.BorrowerLastName}".Trim();
+        var agentName = loan.AgentName ?? "Not available";
+        var lenderName = loan.LenderName ?? "Not available";
+        var titleCompany = loan.TitleCompany ?? "Not available";
+        var loanId = loan.LoanTransID ?? "Not available";
+        var loanTerm = loan.LoanTerm?.ToString() ?? "Not available";
+        var city = loan.SubjectCity ?? "Not available";
+        var state = loan.SubjectState ?? "Not available";
+
+        return $"Property information for '{address}': " +
+               $"Agent Name: {agentName}, " +
+               $"Borrower Name: {borrowerName}, " +
+               $"Lender Name: {lenderName}, " +
+               $"Title Company: {titleCompany}, " +
+               $"Loan ID: {loanId}, " +
+               $"Loan Term: {loanTerm}, " +
+               $"City: {city}, " +
+               $"State: {state}";
+    }
 
     //HELPERS
     private static IEnumerable<LoanTransaction> Filter(
