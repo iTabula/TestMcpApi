@@ -1499,7 +1499,7 @@ public class RealsController : ControllerBase
             DateTime? from = null,
             DateTime? to = null)
     {
-        var data = svc.GetRealTransactions().Result.AsEnumerable();
+        var data = svc.GetRealTransactions().Result.OrderByDescending(t => t.DateAdded).AsEnumerable();
 
         // Filter by agent (case-insensitive)
         if (!string.IsNullOrWhiteSpace(agent))
