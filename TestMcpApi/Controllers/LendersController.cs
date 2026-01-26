@@ -489,6 +489,7 @@ public class LendersController : ControllerBase
             .Select(g => new TopLenderCityResult
             {
                 City = g.Key,
+                State = g.FirstOrDefault()?.State ?? "",
                 Count = g.Count()
             })
             .ToList();
@@ -498,7 +499,9 @@ public class LendersController : ControllerBase
 
         // Step 6: Present data
         var cities = grouped
-            .Select(c => $"{c.City} with {c.Count} lenders")
+            .Select(c => string.IsNullOrWhiteSpace(c.State) 
+                ? $"{c.City} with {c.Count} lenders"
+                : $"{c.City}, {c.State} with {c.Count} lenders")
             .Aggregate((a, b) => $"{a}, {b}");
 
         return $"The top {top} cities with the most lenders are: {cities}.";

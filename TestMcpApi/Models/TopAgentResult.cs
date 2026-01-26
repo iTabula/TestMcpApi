@@ -196,10 +196,6 @@
     public class TopLenderCityResult
     {
         public string City { get; set; } = string.Empty;
-        public int Count { get; set; }
-    }
-    public class TopLenderStateResult
-    {
         public string State { get; set; } = string.Empty;
         public int Count { get; set; }
     }
