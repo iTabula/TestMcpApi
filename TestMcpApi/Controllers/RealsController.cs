@@ -253,18 +253,19 @@ public class RealsController : ControllerBase
     [Description("Get real estate transactions that haven't been closed yet")]
     [HttpGet("/reals/open")]
     public string GetOpenRealTrans(
-    [Description("Which real estate transactions are still open and haven't been closed yet?")] int top = 10,
-    [Description("Filter by specific year")] int? year = null,
-    [Description("Filter transactions from this date")] DateTime? from = null,
-    [Description("Filter transactions to this date")] DateTime? to = null,
-    [Description("user_id")] int user_id = 0,
-    [Description("user_role")] string user_role = "unknown",
-    [Description("token")] string token = "unknown",
-    [Description("name")] string name = "unknown")
+        [Description("Which real estate transactions are still open and haven't been closed yet?")] int top = 10,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
-        // Step 1: Get data for phonetic matching
+        // Step 1-3 for name parameter
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
         {
+            // Step 1: Get data for phonetic matching
             var allUsers = new UserService().GetUsers().Result;
 
             // Step 2: Match phonetics
@@ -332,16 +333,16 @@ public class RealsController : ControllerBase
     [Description("List real estate transactions by escrow company")]
     [HttpGet("/reals/escrow/{escrowCompany}")]
     public string GetTransactionsByEscrowCompany(
-    [Description("List the real estate transactions handled by this escrow company")] string escrowCompany,
-    [Description("Maximum number of transactions to return")] int top = 10,
-    [Description("Filter by agent name")] string? agent = null,
-    [Description("Filter by specific year")] int? year = null,
-    [Description("Filter transactions from this date")] DateTime? from = null,
-    [Description("Filter transactions to this date")] DateTime? to = null,
-    [Description("user_id")] int user_id = 0,
-    [Description("user_role")] string user_role = "unknown",
-    [Description("token")] string token = "unknown",
-    [Description("name")] string name = "unknown")
+        [Description("List the real estate transactions handled by this escrow company")] string escrowCompany,
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -429,7 +430,6 @@ public class RealsController : ControllerBase
     }
 
 
-    // property info - LTV, lender, 
     [McpServerTool]
     [Description("Get real estate transaction info for a specific property address")]
     [HttpGet("/reals/property/{subjectAddress}")]
@@ -437,8 +437,44 @@ public class RealsController : ControllerBase
         [Description("Get the real estate transaction information for the property at this address")] string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -469,6 +505,7 @@ public class RealsController : ControllerBase
             State = transaction.SubjectState
         };
 
+        // Step 6: Present data
         return $"Transaction #{result.RealTransID} for property {result.SubjectAddress}, " +
                $"City: {result.City ?? "N/A"}, State: {result.State ?? "N/A"}, " +
                $"handled by agent {result.AgentName}, client {result.ClientFullName}, " +
@@ -478,8 +515,6 @@ public class RealsController : ControllerBase
                $"term: {(result.RealTerm?.ToString() ?? "N/A")}, " +
                $"appraised value: {(result.AppraisedValue?.ToString("C") ?? "N/A")}";
     }
-
-
 
 
     [McpServerTool]
@@ -492,8 +527,46 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        var allAgents = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+            .Select(t => new { AgentName = t.AgentName })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for agent
+        var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+        // Step 3: Get user related to phonetic results
+        if (matchedAgent != null)
+        {
+            agent = matchedAgent.AgentName ?? agent;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -514,6 +587,7 @@ public class RealsController : ControllerBase
             return $"No transactions found for agent {agent} using the selected filters.";
         }
 
+        // Step 6: Present data
         return $"The total number of transactions completed by {agent} {(year.HasValue ? "in " + year.Value : "")} is {total}.";
     }
 
@@ -529,8 +603,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -543,6 +658,7 @@ public class RealsController : ControllerBase
             return "No ZIP codes found for the selected filters.";
         }
 
+        // Step 6: Present data
         return $"The most popular ZIP code among the real transactions is {popularZip}.";
     }
 
@@ -558,8 +674,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -578,6 +735,7 @@ public class RealsController : ControllerBase
 
         List<TopCityResult> results = JsonSerializer.Deserialize<List<TopCityResult>>(JsonSerializer.Serialize(grouped))!;
 
+        // Step 6: Present data
         var formatted = results.Select(r => $"{r.City}, {r.State} with {r.Transactions} transactions")
                                .Aggregate((a, b) => a + ", " + b);
 
@@ -595,8 +753,37 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        // (Not applicable as this lists top agents)
+
+        // Step 2: Match phonetics for agent
+        // (Not applicable as this lists top agents)
+
+        // Step 3: Get user related to phonetic results
+        // (Not applicable as this lists top agents)
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -615,6 +802,7 @@ public class RealsController : ControllerBase
 
         List<TopAgentResult> results = JsonSerializer.Deserialize<List<TopAgentResult>>(JsonSerializer.Serialize(grouped))!;
 
+        // Step 6: Present data
         var formatted = results.Select(r => $"{r.Agent} with {r.Transactions} transactions")
                                .Aggregate((a, b) => a + ", " + b);
 
@@ -632,8 +820,46 @@ public class RealsController : ControllerBase
         int year,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        var allAgents = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+            .Select(t => new { AgentName = t.AgentName })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for agent
+        var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+        // Step 3: Get user related to phonetic results
+        if (matchedAgent != null)
+        {
+            agent = matchedAgent.AgentName ?? agent;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -646,6 +872,7 @@ public class RealsController : ControllerBase
 
         decimal total1099 = svc.GetAgent1099(agent, year);
 
+        // Step 6: Present data
         return $"The total 1099 income for agent {agent} in {year} is: {total1099:C}";
     }
 
@@ -657,8 +884,37 @@ public class RealsController : ControllerBase
         string lender,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        // (Not applicable as no agent parameter exists)
+
+        // Step 2: Match phonetics for agent
+        // (Not applicable as no agent parameter exists)
+
+        // Step 3: Get user related to phonetic results
+        // (Not applicable as no agent parameter exists)
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -684,6 +940,7 @@ public class RealsController : ControllerBase
             MinAmount = stats.minAmount
         };
 
+        // Step 6: Present data
         return $"The lender {lender} has {result.TotalTransactions} transactions. " +
                $"Average transaction amount: {result.AvgAmount:C}, " +
                $"Maximum amount: {result.MaxAmount:C}, " +
@@ -695,15 +952,15 @@ public class RealsController : ControllerBase
     [Description("Get the most popular type for a given category (Property, Transaction, Client, Real, or Real Sub)")]
     [HttpGet("/reals/most-popular-type/{category}")]
     public string GetMostPopularType(
-    [Description("What is the most popular (Property, Transaction, Client, Real, or Real Sub) type?")] string category,
-    [Description("Filter by agent name")] string? agent = null,
-    [Description("Filter by specific year")] int? year = null,
-    [Description("Filter transactions from this date")] DateTime? from = null,
-    [Description("Filter transactions to this date")] DateTime? to = null,
-    [Description("user_id")] int user_id = 0,
-    [Description("user_role")] string user_role = "unknown",
-    [Description("token")] string token = "unknown",
-    [Description("name")] string name = "unknown")
+        [Description("What is the most popular (Property, Transaction, Client, Real, or Real Sub) type?")] string category,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -792,17 +1049,17 @@ public class RealsController : ControllerBase
     [Description("Get top transactions for a specific category type (property, transaction, client, real, or real sub)")]
     [HttpGet("/reals/by-type/{category}/{type}")]
     public string GetByType(
-    [Description("The category to filter by: property, transaction, client, real, or real sub")] string category,
-    [Description("The specific type value to filter within the category")] string type,
-    [Description("Maximum number of transactions to return")] int top = 10,
-    [Description("Filter by agent name")] string? agent = null,
-    [Description("Filter by specific year")] int? year = null,
-    [Description("Filter transactions from this date")] DateTime? from = null,
-    [Description("Filter transactions to this date")] DateTime? to = null,
-    [Description("user_id")] int user_id = 0,
-    [Description("user_role")] string user_role = "unknown",
-    [Description("token")] string token = "unknown",
-    [Description("name")] string name = "unknown")
+        [Description("The category to filter by: property, transaction, client, real, or real sub")] string category,
+        [Description("The specific type value to filter within the category")] string type,
+        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Filter by agent name")] string? agent = null,
+        [Description("Filter by specific year")] int? year = null,
+        [Description("Filter transactions from this date")] DateTime? from = null,
+        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1023,8 +1280,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1041,6 +1339,7 @@ public class RealsController : ControllerBase
         var maxPrice = data.Max(t => t.Price!.Value);
         var minPrice = data.Min(t => t.Price!.Value);
 
+        // Step 6: Present data
         return $"For the selected filters, there are {totalTransactions} transactions. " +
                $"The average price is {avgPrice:C}, the maximum price is {maxPrice:C}, and the minimum price is {minPrice:C}.";
     }
@@ -1055,8 +1354,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1073,6 +1413,7 @@ public class RealsController : ControllerBase
         var maxTerm = data.Max(t => t.RealTerm!.Value);
         var minTerm = data.Min(t => t.RealTerm!.Value);
 
+        // Step 6: Present data
         return $"For the selected filters, there are {totalTransactions} transactions. " +
                $"The average real term is {avgTerm}, the maximum real term is {maxTerm}, and the minimum real term is {minTerm}.";
     }
@@ -1087,8 +1428,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1105,8 +1487,9 @@ public class RealsController : ControllerBase
         var maxAmount = data.Max(t => t.RealAmount!.Value);
         var minAmount = data.Min(t => t.RealAmount!.Value);
 
+        // Step 6: Present data
         return $"For the selected filters, there are {totalTransactions} transactions. " +
-               $"The average real amount is {avgAmount}, the maximum real amount is {maxAmount}, and the minimum real amount is {minAmount}.";
+               $"The average real amount is {avgAmount:C}, the maximum real amount is {maxAmount:C}, and the minimum real amount is {minAmount:C}.";
     }
 
     [McpServerTool]
@@ -1119,8 +1502,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1137,8 +1561,9 @@ public class RealsController : ControllerBase
         var maxValue = data.Max(t => t.AppraisedValue!.Value);
         var minValue = data.Min(t => t.AppraisedValue!.Value);
 
+        // Step 6: Present data
         return $"For the selected filters, there are {totalTransactions} transactions. " +
-               $"The average appraised value is {avgValue}, the maximum appraised value is {maxValue}, and the minimum appraised value is {minValue}.";
+               $"The average appraised value is {avgValue:C}, the maximum appraised value is {maxValue:C}, and the minimum appraised value is {minValue:C}.";
     }
 
     [McpServerTool]
@@ -1151,8 +1576,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1169,6 +1635,7 @@ public class RealsController : ControllerBase
         var maxLTV = data.Max(t => t.LTV!.Value);
         var minLTV = data.Min(t => t.LTV!.Value);
 
+        // Step 6: Present data
         return $"For the selected filters, there are {totalTransactions} transactions. " +
                $"The average LTV is {avgLTV}, the maximum LTV is {maxLTV}, and the minimum LTV is {minLTV}.";
     }
@@ -1183,8 +1650,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1201,6 +1709,7 @@ public class RealsController : ControllerBase
         var maxRate = data.Max(t => t.InterestRate!.Value);
         var minRate = data.Min(t => t.InterestRate!.Value);
 
+        // Step 6: Present data
         return $"For the selected filters, there are {totalTransactions} transactions. " +
                $"The average interest rate is {avgRate}, the maximum interest rate is {maxRate}, and the minimum interest rate is {minRate}.";
     }
@@ -1216,8 +1725,49 @@ public class RealsController : ControllerBase
         [Description("Filter transactions to this date")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetRealTransactions().Result
+                .Where(t => !string.IsNullOrWhiteSpace(t.AgentName))
+                .Select(t => new { AgentName = t.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = TestMcpApi.Helpers.Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        agent = effectiveAgent;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1234,8 +1784,9 @@ public class RealsController : ControllerBase
         var maxFees = data.Max(t => t.TCFees!.Value);
         var minFees = data.Min(t => t.TCFees!.Value);
 
+        // Step 6: Present data
         return $"For the selected filters, there are {totalTransactions} transactions. " +
-               $"The average TC Fees is {avgFees}, the maximum TC Fees is {maxFees}, and the minimum TC Fees is {minFees}.";
+               $"The average TC Fees is {avgFees:C}, the maximum TC Fees is {maxFees:C}, and the minimum TC Fees is {minFees:C}.";
     }
 
     [McpServerTool]
@@ -1246,8 +1797,44 @@ public class RealsController : ControllerBase
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1267,6 +1854,7 @@ public class RealsController : ControllerBase
             Notes = transaction.HomeInspectionNotes ?? "N/A"
         };
 
+        // Step 6: Present data
         return $"Home Inspection Info for {subjectAddress}: Name: {info.Name}, Done: {info.Done}, " +
                $"Phone: {info.Phone}, Email: {info.Email}, Notes: {info.Notes}";
     }
@@ -1279,8 +1867,44 @@ public class RealsController : ControllerBase
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1300,6 +1924,7 @@ public class RealsController : ControllerBase
             Notes = transaction.PestInspectionNotes ?? "N/A"
         };
 
+        // Step 6: Present data
         return $"Pest Inspection Info for {subjectAddress}: Name: {info.Name}, Done: {info.Done}, " +
                $"Phone: {info.Phone}, Email: {info.Email}, Notes: {info.Notes}";
     }
@@ -1312,8 +1937,44 @@ public class RealsController : ControllerBase
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1335,6 +1996,7 @@ public class RealsController : ControllerBase
             MethodSendType = transaction.EscrowMethodSendType ?? "N/A"
         };
 
+        // Step 6: Present data
         return $"Escrow Info for {subjectAddress}: Company: {info.Company}, Phone: {info.Phone}, " +
                $"Officer: {info.Officer}, Officer Email: {info.OfficerEmail}, Officer Phone: {info.OfficerPhone}, " +
                $"Escrow Number: {info.EscrowNumber}, Method Send Type: {info.MethodSendType}";
@@ -1348,8 +2010,44 @@ public class RealsController : ControllerBase
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1366,6 +2064,7 @@ public class RealsController : ControllerBase
             Phone = transaction.TitleCoPhone ?? "N/A"
         };
 
+        // Step 6: Present data
         return $"Title Company Info for {subjectAddress}: Company: {info.Company}, Phone: {info.Phone}";
     }
 
@@ -1377,8 +2076,44 @@ public class RealsController : ControllerBase
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1395,6 +2130,7 @@ public class RealsController : ControllerBase
             Phone = transaction.AppraisalCoPhone ?? "N/A"
         };
 
+        // Step 6: Present data
         return $"Appraisal Company Info for {subjectAddress}: Company: {info.Company}, Phone: {info.Phone}";
     }
 
@@ -1403,8 +2139,47 @@ public class RealsController : ControllerBase
     [HttpGet("/reals/tc-info/{subjectAddress}")]
     public string GetTCInfo(
         [Description("What is the transaction coordinator (TC) information for the property located at this address?")]
-        string subjectAddress)
+        string subjectAddress,
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1422,6 +2197,7 @@ public class RealsController : ControllerBase
             Fees = transaction.TCFees
         };
 
+        // Step 6: Present data
         return $"Transaction Coordinator Info for {subjectAddress}: Flag: {info.Flag}, TC: {info.TC}, Fees: {info.Fees}";
     }
 
@@ -1433,8 +2209,44 @@ public class RealsController : ControllerBase
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1458,6 +2270,7 @@ public class RealsController : ControllerBase
             ClearDate = transaction.ClearDate
         };
 
+        // Step 6: Present data
         return $"Payment Info for {subjectAddress}: Expected Date: {info.ExpectedDate}, Payable To: {info.PayableTo}, Agent Address: {info.AgentAddress}, Processor Amount: {info.ProcessorAmount}, Check Amount: {info.CheckAmount}, Routing Number: {info.RoutingNumber}, Mailing Fee: {info.MailingFee}, Notes: {info.Notes}, Clear Date: {info.ClearDate}";
     }
 
@@ -1469,8 +2282,44 @@ public class RealsController : ControllerBase
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown")
+        [Description("token")] string token = "unknown",
+        [Description("name")] string name = "unknown")
     {
+        // Step 1: Get data for phonetic matching on subjectAddress parameter
+        var allAddresses = svc.GetRealTransactions().Result
+            .Where(t => !string.IsNullOrWhiteSpace(t.SubjectAddress))
+            .Select(t => new { SubjectAddress = t.SubjectAddress })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for address
+        var matchedAddress = TestMcpApi.Helpers.Common.MatchPhonetic(allAddresses, subjectAddress, a => a.SubjectAddress ?? string.Empty);
+
+        // Step 3: Get address related to phonetic results
+        if (matchedAddress != null)
+        {
+            subjectAddress = matchedAddress.SubjectAddress ?? subjectAddress;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = TestMcpApi.Helpers.Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = TestMcpApi.Helpers.Common.CheckSpecificAuthorization(_httpContextAccessor, null, name, user_id, user_role, token, out string effectiveAgent);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
             return "The real estate transactions data is not available right now.";
@@ -1493,6 +2342,7 @@ public class RealsController : ControllerBase
             AmountPaidToKamAgent = transaction.AmountPaidToKamAgent
         };
 
+        // Step 6: Present data
         return $"Bank Info for {subjectAddress}: Incoming Bank: {info.IncomingBank}, Outgoing Bank: {info.OutgoingBank}, Bank Name: {info.BankName}, Account Name: {info.AccountName}, Routing Number: {info.RoutingNumber}, Account Number: {info.AccountNumber}, Amount Retained By KAM: {info.AmountRetainedByKam}, Amount Paid To KAM Agent: {info.AmountPaidToKamAgent}";
     }
 
