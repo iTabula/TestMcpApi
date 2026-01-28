@@ -3,11 +3,13 @@ using Microsoft.IdentityModel.Tokens;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Phonix;
+using System;
 using System.ComponentModel;
 using System.Text.Json;
 using TestMcpApi.Helpers;
 using TestMcpApi.Models;
 using TestMcpApi.Services;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 // Mark the class as a collection of MCP tools
 [McpServerToolType]
@@ -60,13 +62,17 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("What's exact number of transactions for agent?")]
+    [Description("Retrieves the total count of transactions for a specific agent by agent name. " +
+        "Allows finding how many deals, sales, or loan transactions an agent has handled. " +
+        "Supports fuzzy name matching and phonetic search for agent identification. " +
+        "Use this when the user asks how many deals, transactions, loans, or closings an agent has." +
+        "Relevant for questions like: how many deals, number of transactions, total loans closed,how active an agent is, or how many closings an agent has.")]
     [HttpGet("/loans/agent-no-transactions")]
     public string GetNumTransactionsForAgent(
-    [Description("the agent name for field AgentName")] string agent_name = "unknown",
-    [Description("user_id")] int user_id = 0,
-    [Description("user_role")] string user_role = "unknown",
-    [Description("token")] string token = "unknown")
+        [Description("the agent name for field AgentName")] string agent_name = "unknown",
+        [Description("user_id")] int user_id = 0,
+        [Description("user_role")] string user_role = "unknown",
+        [Description("token")] string token = "unknown")
     {
         //Step 1: Get the data First
         // Proceed with the tool execution for Admin users
@@ -170,10 +176,14 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get contact information for a specific agent")]
+    [Description("Retrieves contact information (phone number and email) for a specific agent by agent name. " +
+        "Allows finding how to reach or communicate with an agent. " +
+        "Supports fuzzy name matching and phonetic search for agent identification. " +
+        "Use this when the user asks for contact details, phone number, email, or how to reach an agent. " +
+        "Relevant for questions like: what's the phone number for, how do I contact, what's the email address for, or how can I reach an agent.")]
     [HttpGet("/loans/agent-contact-info/{agent}")]
     public string AgentContactInfo(
-        [Description("What's the contact info of agent?")] string agent,
+        [Description("the agent name for fetching contact information")] string agent,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
