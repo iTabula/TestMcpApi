@@ -29,14 +29,19 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("What's the phone number or details of lender with company name?")]
+    [Description("Retrieves contact information (phone number, email, and representative details) for a specific lender by company name. " +
+        "Allows finding how to reach or communicate with a lending institution. " +
+        "Supports fuzzy name matching and phonetic search for company identification. " +
+        "Returns representative title, name, phone number, and email address. " +
+        "Use this when the user asks for lender contact details, phone number, email, or how to reach a lender. " +
+        "Relevant for questions like: what's the phone number for this lender, how do I contact this lender, what's the email address for this lending company, or who is the lender representative.")]
     [HttpGet("/lenders/details/{company}")]
     public string GetLenderContactInfo(
-        [Description("the lender or company name")] string company_name,
+        [Description("Name of the lender company whose contact information to retrieve (supports fuzzy and phonetic matching)")] string company_name,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         if (string.IsNullOrWhiteSpace(company_name))
             return "Company name must be provided.";
@@ -94,18 +99,26 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get top lenders ranked by number of transactions")]
+    [Description("Retrieves a ranked list of top-performing lenders based on transaction count. " +
+        "Allows identifying the most active or frequently used lending institutions. " +
+        "Supports fuzzy name matching and phonetic search for lender identification when lender filter is used. " +
+        "Supports optional filtering by lender name, year (specific year), and date range (from/to dates). " +
+        "When lender filter is applied, only data for that lender is analyzed. " +
+        "When year filter is applied, only transactions from that specific year are counted. " +
+        "When date range filters are applied, only transactions within the from/to date range are included. " +
+        "Use this when the user asks about top lenders, most used lenders, or lender rankings. " +
+        "Relevant for questions like: who are the top lenders, which lenders have the most deals, show me the most active lenders, or rank lenders by volume.")]
     [HttpGet("/lenders/top")]
     public string GetTopLenders(
-        [Description("who are the top lenders for KAM")] int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of top lenders to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the lender to filter by (supports fuzzy and phonetic matching)")] string? lender = null,
+        [Description("Optional filter: Year to filter transactions by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on lender parameter
         if (!string.IsNullOrEmpty(lender))
@@ -186,19 +199,27 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("List lenders operating in a specific state")]
+    [Description("Retrieves a list of lenders operating in a specific state. " +
+        "Allows identifying lending institutions available in a particular geographic location. " +
+        "Supports fuzzy name matching and phonetic search for lender identification when lender filter is used. " +
+        "Supports optional filtering by lender name, year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When lender filter is applied, only that specific lender is included if they operate in the state. " +
+        "When year filter is applied, only lenders active in that specific year are returned. " +
+        "When date range filters are applied, only lenders active within the from/to date range are included. " +
+        "Use this when the user asks about lenders in a state, available lenders by location, or state-specific lending options. " +
+        "Relevant for questions like: which lenders operate in this state, show me lenders in California, what lending companies are available in Texas, or find lenders by state.")]
     [HttpGet("/lenders/by-state/{state}")]
     public string GetLendersByState(
-        [Description("which lenders operate in this state")] string state,
-        [Description("Maximum number of lenders to return")] int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("State abbreviation or name to filter lenders by (e.g., CA, California, TX, Texas)")] string state,
+        [Description("Optional filter: Maximum number of lenders to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the lender to filter by (supports fuzzy and phonetic matching)")] string? lender = null,
+        [Description("Optional filter: Year to filter lenders by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter lenders from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter lenders to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         if (string.IsNullOrWhiteSpace(state))
             return "State must be provided.";
@@ -272,18 +293,26 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("List VA approved lenders")]
+    [Description("Retrieves a list of VA (Veterans Affairs) approved lenders. " +
+        "Allows identifying lending institutions approved to process VA home loans for veterans and service members. " +
+        "Supports fuzzy name matching and phonetic search for lender identification when lender filter is used. " +
+        "Supports optional filtering by lender name, year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When lender filter is applied, only that specific lender is included if they are VA approved. " +
+        "When year filter is applied, only VA approved lenders active in that specific year are returned. " +
+        "When date range filters are applied, only VA approved lenders active within the from/to date range are included. " +
+        "Use this when the user asks about VA lenders, veteran loan options, or VA approved lending institutions. " +
+        "Relevant for questions like: which lenders are VA approved, show me VA lenders, what companies offer VA loans, or find VA approved lending institutions.")]
     [HttpGet("/lenders/va-approved")]
     public string GetVAApprovedLenders(
-        [Description("which lenders are VA approved")] int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of VA approved lenders to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the lender to filter by (supports fuzzy and phonetic matching)")] string? lender = null,
+        [Description("Optional filter: Year to filter lenders by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter lenders from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter lenders to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on lender parameter
         if (!string.IsNullOrEmpty(lender))
@@ -352,17 +381,26 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get statistics for lenders including total count, average compensation, and VA approval ratio")]
+    [Description("Retrieves comprehensive statistics for lenders including total count, average compensation, and VA approval ratio. " +
+        "Allows analyzing overall lender portfolio metrics and characteristics. " +
+        "Supports fuzzy name matching and phonetic search for lender identification when lender filter is used. " +
+        "Supports optional filtering by lender name, year (specific year), and date range (from/to dates). " +
+        "When lender filter is applied, only statistics for that specific lender are calculated. " +
+        "When year filter is applied, only lenders active in that specific year are included in statistics. " +
+        "When date range filters are applied, only lenders active within the from/to date range are included. " +
+        "Returns total lender count, average maximum compensation, and percentage of VA approved lenders. " +
+        "Use this when the user asks about lender statistics, lender analytics, or lender portfolio metrics. " +
+        "Relevant for questions like: what are the lender statistics, show me lender analytics, what's the average compensation, or what percentage are VA approved.")]
     [HttpGet("/lenders/stats")]
     public string GetLenderStats(
-        [Description("what are the lender statistics for KAM")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the lender to calculate statistics for (supports fuzzy and phonetic matching)")] string? lender = null,
+        [Description("Optional filter: Year to filter statistics by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter statistics from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter statistics to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on lender parameter
         if (!string.IsNullOrEmpty(lender))
@@ -435,18 +473,26 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get the top cities with the most lenders")]
+    [Description("Retrieves a ranked list of cities with the highest number of lenders. " +
+        "Allows identifying geographic areas with the most lending institution presence. " +
+        "Supports fuzzy name matching and phonetic search for lender identification when lender filter is used. " +
+        "Supports optional filtering by lender name, year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When lender filter is applied, only cities where that specific lender operates are included. " +
+        "When year filter is applied, only lenders active in that specific year are counted per city. " +
+        "When date range filters are applied, only lenders active within the from/to date range are included. " +
+        "Use this when the user asks about top cities for lenders, lender concentration by location, or cities with most lending options. " +
+        "Relevant for questions like: which cities have the most lenders, what are the top cities for lending institutions, show me lender concentration by city, or where are most lenders located.")]
     [HttpGet("/lenders/top-cities")]
     public string GetTopLenderCities(
-        [Description("what are the top cities with the most lenders")] int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of top cities to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the lender to filter by (supports fuzzy and phonetic matching)")] string? lender = null,
+        [Description("Optional filter: Year to filter lenders by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter lenders from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter lenders to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on lender parameter
         if (!string.IsNullOrEmpty(lender))
@@ -520,18 +566,26 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get recently added lenders")]
+    [Description("Retrieves the most recently added lenders to the system. " +
+        "Allows viewing new lending institutions that have been added to the database. " +
+        "Supports fuzzy name matching and phonetic search for lender identification when lender filter is used. " +
+        "Supports optional filtering by lender name, date range (from/to dates by date added), and top count (maximum number of results). " +
+        "When lender filter is applied, only that specific lender is included if recently added. " +
+        "When date range filters are applied, only lenders added within the from/to date range are included. " +
+        "Results are ordered by date added in descending order (most recent first). " +
+        "Use this when the user asks about new lenders, recently added lenders, or latest lending institutions. " +
+        "Relevant for questions like: who are the newest lenders, show me recently added lenders, what lenders were added recently, or list new lending companies.")]
     [HttpGet("/lenders/recent")]
     public string GetRecentlyAddedLenders(
-        [Description("Who are the most recently added lenders??")]
+        [Description("Optional filter: Maximum number of recently added lenders to return (default is 10)")]
         int top = 10,
-        [Description("Filter by lender name")] string? lender = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the lender to filter by (supports fuzzy and phonetic matching)")] string? lender = null,
+        [Description("Optional filter: Start date to filter lenders from by date added (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter lenders to by date added (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on lender parameter
         if (!string.IsNullOrEmpty(lender))
@@ -594,14 +648,19 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get notes and processor notes for a specific lender company")]
+    [Description("Retrieves notes and processor notes for a specific lender company. " +
+        "Allows viewing internal documentation, comments, and processor-specific information about a lending institution. " +
+        "Supports fuzzy name matching and phonetic search for company identification. " +
+        "Returns both general notes and processor notes fields. " +
+        "Use this when the user asks about lender notes, lender documentation, or internal lender information. " +
+        "Relevant for questions like: show me notes for this lender, what are the lender notes, get internal documentation for this lending company, or show me processor notes.")]
     [HttpGet("/lenders/notes/{companyName}")]
     public string GetLenderNotes(
-        [Description("The lender company name to get notes for")] string company_name,
+        [Description("Name of the lender company whose notes to retrieve (supports fuzzy and phonetic matching)")] string company_name,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         if (string.IsNullOrWhiteSpace(company_name))
             return "Company name must be provided.";
@@ -655,14 +714,19 @@ public class LendersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get the website URL for a specific lender company")]
+    [Description("Retrieves the website URL for a specific lender company. " +
+        "Allows accessing the official website of a lending institution. " +
+        "Supports fuzzy name matching and phonetic search for company identification. " +
+        "Returns the company's website URL. " +
+        "Use this when the user asks about lender websites, company URLs, or online presence. " +
+        "Relevant for questions like: what's the website for this lender, show me the lender's URL, where can I find this lending company online, or give me the lender's website.")]
     [HttpGet("/lenders/website/{companyName}")]
     public string GetLenderWebsite(
-        [Description("The lender company name to get the website for")] string company_name,
+        [Description("Name of the lender company whose website to retrieve (supports fuzzy and phonetic matching)")] string company_name,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         if (string.IsNullOrWhiteSpace(company_name))
             return "Company name must be provided.";
