@@ -28,19 +28,26 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("List real estate transactions by agent name")]
+    [Description("Retrieves a detailed list of real estate transactions for a specific agent by agent name. " +
+        "Allows viewing complete transaction details including client, property, amounts, and parties involved. " +
+        "Supports fuzzy name matching and phonetic search for agent identification. " +
+        "Supports optional filtering by year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When year filter is applied, only transactions closed in that specific year are returned. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks for real estate transaction details, deal information, or property sales history for an agent. " +
+        "Relevant for questions like: show me real estate transactions for, list deals for, what properties did an agent sell, or get transaction details for an agent.")]
     [HttpGet("/reals/agent/{agent}")]
     public string GetRealTransactionsByAgent(
-         [Description("List the transactions made by the agent, during the selected year or date range")]
+         [Description("Name of the agent whose transactions to retrieve (supports fuzzy and phonetic matching)")]
          string agent,
-         [Description("Maximum number of transactions to return")] int top = 10,
-         [Description("Filter by specific year")] int? year = null,
-         [Description("Filter transactions from this date")] DateTime? from = null,
-         [Description("Filter transactions to this date")] DateTime? to = null,
+         [Description("Optional filter: Maximum number of transactions to return (default is 10)")] int top = 10,
+         [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+         [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+         [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
          [Description("user_id")] int user_id = 0,
          [Description("user_role")] string user_role = "unknown",
          [Description("token")] string token = "unknown",
-         [Description("name")] string name = "unknown")
+         [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         var allAgents = svc.GetRealTransactions().Result
@@ -129,19 +136,27 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("List real estate transactions by title company")]
+    [Description("Retrieves a detailed list of real estate transactions managed by a specific title company. " +
+        "Allows viewing all deals handled by a particular title company including transaction details. " +
+        "Supports fuzzy name matching and phonetic search for title company identification. " +
+        "Supports optional filtering by agent name, year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When agent filter is applied, only transactions for that agent are included. " +
+        "When year filter is applied, only transactions closed in that specific year are returned. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about title company transactions, deals handled by title company, or title company activity. " +
+        "Relevant for questions like: show me transactions for this title company, what deals did this title company handle, list properties for a title company, or how many transactions did this title company process.")]
     [HttpGet("/reals/title-company/{titleCompany}")]
     public string GetRealTransactionsByTitleCompany(
-        [Description("List the real estate transactions managed by the title company")] string titleCompany,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Name of the title company whose transactions to retrieve (supports fuzzy and phonetic matching)")] string titleCompany,
+        [Description("Optional filter: Maximum number of transactions to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on titleCompany parameter
         var allTitleCompanies = svc.GetRealTransactions().Result
@@ -250,17 +265,23 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get real estate transactions that haven't been closed yet")]
+    [Description("Retrieves all real estate transactions that have not been closed yet (no actual closed date). " +
+        "Allows viewing pending or in-progress property deals that are still active. " +
+        "Supports optional filtering by year (added year), date range (from/to dates by added date), and top count (maximum number of results). " +
+        "When year filter is applied, only open transactions added in that specific year are returned. " +
+        "When date range filters are applied, only open transactions added within the from/to date range are included. " +
+        "Use this when the user asks about pending sales, active deals, or unclosed real estate transactions. " +
+        "Relevant for questions like: which properties are still open, show me pending real estate transactions, what deals haven't closed yet, or list active property sales.")]
     [HttpGet("/reals/open")]
     public string GetOpenRealTrans(
-        [Description("Which real estate transactions are still open and haven't been closed yet?")] int top = 10,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of open transactions to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Year to filter open transactions by date added (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter open transactions from by date added (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter open transactions to by date added (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1-3 for name parameter
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
@@ -330,19 +351,26 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("List real estate transactions by escrow company")]
+    [Description("Retrieves a detailed list of real estate transactions handled by a specific escrow company. " +
+        "Allows viewing all deals processed by a particular escrow company including transaction details. " +
+        "Supports optional filtering by agent name, year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When agent filter is applied, only transactions for that agent are included. " +
+        "When year filter is applied, only transactions closed in that specific year are returned. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about escrow company transactions, deals handled by escrow, or escrow company activity. " +
+        "Relevant for questions like: show me transactions for this escrow company, what deals did this escrow company handle, list properties for an escrow company, or how many transactions did this escrow company process.")]
     [HttpGet("/reals/escrow/{escrowCompany}")]
     public string GetTransactionsByEscrowCompany(
-        [Description("List the real estate transactions handled by this escrow company")] string escrowCompany,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Name of the escrow company whose transactions to retrieve")] string escrowCompany,
+        [Description("Optional filter: Maximum number of transactions to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -518,17 +546,24 @@ public class RealsController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get the total number of transactions made by a specific agent")]
+    [Description("Retrieves the total count of real estate transactions completed by a specific agent. " +
+        "Allows finding how many property deals, sales, or listings an agent has handled. " +
+        "Supports fuzzy name matching and phonetic search for agent identification. " +
+        "Supports optional filtering by year (specific year) and date range (from/to dates by closed date). " +
+        "When year filter is applied, only transactions closed in that specific year are counted. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks how many deals, transactions, properties, or closings an agent has. " +
+        "Relevant for questions like: how many real estate deals, number of property transactions, total sales closed, how active an agent is, or how many closings an agent has.")]
     [HttpGet("/reals/total-transactions/agent/{agent}")]
     public string GetTotalTransactionsByAgent(
-        [Description("How many transactions has the agent completed?")] string agent,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Name of the agent whose transaction count to retrieve (supports fuzzy and phonetic matching)")] string agent,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         var allAgents = svc.GetRealTransactions().Result
@@ -593,18 +628,26 @@ public class RealsController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get the most popular ZIP code among real transactions")]
+    [Description("Retrieves the most frequently occurring ZIP code in real estate transactions. " +
+        "Allows identifying popular areas or neighborhoods for property transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are counted. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about popular ZIP codes, most common areas, or top locations for real estate transactions. " +
+        "Relevant for questions like: what's the most popular ZIP code, which area has the most property deals, show me top ZIP codes, or where are most properties located.")]
     [HttpGet("/reals/most-popular-zip")]
     public string GetMostPopularZip(
-        [Description("Which ZIP code appears most frequently among the real transactions?")]
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")]
         string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -663,19 +706,27 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get the top cities by number of real transactions")]
+    [Description("Retrieves a ranked list of cities with the highest number of real estate transactions. " +
+        "Allows identifying the most active cities for property transactions and market trends. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), date range (from/to dates by closed date), and top count (maximum number of results). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are counted. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about popular cities, most active real estate markets, or top locations for property transactions. " +
+        "Relevant for questions like: which cities have the most property deals, what are the top cities for real estate, show me the most active markets, or where are most property transactions happening.")]
     [HttpGet("/reals/top-cities")]
     public string GetTopCities(
-        [Description("What are the top cities with the most real transactions?")]
+        [Description("Optional filter: Maximum number of top cities to return (default is 10)")]
         int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -743,18 +794,24 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get the top agents ranked by number of real transactions")]
+    [Description("Retrieves a ranked list of top-performing agents based on real estate transaction count. " +
+        "Allows identifying the most active or productive real estate agents in the organization. " +
+        "Supports optional filtering by year (specific year) and date range (from/to dates by closed date). " +
+        "When year filter is applied, only transactions closed in that specific year are counted. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about top real estate agents, best performers, most active agents, or agent rankings. " +
+        "Relevant for questions like: who are the top real estate agents, which agents have the most property deals, show me the best performers, or rank agents by activity.")]
     [HttpGet("/reals/top-agents")]
     public string GetTopAgents(
-        [Description("Who are the top agents for real estate transactions?")]
+        [Description("Optional filter: Maximum number of top agents to return (default is 10)")]
         int top = 10,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         // (Not applicable as this lists top agents)
@@ -811,17 +868,22 @@ public class RealsController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get the total 1099 income for a specific agent during a year")]
+    [Description("Retrieves the IRS Form 1099 total commission amount for a specific agent for a given tax year. " +
+        "Allows calculating total taxable income earned by a real estate agent from commissions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification. " +
+        "Year parameter is required and specifies the tax year for the 1099 calculation. " +
+        "Use this when the user asks about agent earnings, agent tax income, or agent 1099 information. " +
+        "Relevant for questions like: what's the 1099 for this agent, how much taxable income did the agent earn, show me agent 1099 for the year, or what are the agent's commission totals.")]
     [HttpGet("/reals/agent-1099")]
     public string GetAgent1099(
-        [Description("What is the agent's name you want to get the 1099 for?")]
+        [Description("Name of the agent whose 1099 to retrieve (supports fuzzy and phonetic matching)")]
         string agent,
-        [Description("For which year do you want to get the 1099?")]
+        [Description("Tax year for the 1099 calculation (e.g., 2024, 2025)")]
         int year,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         var allAgents = svc.GetRealTransactions().Result
@@ -877,15 +939,19 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get total transactions and summary statistics for a lender")]
+    [Description("Retrieves comprehensive real estate transaction statistics for a specific lender including total count and amount analytics. " +
+        "Allows analyzing lender performance with metrics like average, highest, and lowest transaction amounts. " +
+        "Returns total transactions, average transaction amount, maximum transaction amount, and minimum transaction amount. " +
+        "Use this when the user asks about lender statistics, lender performance, or lender transaction analytics. " +
+        "Relevant for questions like: show me lender statistics, what are the transaction amounts for this lender, how is this lender performing, or give me lender analytics.")]
     [HttpGet("/reals/lender-stats")]
     public string GetLenderStats(
-        [Description("Which lender do you want to get stats for?")]
+        [Description("Name of the lender whose statistics to retrieve")]
         string lender,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         // (Not applicable as no agent parameter exists)
@@ -949,18 +1015,27 @@ public class RealsController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get the most popular type for a given category (Property, Transaction, Client, Real, or Real Sub)")]
+    [Description("Retrieves the most frequently occurring type for a specified category (Property, Transaction, Client, Real, or Real Sub). " +
+        "Allows identifying popular transaction types, property types, client types, or other characteristics in the portfolio. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are counted. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Category parameter must be one of: Property, Transaction, Client, Real, or Real Sub. " +
+        "Use this when the user asks about most common types, popular categories, or dominant transaction characteristics. " +
+        "Relevant for questions like: what's the most popular property type, which transaction type is most common, show me the most frequent client type, or what real estate type do we handle most.")]
     [HttpGet("/reals/most-popular-type/{category}")]
     public string GetMostPopularType(
-        [Description("What is the most popular (Property, Transaction, Client, Real, or Real Sub) type?")] string category,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Type category to analyze - must be one of: Property, Transaction, Client, Real, or Real Sub")] string category,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1046,20 +1121,29 @@ public class RealsController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get top transactions for a specific category type (property, transaction, client, real, or real sub)")]
+    [Description("Retrieves real estate transactions filtered by a specific category type (property, transaction, client, real, or real sub). " +
+        "Allows viewing all deals matching a particular type characteristic with detailed transaction information. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), date range (from/to dates by closed date), and top count (maximum number of results). " +
+        "When agent filter is applied, only transactions for that agent are included. " +
+        "When year filter is applied, only transactions closed in that specific year are returned. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Category parameter must be one of: property, transaction, client, real, or real sub. Type parameter specifies the specific value within that category. " +
+        "Use this when the user asks for transactions of a specific type, deals matching criteria, or filtered property lists. " +
+        "Relevant for questions like: show me all single family homes, list commercial property transactions, get deals for this property type, or find transactions by type.")]
     [HttpGet("/reals/by-type/{category}/{type}")]
     public string GetByType(
-        [Description("The category to filter by: property, transaction, client, real, or real sub")] string category,
-        [Description("The specific type value to filter within the category")] string type,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Category to filter by - must be one of: property, transaction, client, real, or real sub")] string category,
+        [Description("Specific type value to filter within the category (e.g., 'Single Family' for property category)")] string type,
+        [Description("Optional filter: Maximum number of transactions to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1178,20 +1262,27 @@ public class RealsController : ControllerBase
 
 
     [McpServerTool]
-    [Description("List transactions by NMLS number")]
+    [Description("Retrieves real estate transactions associated with a specific NMLS (Nationwide Multistate Licensing System) number. " +
+        "Allows viewing all deals linked to a licensed loan originator or mortgage professional. " +
+        "Supports optional filtering by agent name, year (specific year), date range (from/to dates by closed date), and top count (maximum number of results). " +
+        "When agent filter is applied, only transactions for that agent are included. " +
+        "When year filter is applied, only transactions closed in that specific year are returned. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about NMLS transactions, loan originator deals, or mortgage professional activity. " +
+        "Relevant for questions like: show me transactions for this NMLS number, what deals are associated with this license, list properties for an NMLS number, or find transactions by loan originator.")]
     [HttpGet("/reals/by-nmls-number/{nmlsNumber}")]
     public string GetByNMLSNumber(
-        [Description("List the transactions associated with the specified NMLS number")]
+        [Description("NMLS number to look up transactions for")]
         string nmlsNumber,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of transactions to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1271,17 +1362,25 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get statistics for transaction prices")]
+    [Description("Retrieves comprehensive statistics for transaction prices including count, average, maximum, and minimum values. " +
+        "Allows analyzing price distribution and ranges for real estate transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are counted. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about price statistics, pricing analytics, or transaction value metrics. " +
+        "Relevant for questions like: what are the price statistics, show me average prices, what's the price range, or give me pricing analytics.")]
     [HttpGet("/reals/price-stats")]
     public string GetPriceStats(
-        [Description("What are the total number of transactions, average price, maximum price, and minimum price for the selected filters?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the agent to filter statistics by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter statistics by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter statistics from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter statistics to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1345,17 +1444,25 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get statistics for real terms of transactions")]
+    [Description("Retrieves comprehensive statistics for real estate terms including count, average, maximum, and minimum values. " +
+        "Allows analyzing term distribution and ranges for real estate transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are included. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about term statistics, term analytics, or term value metrics. " +
+        "Relevant for questions like: what are the real estate term statistics, show me average terms, what's the term range, or give me term analytics.")]
     [HttpGet("/reals/realterm-stats")]
     public string GetRealTermStats(
-        [Description("What are the total number of transactions, average real term, maximum real term, and minimum real term for the selected filters?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the agent to filter statistics by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter statistics by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter statistics from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter statistics to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1419,17 +1526,25 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get statistics for real amounts of transactions")]
+    [Description("Retrieves comprehensive statistics for real estate amounts including count, average, maximum, and minimum values. " +
+        "Allows analyzing amount distribution and ranges for real estate transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are included. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about real amount statistics, amount analytics, or real estate value metrics. " +
+        "Relevant for questions like: what are the real amount statistics, show me average amounts, what's the amount range, or give me amount analytics.")]
     [HttpGet("/reals/realamount-stats")]
     public string GetRealAmountStats(
-        [Description("What are the total number of transactions, average real amount, maximum real amount, and minimum real amount for the selected filters?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the agent to filter statistics by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter statistics by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter statistics from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter statistics to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1493,17 +1608,25 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get statistics for appraised values of transactions")]
+    [Description("Retrieves comprehensive statistics for appraised values including count, average, maximum, and minimum values. " +
+        "Allows analyzing appraisal distribution and ranges for real estate transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are included. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about appraised value statistics, appraisal analytics, or property valuation metrics. " +
+        "Relevant for questions like: what are the appraised value statistics, show me average appraisals, what's the appraisal range, or give me valuation analytics.")]
     [HttpGet("/reals/appraisedvalue-stats")]
     public string GetAppraisedValueStats(
-        [Description("What are the total number of transactions, average appraised value, maximum appraised value, and minimum appraised value for the selected filters?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the agent to filter statistics by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter statistics by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter statistics from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter statistics to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1520,7 +1643,7 @@ public class RealsController : ControllerBase
             // Step 3: Get user related to phonetic results
             if (matchedAgent != null)
             {
-                agent = matchedAgent.AgentName;
+                agent = matchedAgent.AgentName ?? agent;
             }
         }
 
@@ -1567,17 +1690,25 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get statistics for LTV (Loan-to-Value) of real estate transactions")]
+    [Description("Retrieves comprehensive statistics for LTV (Loan-to-Value) ratios including count, average, maximum, and minimum values. " +
+        "Allows analyzing LTV distribution and ranges for real estate transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are included. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about LTV statistics, loan-to-value analytics, or lending ratio metrics. " +
+        "Relevant for questions like: what are the LTV statistics, show me average loan-to-value ratios, what's the LTV range, or give me lending ratio analytics.")]
     [HttpGet("/reals/ltv-stats")]
     public string GetLTVStats(
-        [Description("What are the total number of transactions, average LTV, maximum LTV, and minimum LTV for the selected filters?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the agent to filter statistics by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter statistics by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter statistics from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter statistics to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1641,17 +1772,25 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get statistics for Interest Rate of real estate transactions")]
+    [Description("Retrieves comprehensive statistics for interest rates including count, average, maximum, and minimum values. " +
+        "Allows analyzing interest rate distribution and ranges for real estate transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are included. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about interest rate statistics, rate analytics, or lending rate metrics. " +
+        "Relevant for questions like: what are the interest rate statistics, show me average interest rates, what's the rate range, or give me interest rate analytics.")]
     [HttpGet("/reals/interest-rate-stats")]
     public string GetInterestRateStats(
-        [Description("What are the total number of transactions, average interest rate, maximum interest rate, and minimum interest rate for the selected filters?")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Name of the agent to filter statistics by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter statistics by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter statistics from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter statistics to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1715,18 +1854,26 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get statistics for TC Fees of real estate transactions")]
+    [Description("Retrieves comprehensive statistics for TC (Transaction Coordinator) Fees including count, average, maximum, and minimum values. " +
+        "Allows analyzing TC fee distribution and ranges for real estate transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions closed in that specific year are included. " +
+        "When date range filters are applied, only transactions closed within the from/to date range are included. " +
+        "Use this when the user asks about TC fee statistics, transaction coordinator cost analytics, or fee metrics. " +
+        "Relevant for questions like: what are the TC fee statistics, show me average TC fees, what's the fee range, or give me TC cost analytics.")]
     [HttpGet("/reals/tcfees-stats")]
     public string GetTCFeesStats(
-        [Description("What are the total number of transactions, average TC Fees, maximum TC Fees, and minimum TC Fees for the selected filters?")]
+        [Description("Optional filter: Name of the agent to filter statistics by (supports fuzzy and phonetic matching)")]
         string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Year to filter statistics by closed date (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter statistics from by closed date (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter statistics to by closed date (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1790,15 +1937,20 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get home inspection information for a property by address")]
+    [Description("Retrieves home inspection information for a specific property by address. " +
+        "Allows viewing inspection details including inspector name, completion status, contact information, and notes. " +
+        "Supports fuzzy name matching and phonetic search for address identification. " +
+        "Returns inspection name, done status, phone, email, and notes. " +
+        "Use this when the user asks about home inspection details, inspector information, or inspection status. " +
+        "Relevant for questions like: what's the home inspection information for this address, who did the home inspection, is the inspection complete, or show me inspection details.")]
     [HttpGet("/reals/home-inspection-info/{subjectAddress}")]
     public string GetHomeInspectionInfo(
-        [Description("What is the home inspection information for the property located at this address?")]
+        [Description("Property address to look up home inspection information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on subjectAddress parameter
         var allAddresses = svc.GetRealTransactions().Result
@@ -1860,15 +2012,20 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get pest inspection information for a property by address")]
+    [Description("Retrieves pest inspection information for a specific property by address. " +
+        "Allows viewing pest inspection details including inspector name, completion status, contact information, and notes. " +
+        "Supports fuzzy name matching and phonetic search for address identification. " +
+        "Returns pest inspection name, done status, phone, email, and notes. " +
+        "Use this when the user asks about pest inspection details, pest inspector information, or pest inspection status. " +
+        "Relevant for questions like: what's the pest inspection information for this address, who did the pest inspection, is the pest inspection complete, or show me pest inspection details.")]
     [HttpGet("/reals/pest-inspection-info/{subjectAddress}")]
     public string GetPestInspectionInfo(
-        [Description("What is the pest inspection information for the property located at this address?")]
+        [Description("Property address to look up pest inspection information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on subjectAddress parameter
         var allAddresses = svc.GetRealTransactions().Result
@@ -1930,15 +2087,20 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get escrow information for a property by address")]
+    [Description("Retrieves escrow information for a specific property by address. " +
+        "Allows viewing escrow details including company, officer, contact information, escrow number, and method. " +
+        "Supports fuzzy name matching and phonetic search for address identification. " +
+        "Returns escrow company, phone, officer name, officer email, officer phone, escrow number, and method send type. " +
+        "Use this when the user asks about escrow details, escrow company information, or escrow officer contact. " +
+        "Relevant for questions like: what's the escrow information for this address, who is the escrow officer, what's the escrow number, or show me escrow details.")]
     [HttpGet("/reals/escrow-info/{subjectAddress}")]
     public string GetEscrowInfo(
-        [Description("What is the escrow information for the property located at this address?")]
+        [Description("Property address to look up escrow information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on subjectAddress parameter
         var allAddresses = svc.GetRealTransactions().Result
@@ -2003,15 +2165,20 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get title company information for a property by address")]
+    [Description("Retrieves title company information for a specific property by address. " +
+        "Allows viewing title company details including company name and contact phone. " +
+        "Supports fuzzy name matching and phonetic search for address identification. " +
+        "Returns title company name and phone number. " +
+        "Use this when the user asks about title company details, title company name, or title company contact. " +
+        "Relevant for questions like: what's the title company for this address, who is handling title, what's the title company phone number, or show me title company information.")]
     [HttpGet("/reals/title-company-info/{subjectAddress}")]
     public string GetTitleCompanyInfo(
-        [Description("What is the title company information for the property located at this address?")]
+        [Description("Property address to look up title company information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on subjectAddress parameter
         var allAddresses = svc.GetRealTransactions().Result
@@ -2069,15 +2236,20 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get appraisal company information for a property by address")]
+    [Description("Retrieves appraisal company information for a specific property by address. " +
+        "Allows viewing appraisal company details including company name and contact phone. " +
+        "Supports fuzzy name matching and phonetic search for address identification. " +
+        "Returns appraisal company name and phone number. " +
+        "Use this when the user asks about appraisal company details, appraiser name, or appraisal company contact. " +
+        "Relevant for questions like: what's the appraisal company for this address, who did the appraisal, what's the appraiser's phone number, or show me appraisal company information.")]
     [HttpGet("/reals/appraisal-company-info/{subjectAddress}")]
     public string GetAppraisalCompanyInfo(
-        [Description("What is the appraisal company information for the property located at this address?")]
+        [Description("Property address to look up appraisal company information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on subjectAddress parameter
         var allAddresses = svc.GetRealTransactions().Result
@@ -2135,15 +2307,20 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get transaction coordinator (TC) information for a property by address")]
+    [Description("Retrieves real estate transaction coordinator (TC) information for a specific property by address. " +
+        "Allows viewing TC details including flag, coordinator name, and fees. " +
+        "Supports fuzzy name matching and phonetic search for address identification. " +
+        "Returns TC flag, name, and fees. " +
+        "Use this when the user asks about transaction coordinator details, TC fees, or TC contact information. " +
+        "Relevant for questions like: what's the TC information for this address, who is the transaction coordinator, what are the TC fees, or show me TC details.")]
     [HttpGet("/reals/tc-info/{subjectAddress}")]
     public string GetTCInfo(
-        [Description("What is the transaction coordinator (TC) information for the property located at this address?")]
+        [Description("Property address to lookup transaction coordinator information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on subjectAddress parameter
         var allAddresses = svc.GetRealTransactions().Result
@@ -2202,15 +2379,20 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get payment information for a property by address")]
+    [Description("Retrieves payment information for a specific property by address. " +
+        "Allows viewing payment details including expected date, payable to, agent address, processor amount, check amount, mailing fee, and notes. " +
+        "Supports fuzzy name matching and phonetic search for address identification. " +
+        "Returns expected date, payable to, agent address, processor amount, check amount, routing number, mailing fee, notes, and clear date. " +
+        "Use this when the user asks about payment details, payment status, or payment instructions for a property. " +
+        "Relevant for questions like: what's the payment information for this address, who do I pay, how much is the payment, or show me payment details.")]
     [HttpGet("/reals/payment-info/{subjectAddress}")]
     public string GetPaymentInfo(
-        [Description("What is the payment information for the property located at this address?")]
+        [Description("Property address to lookup payment information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on subjectAddress parameter
         var allAddresses = svc.GetRealTransactions().Result
@@ -2275,15 +2457,20 @@ public class RealsController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get bank information for a property by address")]
+    [Description("Retrieves bank information for a specific property by address. " +
+        "Allows viewing banking details including incoming and outgoing bank information, account details, and transaction amounts. " +
+        "Supports fuzzy name matching and phonetic search for address identification. " +
+        "Returns incoming bank, outgoing bank, bank name, account name, routing number, account number, amount retained by KAM, and amount paid to KAM agent. " +
+        "Use this when the user asks about banking details, bank contact information, or transaction banking information for a property. " +
+        "Relevant for questions like: what's the bank information for this address, who handles the banking, what are the banking details, or show me bank information.")]
     [HttpGet("/reals/bank-info/{subjectAddress}")]
     public string GetBankInfo(
-        [Description("What is the banking information for the property located at this address?")]
+        [Description("Property address to lookup bank information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on subjectAddress parameter
         var allAddresses = svc.GetRealTransactions().Result
