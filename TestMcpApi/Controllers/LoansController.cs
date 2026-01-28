@@ -30,7 +30,10 @@ public class LoansController : ControllerBase
         _httpContextAccessor = httpContextAccessor;
     }
 
-    [McpServerTool, Description("Retrieves the current call ID")]
+    [McpServerTool, Description("Retrieves the current call ID from the request headers for tracking and logging purposes. " +
+        "Allows identifying the specific call session when the tool is invoked through a phone call. " +
+        "Use this when debugging or tracking call-specific data. " +
+        "Relevant for questions like: what is my call ID, show me the current call information, or what is the session ID.")]
     [HttpGet("/loans/call_id")]
     public async Task<string> GetCallContext(string query)
     {
@@ -69,7 +72,7 @@ public class LoansController : ControllerBase
         "Relevant for questions like: how many deals, number of transactions, total loans closed,how active an agent is, or how many closings an agent has.")]
     [HttpGet("/loans/agent-no-transactions")]
     public string GetNumTransactionsForAgent(
-        [Description("the agent name for field AgentName")] string agent_name = "unknown",
+        [Description("Name of the agent to search for (supports fuzzy and phonetic matching)")] string agent_name = "unknown",
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown")
@@ -183,11 +186,11 @@ public class LoansController : ControllerBase
         "Relevant for questions like: what's the phone number for, how do I contact, what's the email address for, or how can I reach an agent.")]
     [HttpGet("/loans/agent-contact-info/{agent}")]
     public string AgentContactInfo(
-        [Description("the agent name for fetching contact information")] string agent,
+        [Description("Name of the agent whose contact information to retrieve (supports fuzzy and phonetic matching)")] string agent,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         var allUsers = new UserService().GetUsers().Result;
@@ -238,17 +241,23 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get top agents ranked by number of transactions")]
+    [Description("Retrieves a ranked list of top-performing agents based on transaction count. " +
+        "Allows identifying the most active or productive agents in the organization. " +
+        "Supports optional filtering by year (specific year), date range (from/to dates). " +
+        "When year filter is applied, only transactions from that specific year are counted. " +
+        "When date range filters are applied, only transactions within the from/to date range are included. " +
+        "Use this when the user asks about top agents, best performers, most active agents, or agent rankings. " +
+        "Relevant for questions like: who are the top agents, which agents have the most deals, show me the best performers, or rank agents by activity.")]
     [HttpGet("/loans/top-agents")]
     public string GetTopAgents(
-        [Description("who are the top agents for KAM")] int top = 5,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of top agents to return (default is 5)")] int top = 5,
+        [Description("Optional filter: Year to filter transactions by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
@@ -294,19 +303,26 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("List transactions by agent name")]
+    [Description("Retrieves a detailed list of loan transactions for a specific agent by agent name. " +
+        "Allows viewing complete transaction details including borrower, lender, amounts, and property information. " +
+        "Supports fuzzy name matching and phonetic search for agent identification. " +
+        "Supports optional filtering by year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When year filter is applied, only transactions from that specific year are returned. " +
+        "When date range filters are applied, only transactions within the from/to date range are included. " +
+        "Use this when the user asks for transaction details, deal information, or loan history for an agent. " +
+        "Relevant for questions like: show me transactions for, list deals for, what loans did an agent close, or get transaction details for an agent.")]
     [HttpGet("/loans/agent/{agent}")]
     public string GetTransactionsByAgent(
-        [Description("List the transactions made by the agent, during the year")]
+        [Description("Name of the agent whose transactions to retrieve (supports fuzzy and phonetic matching)")]
         string agent,
-        [Description("Maximum number of transactions to return")] int top = 10,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of transactions to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Year to filter transactions by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         var allAgents = svc.GetLoanTransactions().Result
@@ -390,17 +406,23 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get loans that haven't been closed yet")]
+    [Description("Retrieves all loan transactions that have not been closed yet (no actual closed date). " +
+        "Allows viewing pending or in-progress loans that are still active. " +
+        "Supports optional filtering by year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When year filter is applied, only open loans added in that specific year are returned. " +
+        "When date range filters are applied, only open loans added within the from/to date range are included. " +
+        "Use this when the user asks about pending loans, active deals, or unclosed transactions. " +
+        "Relevant for questions like: which loans are still open, show me pending transactions, what deals haven't closed yet, or list active loans.")]
     [HttpGet("/loans/open")]
     public string GetOpenLoans(
-        [Description("Which loans are still open and haven't been closed yet?")] int top = 10,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of open loans to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Year to filter loans by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter loans from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter loans to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
@@ -476,18 +498,26 @@ public class LoansController : ControllerBase
     //POPULARITY TOOLS
 
     [McpServerTool]
-    [Description("Get the most popular ZIP code or get the top zip codes for properties being sold or bought")]
+    [Description("Retrieves the most frequently occurring ZIP code in loan transactions, or a ranked list of top ZIP codes. " +
+        "Allows identifying popular areas or neighborhoods for property transactions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions from that specific year are counted. " +
+        "When date range filters are applied, only transactions within the from/to date range are included. " +
+        "Use this when the user asks about popular ZIP codes, most common areas, or top locations for transactions. " +
+        "Relevant for questions like: what's the most popular ZIP code, which area has the most deals, show me top ZIP codes, or where are most properties located.")]
     [HttpGet("/loans/top-zips")]
     public string GetMostPopularZip(
-        [Description("Which ZIP code appears most frequently in the loans or what are the top zip codes for properties being sold or bought?")] int top = 1,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of top ZIP codes to return (default is 1 for most popular)")] int top = 1,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -560,18 +590,26 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get top cities ranked by number of transactions")]
+    [Description("Retrieves a ranked list of cities with the highest number of loan transactions. " +
+        "Allows identifying the most active cities for property transactions and market trends. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), date range (from/to dates), and top count (maximum number of results). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions from that specific year are counted. " +
+        "When date range filters are applied, only transactions within the from/to date range are included. " +
+        "Use this when the user asks about popular cities, most active markets, or top locations for transactions. " +
+        "Relevant for questions like: which cities have the most deals, what are the top cities, show me the most active markets, or where are most transactions happening.")]
     [HttpGet("/loans/top-cities")]
     public string GetTopCities(
-        [Description("Which cities have the highest number of transactions?")] int top = 10,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Optional filter: Maximum number of top cities to return (default is 10)")] int top = 10,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -646,18 +684,27 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get the most popular type for a given category (Property, Transaction, Mortgage, or Loan)")]
+    [Description("Retrieves the most frequently occurring type for a specified category (Property, Transaction, Mortgage, or Loan). " +
+        "Allows identifying popular loan products, property types, transaction types, or mortgage types in the portfolio. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions from that specific year are counted. " +
+        "When date range filters are applied, only transactions within the from/to date range are included. " +
+        "Category parameter must be one of: Property, Transaction, Mortgage, or Loan. " +
+        "Use this when the user asks about most common types, popular categories, or dominant transaction characteristics. " +
+        "Relevant for questions like: what's the most popular loan type, which property type is most common, show me the most frequent transaction type, or what mortgage type do we use most.")]
     [HttpGet("/loans/most-popular-type/{category}")]
     public string GetMostPopularType(
-        [Description("What is the most popular (Property, Transaction, Mortgage, or Loan) type?")] string category,
-        [Description("Filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
-        [Description("Filter transactions from this date")] DateTime? from = null,
-        [Description("Filter transactions to this date")] DateTime? to = null,
+        [Description("Type category to analyze - must be one of: Property, Transaction, Mortgage, or Loan")] string category,
+        [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter transactions by (e.g., 2024, 2025)")] int? year = null,
+        [Description("Optional filter: Start date to filter transactions from (inclusive)")] DateTime? from = null,
+        [Description("Optional filter: End date to filter transactions to (inclusive)")] DateTime? to = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -743,16 +790,21 @@ public class LoansController : ControllerBase
 
     //Similar to get last transactions for agent
     [McpServerTool]
-    [Description("Get transactions for a specific escrow company")]
+    [Description("Retrieves a detailed list of loan transactions for a specific escrow company by company name. " +
+        "Allows viewing all deals handled by a particular escrow company including transaction details. " +
+        "Supports fuzzy name matching and phonetic search for escrow company identification. " +
+        "Supports optional top count parameter (maximum number of results). " +
+        "Use this when the user asks about escrow company transactions, deals handled by escrow, or escrow company activity. " +
+        "Relevant for questions like: show me transactions for this escrow company, what deals did this escrow company handle, list loans for an escrow company, or how many transactions did this escrow company process.")]
     [HttpGet("/loans/ecrowCompany/{escrowCompany}")]
     public string GetTransactionsByEscrowCompany(
-        [Description("List the transactions made by a specific escrow company")]
+        [Description("Name of the escrow company whose transactions to retrieve (supports fuzzy and phonetic matching)")]
         string escrowCompany,
-        [Description("Maximum number of transactions to return")] int top = 10,
+        [Description("Optional filter: Maximum number of transactions to return (default is 10)")] int top = 10,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on escrowCompany parameter
         var allEscrowCompanies = svc.GetLoanTransactions().Result
@@ -839,14 +891,18 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get top Escrow Companies ranked by number of transactions")]
+    [Description("Retrieves a ranked list of escrow companies based on transaction count. " +
+        "Allows identifying the most frequently used or most active escrow companies. " +
+        "Supports optional top count parameter (maximum number of results). " +
+        "Use this when the user asks about top escrow companies, most used escrow services, or escrow company rankings. " +
+        "Relevant for questions like: what are the top escrow companies, which escrow companies do we use most, show me the most active escrow companies, or rank escrow companies by volume.")]
     [HttpGet("/loans/top-escrow-companies")]
     public string GetTopEscrowCompanies(
-        [Description("What are the top escrow companies")] int top = 10,
+        [Description("Optional filter: Maximum number of top escrow companies to return (default is 10)")] int top = 10,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on name parameter
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
@@ -898,13 +954,17 @@ public class LoansController : ControllerBase
 
     //Include top tile companies, number of transaction
     [McpServerTool]
-    [Description("What are the names of all title companies?")]
+    [Description("Retrieves a complete list of all title company names in the system. " +
+        "Allows viewing all title companies that have been involved in transactions. " +
+        "No filtering options available - returns all unique title company names. " +
+        "Use this when the user asks about title companies, available title services, or title company directory. " +
+        "Relevant for questions like: what title companies do we work with, list all title companies, show me available title companies, or what are the names of title companies.")]
     [HttpGet("/loans/title-companies")]
     public string GetAllTitleCompanies(
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on name parameter
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
@@ -953,15 +1013,20 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get 1099 for an agent for a specific year")]
+    [Description("Retrieves the IRS Form 1099 total commission amount for a specific agent for a given tax year. " +
+        "Allows calculating total taxable income earned by an agent from commissions. " +
+        "Supports fuzzy name matching and phonetic search for agent identification. " +
+        "Year parameter is required and specifies the tax year for the 1099 calculation. " +
+        "Use this when the user asks about agent earnings for KAM, agent revenue contribution, or agent performance metrics. " +
+        "Relevant for questions like: how much did this agent make for KAM, what were the agent's earnings, show me agent revenue for the year, or what's the agent's contribution to company earnings.")]
     [HttpGet("/loans/1099/{agent}/{year}")]
     public string GetAgent1099(
-        [Description("What is the 1099 for this agent for a specific year?")] string agent,
-        [Description("Year to get 1099")] int year,
+        [Description("Name of the agent whose 1099 to retrieve (supports fuzzy and phonetic matching)")] string agent,
+        [Description("Tax year for the 1099 calculation (e.g., 2024, 2025)")] int year,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         var allAgents = svc.GetLoanTransactions().Result
@@ -1016,14 +1081,19 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Get lender statistics (total loans, average, highest, lowest loan amounts)")]
+    [Description("Retrieves comprehensive loan statistics for a specific lender including total loan count and loan amount analytics. " +
+        "Allows analyzing lender performance with metrics like average, highest, and lowest loan amounts. " +
+        "Supports fuzzy name matching and phonetic search for lender identification. " +
+        "Returns total loans, average loan amount, maximum loan amount, and minimum loan amount. " +
+        "Use this when the user asks about lender statistics, lender performance, or lender loan analytics. " +
+        "Relevant for questions like: show me lender statistics, what are the loan amounts for this lender, how is this lender performing, or give me lender analytics.")]
     [HttpGet("/loans/lender-statistics/{lender}")]
     public string GetLenderStats(
-        [Description("What are the total loans and loan amount statistics for this lender?")] string lender,
+        [Description("Name of the lender whose statistics to retrieve (supports fuzzy and phonetic matching)")] string lender,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on lender parameter
         var allLenders = svc.GetLoanTransactions().Result
@@ -1094,15 +1164,19 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get all information for a specific property address")]
+    [Description("Retrieves complete property information for a specific address including agent, borrower, lender, and loan details. " +
+        "Allows looking up comprehensive transaction data associated with a property address. " +
+        "Returns agent name, borrower name, lender name, title company, loan ID, loan term, city, and state. " +
+        "Use this when the user asks about property information, address details, or property transaction history. " +
+        "Relevant for questions like: show me information for this address, what are the details for this property, who handled this property, or lookup property information.")]
     [HttpGet("/loans/property-info/{address}")]
     public string GetPropertyAddressInfo(
-        [Description("Get complete information about this property address")]
+        [Description("Property address to look up (exact or partial match)")]
         string address,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on name parameter
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
@@ -1161,15 +1235,23 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Get comprehensive loan statistics including loan amounts and credit scores")]
+    [Description("Retrieves comprehensive loan portfolio statistics including loan amounts and credit score analytics. " +
+        "Allows analyzing overall loan performance with metrics for both loan amounts and borrower credit scores. " +
+        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
+        "Supports optional filtering by agent name (specific agent) and year (specific year). " +
+        "When agent filter is applied, only transactions for that agent are analyzed. " +
+        "When year filter is applied, only transactions from that specific year are included. " +
+        "Returns average, highest, and lowest values for both loan amounts and credit scores. " +
+        "Use this when the user asks about loan statistics, portfolio analytics, or overall loan performance. " +
+        "Relevant for questions like: show me loan statistics, what are the average loan amounts, give me portfolio analytics, or what are the credit score statistics.")]
     [HttpGet("/loans/statistics")]
     public string GetLoansStatistics(
-        [Description("Get statistics for all loans or filter by agent name")] string? agent = null,
-        [Description("Filter by specific year")] int? year = null,
+        [Description("Optional filter: Name of the agent to filter statistics by (supports fuzzy and phonetic matching)")] string? agent = null,
+        [Description("Optional filter: Year to filter statistics by (e.g., 2024, 2025)")] int? year = null,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
+        [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
         // Step 1: Get data for phonetic matching on agent parameter
         if (!string.IsNullOrEmpty(agent))
@@ -1251,6 +1333,88 @@ public class LoansController : ControllerBase
                $"Lowest credit score: {minCredit}";
     }
 
+    [McpServerTool]
+    [Description("Retrieves the total earnings (commission amount) an agent generated for KAM in a specific year along with transaction count. " +
+       "Allows calculating agent contribution to company revenue including both commission totals and deal volume. " +
+       "Supports fuzzy name matching and phonetic search for agent identification. " +
+       "Year parameter is required and specifies the tax/earnings year to calculate. " +
+       "Returns both the total commission amount earned and the number of transactions completed. " +
+       "Use this when the user asks about agent earnings for KAM, agent revenue contribution, or agent performance metrics. " +
+       "Relevant for questions like: how much did this agent make for KAM, what were the agent's earnings, show me agent revenue for the year, or what's the agent's contribution to company earnings.")]
+    [HttpGet("/loans/agent-kam-earnings/{agent}/{year}")]
+    public string GetAgentKamEarnings(
+       [Description("Name of the agent whose earnings to retrieve (supports fuzzy and phonetic matching)")] string agent,
+       [Description("Tax/earnings year to calculate (e.g., 2024, 2025)")] int year,
+       [Description("user_id")] int user_id = 0,
+       [Description("user_role")] string user_role = "unknown",
+       [Description("token")] string token = "unknown",
+       [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
+    {
+        // Step 1: Get data for phonetic matching on agent parameter
+        var allAgents = svc.GetLoanTransactions().Result
+            .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+            .Select(lt => new { AgentName = lt.AgentName })
+            .Distinct()
+            .ToList();
+
+        // Step 2: Match phonetics for agent
+        var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+
+        // Step 3: Get user related to phonetic results
+        if (matchedAgent != null)
+        {
+            agent = matchedAgent.AgentName ?? agent;
+        }
+
+        // Step 1-3 for name parameter
+        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
+        {
+            var allUsers = new UserService().GetUsers().Result;
+            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
+
+            if (matchedUser != null)
+            {
+                name = matchedUser.Name ?? name;
+                user_role = matchedUser.Role ?? user_role;
+            }
+        }
+
+        // Step 4: Authorization
+        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        if (authError != null)
+            return authError;
+
+        // Step 5: Get data if authorized
+        string resultText = "";
+
+        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
+        {
+            resultText = "not available right now";
+        }
+        else
+        {
+            var transactions = Filter(svc, agent, year, null, null)
+                .Where(t => t.LoanAmount.HasValue)
+                .ToList();
+
+            if (!transactions.Any())
+            {
+                resultText = $"{agent} had no transactions for KAM in {year}.";
+            }
+            else
+            {
+                int numTransactions = transactions.Count;
+                decimal totalCommission = svc.GetAgent1099(agent, year);
+
+                resultText = $"{agent} made ${totalCommission:N2} for KAM in {year} with {numTransactions} transaction{(numTransactions != 1 ? "s" : "")}.";
+            }
+        }
+
+        // Step 6: Present data
+        return resultText;
+    }
+
+
 
 
     //HELPERS
@@ -1320,78 +1484,5 @@ public class LoansController : ControllerBase
         return key;
     }
 
-    [McpServerTool]
-    [Description("Get agent earnings for KAM including number of transactions and total commission amount")]
-    [HttpGet("/loans/agent-kam-earnings/{agent}/{year}")]
-    public string GetAgentKamEarnings(
-        [Description("How much did this agent make for KAM in a specific year?")] string agent,
-        [Description("Year to get earnings")] int year,
-        [Description("user_id")] int user_id = 0,
-        [Description("user_role")] string user_role = "unknown",
-        [Description("token")] string token = "unknown",
-        [Description("name")] string name = "unknown")
-    {
-        // Step 1: Get data for phonetic matching on agent parameter
-        var allAgents = svc.GetLoanTransactions().Result
-            .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
-            .Select(lt => new { AgentName = lt.AgentName })
-            .Distinct()
-            .ToList();
-
-        // Step 2: Match phonetics for agent
-        var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-        
-        // Step 3: Get user related to phonetic results
-        if (matchedAgent != null)
-        {
-            agent = matchedAgent.AgentName ?? agent;
-        }
-
-        // Step 1-3 for name parameter
-        if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
-        {
-            var allUsers = new UserService().GetUsers().Result;
-            var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-            
-            if (matchedUser != null)
-            {
-                name = matchedUser.Name ?? name;
-                user_role = matchedUser.Role ?? user_role;
-            }
-        }
-
-        // Step 4: Authorization
-        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
-        if (authError != null)
-            return authError;
-
-        // Step 5: Get data if authorized
-        string resultText = "";
-
-        if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
-        {
-            resultText = "not available right now";
-        }
-        else
-        {
-            var transactions = Filter(svc, agent, year, null, null)
-                .Where(t => t.LoanAmount.HasValue)
-                .ToList();
-
-            if (!transactions.Any())
-            {
-                resultText = $"{agent} had no transactions for KAM in {year}.";
-            }
-            else
-            {
-                int numTransactions = transactions.Count;
-                decimal totalCommission = svc.GetAgent1099(agent, year);
-                
-                resultText = $"{agent} made ${totalCommission:N2} for KAM in {year} with {numTransactions} transaction{(numTransactions != 1 ? "s" : "")}.";
-            }
-        }
-
-        // Step 6: Present data
-        return resultText;
-    }
+   
 }
