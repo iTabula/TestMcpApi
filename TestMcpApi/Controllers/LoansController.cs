@@ -305,14 +305,12 @@ public class LoansController : ControllerBase
     [McpServerTool]
     [Description("Retrieves detailed loan transactions for a specific agent by name. " +
         "USE THIS when the user asks: " +
-        "'show me transactions for [agent name]', 'list deals for [agent]', " +
-        "'what loans did [agent] close', 'get transactions for [agent]', " +
-        "'show [agent]'s deals', '[agent] transactions', 'deals by [agent]', " +
-        "'transactions for [agent]', 'get [agent] deals'. " +
+        "'show me transactions for [agent name]', 'transactions for [agent]', " +
+        "'list deals for [agent]', 'what loans did [agent] close', " +
+        "'get transactions for [agent]', 'show [agent]'s deals', '[agent] transactions'. " +
         "Returns complete transaction details including borrower, lender, loan amounts, property information. " +
-        "Supports fuzzy name matching and phonetic search (e.g., 'Maya' matches 'Maya Haffar', 'Jon Smith' matches 'John Smith'). " +
-        "Optional filters: year (2024, 2025), date range (from/to), top count (default 10). " +
-        "Example queries: 'show me transactions for Maya Haffar', 'list deals for John Smith in 2024', 'get top 5 loans for Sarah Johnson'.")]
+        "Supports fuzzy name matching and phonetic search (e.g., 'Maya' matches 'Maya Haffar'). " +
+        "Optional filters: year, date range, top count (default 10).")]
     [HttpGet("/loans/agent/{agent}")]
     public string GetTransactionsByAgent(
         [Description("Name of the agent to search for. Supports partial names (e.g., 'Maya'), fuzzy matching (e.g., 'Jon' matches 'John'), and phonetic search (e.g., 'Mya' matches 'Maya'). Can be first name, last name, or full name.")]
@@ -436,6 +434,7 @@ public class LoansController : ControllerBase
     [HttpGet("/loans/open")]
     public string GetOpenLoans(
         [Description("Optional filter: Maximum number of open loans to return (default is 10)")] int top = 10,
+        [Description("Name of the agent to search for. Supports partial names (e.g., 'Maya'), fuzzy matching (e.g., 'Jon' matches 'John'), and phonetic search (e.g., 'Mya' matches 'Maya'). Can be first name, last name, or full name.")] string agent = null,
         [Description("Optional filter: Year to filter loans by (e.g., 2024, 2025)")] int? year = null,
         [Description("Optional filter: Start date to filter loans from (inclusive)")] DateTime? from = null,
         [Description("Optional filter: End date to filter loans to (inclusive)")] DateTime? to = null,
@@ -444,7 +443,38 @@ public class LoansController : ControllerBase
         [Description("token")] string token = "unknown",
         [Description("Optional filter: Name of the user making the request for authorization (supports fuzzy and phonetic matching)")] string name = "unknown")
     {
-        // Step 1: Get data for phonetic matching
+        // Step 1: Get data for phonetic matching on agent parameter
+        if (!string.IsNullOrEmpty(agent))
+        {
+            var allAgents = svc.GetLoanTransactions().Result
+                .Where(lt => !string.IsNullOrWhiteSpace(lt.AgentName))
+                .Select(lt => new { AgentName = lt.AgentName })
+                .Distinct()
+                .ToList();
+
+            // Step 2: Match phonetics for agent
+            var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
+            
+            // Step 3: Get user related to phonetic results
+            if (matchedAgent != null)
+            {
+                agent = matchedAgent.AgentName;
+            }
+            else
+            {
+                // Try direct partial match as fallback
+                var partialMatch = allAgents
+                    .FirstOrDefault(a => a.AgentName != null && 
+                        a.AgentName.Contains(agent, StringComparison.OrdinalIgnoreCase));
+            
+                if (partialMatch != null)
+                {
+                    agent = partialMatch.AgentName;
+                }
+            }
+        }
+
+        // Step 1-3 for name parameter
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
         {
             var allUsers = new UserService().GetUsers().Result;
@@ -461,19 +491,23 @@ public class LoansController : ControllerBase
         }
 
         // Step 4: Authorization
-        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
+
+        agent = effectiveAgent;
+
+        var loans = new List<LoanTransactionResult>();
 
         // Step 5: Get data if authorized
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
-            result = "not available right now";
+            result = "Transaction data is not available right now. Please try again later.";
         }
         else
         {
-            var loans = Filter(svc, null, year, from, to)
+            loans = Filter(svc, agent, year, from, to)
                         .Where(t => !string.IsNullOrWhiteSpace(t.LoanTransID) && t.ActualClosedDate == null)
                         .Take(top)
                         .Select(t => new LoanTransactionResult
@@ -484,8 +518,8 @@ public class LoansController : ControllerBase
                             LoanType = t.LoanType,
                             LoanTerm = t.LoanTerm,
                             BorrowerName = $"{t.BorrowerFirstName} {t.BorrowerLastName}".Trim(),
-                            LenderName = t.LenderName,  // ADDED
-                            TitleCompany = t.TitleCompany,  // ADDED
+                            LenderName = t.LenderName,
+                            TitleCompany = t.TitleCompany,
                             PhoneNumber = t.AgentPhone,
                             Address = t.SubjectAddress,
                             City = t.SubjectCity,
@@ -497,20 +531,24 @@ public class LoansController : ControllerBase
                         .ToList();
 
             if (!loans.Any())
-                result = "No open loans found";
+            {
+                string agentInfo = !string.IsNullOrEmpty(agent) ? $" for agent {agent}" : "";
+                result = $"No open loans found{agentInfo} with the selected filters.";
+            }
             else
             {
                 result = string.Join(", ", loans.Select(l =>
-                    $"Loan #{l.LoanTransID}, Agent: {l.AgentName}, Borrower: {l.BorrowerName}, " +
-                    $"Lender: {l.LenderName}, Title Company: {l.TitleCompany}, " +
-                    $"Loan Term: {l.LoanTerm}, Loan Amount: {l.LoanAmount}, Loan Type: {l.LoanType}, " +
-                    $"Address: {l.Address}, City: {l.City}, State: {l.SubjectState}, " +
-                    $"Active: {l.Active}, Date Added: {l.DateAdded}"));
+                    $"Loan #{l.LoanTransID}: Agent: {l.AgentName}, Borrower: {l.BorrowerName}, " +
+                    $"Lender: {l.LenderName}, Title: {l.TitleCompany}, " +
+                    $"Amount: ${l.LoanAmount:N2}, Type: {l.LoanType}, Term: {l.LoanTerm}, " +
+                    $"Property: {l.Address}, {l.City}, {l.SubjectState}, " +
+                    $"Status: {l.Active}, Added: {l.DateAdded}"));
             }
         }
 
         // Step 6: Present data
-        return $"The open loans are: {result}";
+        string agentFilterInfo = !string.IsNullOrEmpty(agent) ? $" for {agent}" : "";
+        return $"Found {loans?.Count ?? 0} open loan{(loans?.Count != 1 ? "s" : "")}{agentFilterInfo}: {result}";
     }
 
 
@@ -524,6 +562,12 @@ public class LoansController : ControllerBase
         "Supports optional filtering by agent name, year (specific year), and date range (from/to dates). " +
         "When agent filter is applied, only transactions for that agent are analyzed. " +
         "When year filter is applied, only transactions from that specific year are counted. " +
+        "'what's the most popular ZIP code', 'most common ZIP code', " +
+        "'which ZIP code has the most deals', 'top ZIP code', " +
+        "'most popular area by ZIP', 'ZIP code with most transactions', " +
+        "'most popular ZIP code in [year]', 'most common ZIP in [year]'. " +
+        "Returns the ZIP code with the highest transaction count. " +
+        "Supports optional filtering by agent name, year, and date range." +
         "When date range filters are applied, only transactions within the from/to date range are included. " +
         "Use this when the user asks about popular ZIP codes, most common areas, or top locations for transactions. " +
         "Relevant for questions like: what's the most popular ZIP code, which area has the most deals, show me top ZIP codes, or where are most properties located.")]
@@ -582,25 +626,31 @@ public class LoansController : ControllerBase
         string result = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
-            result = "not available right now";
+            result = "Transaction data is not available right now. Please try again later.";
         }
         else
         {
             var data = Filter(svc, agent, year, from, to)
-                   .Where(t => !string.IsNullOrEmpty(t.SubjectPostalCode))
-                   .Where(t => t.SubjectPostalCode != "NULL");
+               .Where(t => !string.IsNullOrEmpty(t.SubjectPostalCode))
+               .Where(t => t.SubjectPostalCode != "NULL" && 
+                          t.SubjectPostalCode != "N/A" &&
+                          t.SubjectPostalCode != "n/a" &&
+                          !t.SubjectPostalCode.Equals("null", StringComparison.OrdinalIgnoreCase) &&
+                          !t.SubjectPostalCode.Equals("n/a", StringComparison.OrdinalIgnoreCase));
 
             var zipResult = data.GroupBy(t => t.SubjectPostalCode, StringComparer.OrdinalIgnoreCase)
                       .OrderByDescending(g => g.Count())
                       .FirstOrDefault();
         
-            if (zipResult == null)
+            if (zipResult == null || zipResult.Count() == 0)
             {
-                result = "N/A";
+                string agentInfo = !string.IsNullOrEmpty(agent) ? $" for agent {agent}" : "";
+                string yearInfo = year.HasValue ? $" in {year}" : "";
+                result = $"No ZIP code data available{agentInfo}{yearInfo} with the selected filters.";
             }
             else
             {
-                result = $"{zipResult.Key} with {zipResult.Count()} transactions";
+                result = $"{zipResult.Key} with {zipResult.Count()} transaction{(zipResult.Count() != 1 ? "s" : "")}";
             }
         }
 
@@ -704,19 +754,24 @@ public class LoansController : ControllerBase
 
 
     [McpServerTool]
-    [Description("Retrieves the most frequently occurring type for a specified category (Property, Transaction, Mortgage, or Loan). " +
-        "Allows identifying popular loan products, property types, transaction types, or mortgage types in the portfolio. " +
-        "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
-        "Supports optional filtering by agent name, year (specific year), and date range (from/to dates). " +
-        "When agent filter is applied, only transactions for that agent are analyzed. " +
-        "When year filter is applied, only transactions from that specific year are counted. " +
-        "When date range filters are applied, only transactions within the from/to date range are included. " +
-        "Category parameter must be one of: Property, Transaction, Mortgage, or Loan. " +
-        "Use this when the user asks about most common types, popular categories, or dominant transaction characteristics. " +
-        "Relevant for questions like: what's the most popular loan type, which property type is most common, show me the most frequent transaction type, or what mortgage type do we use most.")]
+    [Description("Retrieves the most popular type for a category: Property, Transaction, Mortgage, or Loan. " +
+        "USE THIS when the user asks: " +
+        "'what's the most popular loan type', 'most common loan type', " +
+        "'what's the most popular property type', 'which property type is most common', " +
+        "'most common property type', 'most popular transaction type', " +
+        "'what's the most popular mortgage type', 'most frequent loan type'. " +
+        "Category must be one of: Property, Transaction, Mortgage, or Loan. " +
+        "Automatically detects category from query: " +
+        "- 'loan type' or 'loan' -> Loan category " +
+        "- 'property type' or 'property' -> Property category " +
+        "- 'transaction type' or 'transaction' -> Transaction category " +
+        "- 'mortgage type' or 'mortgage' -> Mortgage category")]
     [HttpGet("/loans/most-popular-type/{category}")]
     public string GetMostPopularType(
-        [Description("Type category to analyze - must be one of: Property, Transaction, Mortgage, or Loan")] string category,
+        [Description("Type category to analyze. Must be one of: 'Property', 'Transaction', 'Mortgage', or 'Loan'. " +
+            "For loan queries use 'Loan', for property queries use 'Property', " +
+            "for transaction queries use 'Transaction', for mortgage queries use 'Mortgage'.")]
+        string category,
         [Description("Optional filter: Name of the agent to filter transactions by (supports fuzzy and phonetic matching)")] string? agent = null,
         [Description("Optional filter: Year to filter transactions by (e.g., 2024, 2025)")] int? year = null,
         [Description("Optional filter: Start date to filter transactions from (inclusive)")] DateTime? from = null,
@@ -737,7 +792,7 @@ public class LoansController : ControllerBase
 
             // Step 2: Match phonetics for agent
             var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-
+            
             // Step 3: Get user related to phonetic results
             if (matchedAgent != null)
             {
@@ -749,8 +804,11 @@ public class LoansController : ControllerBase
         if (name != "unknown" && !string.IsNullOrWhiteSpace(name))
         {
             var allUsers = new UserService().GetUsers().Result;
+            
+            // Step 2: Match phonetics
             var matchedUser = Common.MatchPhonetic(allUsers, name, u => u.Name ?? string.Empty);
-
+            
+            // Step 3: Get user related to phonetic results
             if (matchedUser != null)
             {
                 name = matchedUser.Name ?? name;
@@ -769,7 +827,7 @@ public class LoansController : ControllerBase
         string type = "";
         if (!string.IsNullOrEmpty(svc.ErrorLoadCsv))
         {
-            type = "not available right now";
+            type = "Transaction data is not available right now. Please try again later.";
         }
         else
         {
@@ -787,7 +845,10 @@ public class LoansController : ControllerBase
             };
 
             var data = Filter(svc, agent, year, from, to)
-                .Where(t => !string.IsNullOrWhiteSpace(selector(t)));
+                .Where(t => !string.IsNullOrWhiteSpace(selector(t)))
+                .Where(t => selector(t) != "NULL" && 
+                           selector(t) != "-- Select --" && 
+                           !selector(t)!.StartsWith("--"));
 
             var result = data.GroupBy(t => selector(t), StringComparer.OrdinalIgnoreCase)
                              .OrderByDescending(g => g.Count())
@@ -795,12 +856,14 @@ public class LoansController : ControllerBase
                              .Select(g => new { Type = g.Key, Transactions = g.Count() })
                              .FirstOrDefault();
 
-            if (result == null)
+            if (result == null || result.Transactions == 0)
             {
-                return $"No {normalizedCategory} type data available for the selected filters.";
+                string agentInfo = !string.IsNullOrEmpty(agent) ? $" for agent {agent}" : "";
+                string yearInfo = year.HasValue ? $" in {year}" : "";
+                return $"No {normalizedCategory} type data available{agentInfo}{yearInfo} with the selected filters.";
             }
 
-            type = $"{result.Type} with {result.Transactions} transactions";
+            type = $"{result.Type} with {result.Transactions} transaction{(result.Transactions != 1 ? "s" : "")}";
         }
 
         // Step 6: Present data
@@ -808,17 +871,20 @@ public class LoansController : ControllerBase
     }
 
 
-    //Similar to get last transactions for agent
     [McpServerTool]
-    [Description("Retrieves a detailed list of loan transactions for a specific escrow company by company name. " +
-        "Allows viewing all deals handled by a particular escrow company including transaction details. " +
-        "Supports fuzzy name matching and phonetic search for escrow company identification. " +
-        "Supports optional top count parameter (maximum number of results). " +
-        "Use this when the user asks about escrow company transactions, deals handled by escrow, or escrow company activity. " +
-        "Relevant for questions like: show me transactions for this escrow company, what deals did this escrow company handle, list loans for an escrow company, or how many transactions did this escrow company process.")]
+    [Description("Retrieves loan transactions handled by a specific escrow company. " +
+        "USE THIS when the user asks: " +
+        "'show me transactions for [escrow company]', 'transactions for [escrow]', " +
+        "'what deals did [escrow company] handle', 'list deals for [escrow]', " +
+        "'show [escrow company]'s transactions', '[escrow] deals', " +
+        "'transactions handled by [escrow company]', 'get [escrow] transactions'. " +
+        "DO NOT use this for title companies - only for escrow companies. " +
+        "Returns transaction details for the specified escrow company. " +
+        "Supports fuzzy name matching and phonetic search for company identification.")]
     [HttpGet("/loans/ecrowCompany/{escrowCompany}")]
     public string GetTransactionsByEscrowCompany(
-        [Description("Name of the escrow company whose transactions to retrieve (supports fuzzy and phonetic matching)")]
+        [Description("Name of the escrow company to search for. Supports partial names (e.g., 'Sun Escrow'), " +
+            "fuzzy matching, and phonetic search. Can be full or partial company name.")]
         string escrowCompany,
         [Description("Optional filter: Maximum number of transactions to return (default is 10)")] int top = 10,
         [Description("user_id")] int user_id = 0,
@@ -840,6 +906,18 @@ public class LoansController : ControllerBase
         if (matchedEscrow != null)
         {
             escrowCompany = matchedEscrow.EscrowCompany ?? escrowCompany;
+        }
+        else
+        {
+            // Try direct partial match as fallback
+            var partialMatch = allEscrowCompanies
+                .FirstOrDefault(e => e.EscrowCompany != null && 
+                    e.EscrowCompany.Contains(escrowCompany, StringComparison.OrdinalIgnoreCase));
+        
+            if (partialMatch != null)
+            {
+                escrowCompany = partialMatch.EscrowCompany ?? escrowCompany;
+            }
         }
 
         // Step 1-3 for name parameter
@@ -911,11 +989,15 @@ public class LoansController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Retrieves a ranked list of escrow companies based on transaction count. " +
-        "Allows identifying the most frequently used or most active escrow companies. " +
-        "Supports optional top count parameter (maximum number of results). " +
-        "Use this when the user asks about top escrow companies, most used escrow services, or escrow company rankings. " +
-        "Relevant for questions like: what are the top escrow companies, which escrow companies do we use most, show me the most active escrow companies, or rank escrow companies by volume.")]
+    [Description("Retrieves a ranked list of escrow companies by transaction count. " +
+        "USE THIS when the user asks: " +
+        "'what are the top escrow companies', 'top escrow companies', " +
+        "'most used escrow companies', 'which escrow companies do we use most', " +
+        "'best escrow companies', 'most active escrow companies', " +
+        "'rank escrow companies', 'escrow companies by volume', " +
+        "'show me the top escrow firms'. " +
+        "Returns escrow companies ranked by number of transactions. " +
+        "Supports optional top count parameter (default 10).")]
     [HttpGet("/loans/top-escrow-companies")]
     public string GetTopEscrowCompanies(
         [Description("Optional filter: Maximum number of top escrow companies to return (default is 10)")] int top = 10,
@@ -1433,7 +1515,6 @@ public class LoansController : ControllerBase
         // Step 6: Present data
         return resultText;
     }
-
 
 
 
