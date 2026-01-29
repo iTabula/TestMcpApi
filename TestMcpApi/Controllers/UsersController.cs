@@ -177,4 +177,22 @@ public class UsersController : ControllerBase
         return $"{result.Name} phone number {phone} and email {result.Email}";
     }
 
+    [McpServerTool]
+    [Description("Use this tool when no other tool matches the user's request. " +
+    "Handles general questions, clarification requests, or unrecognized queries. " +
+    "Provides helpful guidance to the user.")]
+    [HttpGet("/users/help")]
+    public string HandleUnmatchedQuery(
+    [Description("The user's original question or request")] string query)
+    {
+        return $"I'm not sure how to help with '{query}'. " +
+               "I can help you with: " +
+               "- Agent transactions and statistics " +
+               "- Loan information and analytics " +
+               "- Top agents and performance data " +
+               "- Escrow and title company information " +
+               "- Property details and loan statistics. " +
+               "Could you please rephrase your question?";
+    }
+
 }
