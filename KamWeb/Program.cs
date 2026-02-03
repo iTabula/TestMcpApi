@@ -84,8 +84,9 @@ builder.Services.AddSingleton<McpSseClient>(sp =>
 {
     var mcpConfig = builder.Configuration.GetSection("Mcp").Get<McpConfiguration>();
     var vapiConfig = builder.Configuration.GetSection("Vapi").Get<VapiConfiguration>();
+    var logger = sp.GetRequiredService<ILogger<McpSseClient>>();
     
-    var client = new McpSseClient(mcpConfig?.SseEndpoint ?? "https://freemypalestine.com/api/mcp/sse");
+    var client = new McpSseClient(mcpConfig?.SseEndpoint ?? "https://freemypalestine.com/api/mcp/sse", logger);
     
     if (vapiConfig != null)
     {
@@ -95,8 +96,28 @@ builder.Services.AddSingleton<McpSseClient>(sp =>
     return client;
 });
 
+// Register McpOpenAiClient as singleton (one instance for the entire application)
+builder.Services.AddSingleton<McpOpenAiClient>(sp =>
+{
+    var mcpConfig = builder.Configuration.GetSection("Mcp").Get<McpConfiguration>();
+    var openAiConfig = builder.Configuration.GetSection("OpenAI").Get<OpenAIConfiguration>();
+    var logger = sp.GetRequiredService<ILogger<McpOpenAiClient>>();
+    
+    var client = new McpOpenAiClient(mcpConfig?.SseEndpoint ?? "https://freemypalestine.com/api/mcp/sse", logger);
+    
+    if (openAiConfig != null && !string.IsNullOrEmpty(openAiConfig.ApiKey))
+    {
+        client.SetOpenAiClient(openAiConfig.ApiKey, openAiConfig.Model ?? "gpt-4o");
+    }
+    
+    return client;
+});
+
 // Register background service to initialize MCP client
 builder.Services.AddHostedService<McpInitializationService>();
+
+// Register background service to initialize OpenAI MCP client
+builder.Services.AddHostedService<McpOpenAiInitializationService>();
 
 var app = builder.Build();
 

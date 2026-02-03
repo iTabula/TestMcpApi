@@ -67,7 +67,7 @@
 		<PackageReference Include="Azure.Core" Version="1.50.0" />
 		<PackageReference Include="Azure.Identity" Version="1.18.0-beta.2" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
-		<PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
+		<PackageReference Include="ModelContextProtocol" Version="0.7.0-preview.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.2" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
 	</ItemGroup>

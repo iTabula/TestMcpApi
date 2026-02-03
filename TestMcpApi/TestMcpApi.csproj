@@ -13,8 +13,10 @@
 		<PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0-preview3.25342.7" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.2" />
-		<PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
+		<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.2.0-preview.1.26063.2" />
+		<PackageReference Include="ModelContextProtocol" Version="0.7.0-preview.1" />
 		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.6.0-preview.1" />
+		<PackageReference Include="OpenAI" Version="2.8.0" />
 		<PackageReference Include="Phonix" Version="1.0.2" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
 	</ItemGroup>
