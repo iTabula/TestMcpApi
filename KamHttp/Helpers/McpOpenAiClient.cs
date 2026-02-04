@@ -275,9 +275,10 @@ namespace KamHttp.Helpers
             {
                 _logger?.LogInformation("[Processing with OpenAI...]");
 
-                // Build chat messages
+                // Build chat messages with system instruction
                 var messages = new List<ChatMessage>
                 {
+                    new SystemChatMessage("You are a helpful assistant. Provide responses in plain text without any markdown formatting. Do not use asterisks, underscores, or other markdown syntax. Format lists using simple numbers and line breaks."),
                     new UserChatMessage(prompt)
                 };
 
