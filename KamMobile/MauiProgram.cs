@@ -35,6 +35,7 @@ public static class MauiProgram
         // Configure options
         builder.Services.Configure<VapiConfiguration>(builder.Configuration.GetSection("Vapi"));
         builder.Services.Configure<McpConfiguration>(builder.Configuration.GetSection("Mcp"));
+        builder.Services.Configure<OpenAIConfiguration>(builder.Configuration.GetSection("OpenAI"));
 
         // Register McpSseClient as singleton (one instance for the entire application)
         builder.Services.AddSingleton<McpSseClient>(sp =>
@@ -52,6 +53,23 @@ public static class MauiProgram
             return client;
         });
 
+        // Register McpOpenAiClient as singleton (one instance for the entire application)
+        builder.Services.AddSingleton<McpOpenAiClient>(sp =>
+        {
+            var mcpConfig = builder.Configuration.GetSection("Mcp").Get<McpConfiguration>();
+            var openAiConfig = builder.Configuration.GetSection("OpenAI").Get<OpenAIConfiguration>();
+            var logger = sp.GetRequiredService<ILogger<McpOpenAiClient>>();
+            
+            var client = new McpOpenAiClient(mcpConfig?.SseEndpoint ?? "https://freemypalestine.com/api/mcp/sse", logger);
+            
+            if (openAiConfig != null && !string.IsNullOrEmpty(openAiConfig.ApiKey))
+            {
+                client.SetOpenAiClient(openAiConfig.ApiKey, openAiConfig.Model ?? "gpt-4o");
+            }
+            
+            return client;
+        });
+
         // Register Speech Recognition Service (platform-specific)
 #if ANDROID
         builder.Services.AddSingleton<ISpeechRecognitionService, Platforms.Android.Services.AndroidSpeechRecognitionService>();
@@ -63,11 +81,13 @@ public static class MauiProgram
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<ChatViewModel>();
         builder.Services.AddTransient<TestAgentViewModel>();
+        builder.Services.AddTransient<ChatAIViewModel>();
 
         // Register Pages
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<ChatPage>();
         builder.Services.AddTransient<TestAgentPage>();
+        builder.Services.AddTransient<ChatAIPage>();
 
         return builder.Build();
     }
