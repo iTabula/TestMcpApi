@@ -23,6 +23,7 @@ namespace KamHttp.Helpers
         private readonly List<VapiMessage> _conversationHistory = [];
 
         private readonly ILogger<McpSseClient>? _logger;
+        public int ToolCount => _tools.Count;
 
         public McpSseClient(string sseEndpoint, ILogger<McpSseClient>? logger = null)
         {

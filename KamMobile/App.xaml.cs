@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using KamHttp.Helpers;
+using KamHttp.Services;
 
 namespace KamMobile
 {
@@ -8,39 +9,37 @@ namespace KamMobile
         public App()
         {
             InitializeComponent();
-
             MainPage = new AppShell();
         }
 
-        protected override void OnStart()
+        protected override async void OnStart()
         {
             base.OnStart();
             
-            // Initialize McpOpenAiClient in background after app has started
-            Task.Run(async () =>
+            try
             {
-                try
+                // Initialize McpSseClient using the existing McpInitializationService
+                // Call StartAsync() to start the background service
+                var initService = IPlatformApplication.Current!.Services.GetService<McpInitializationService>();
+                if (initService != null)
                 {
-                    var mcpOpenAiClient = IPlatformApplication.Current?.Services.GetService<KamHttp.Helpers.McpOpenAiClient>();
-
-                    if (mcpOpenAiClient != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Initializing McpOpenAiClient...");
-                        
-                        // Connect to MCP SSE server
-                        await mcpOpenAiClient.ConnectAsync();
-
-                        // Initialize MCP session and discover tools
-                        await mcpOpenAiClient.InitializeAsync();
-                        
-                        System.Diagnostics.Debug.WriteLine("McpOpenAiClient initialized successfully");
-                    }
+                    await initService.StartAsync(CancellationToken.None);
+                    System.Diagnostics.Debug.WriteLine("McpSseClient (VAPI) initialized successfully");
                 }
-                catch (Exception ex)
+
+                // Initialize McpOpenAiClient
+                var mcpOpenAiClient = IPlatformApplication.Current!.Services.GetService<McpOpenAiClient>();
+                if (mcpOpenAiClient != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to initialize McpOpenAiClient: {ex.Message}");
+                    await mcpOpenAiClient.ConnectAsync();
+                    await mcpOpenAiClient.InitializeAsync();
+                    System.Diagnostics.Debug.WriteLine("McpOpenAiClient initialized successfully");
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Initialization error: {ex.Message}\n{ex.StackTrace}");
+            }
         }
     }
 }

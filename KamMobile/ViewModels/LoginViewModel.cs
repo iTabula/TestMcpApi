@@ -79,7 +79,7 @@ public class LoginViewModel : INotifyPropertyChanged
 
             if (success)
             {
-                await Shell.Current.GoToAsync("//ChatAIPage");
+                await Shell.Current.GoToAsync("//ChatVapiPage");
             }
             else
             {

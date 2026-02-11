@@ -1,8 +1,10 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using KamHttp.Helpers;
 using KamMobile.Services;
+using Microsoft.Extensions.Logging;
 
 namespace KamMobile.ViewModels;
 
@@ -10,6 +12,7 @@ public class ChatViewModel : INotifyPropertyChanged
 {
     private readonly McpSseClient _mcpClient;
     private readonly ISpeechRecognitionService _speechRecognitionService;
+    private readonly ILogger<ChatViewModel> _logger;
     private string _questionText = "Waiting for your question...";
     private string _answerText = "Waiting for question...";
     private string _statusText = "Click to start";
@@ -20,12 +23,23 @@ public class ChatViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _recognitionCts;
     private CancellationTokenSource? _speechCts;
 
-    public ChatViewModel(McpSseClient mcpClient, ISpeechRecognitionService speechRecognitionService)
+    public ChatViewModel(McpSseClient mcpClient, ISpeechRecognitionService speechRecognitionService, ILogger<ChatViewModel> logger)
     {
         _mcpClient = mcpClient;
         _speechRecognitionService = speechRecognitionService;
+        _logger = logger;
         StartConversationCommand = new Command(async () => await ExecuteStartConversationAsync());
         LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
+        SendMessageCommand = new Command(async () => await SendMessageAsync());
+    }
+
+    private string _currentMessage = string.Empty;
+    public ObservableCollection<string> Messages { get; } = new();
+
+    public string CurrentMessage
+    {
+        get => _currentMessage;
+        set => SetProperty(ref _currentMessage, value);
     }
 
     public string QuestionText
@@ -100,6 +114,7 @@ public class ChatViewModel : INotifyPropertyChanged
 
     public ICommand StartConversationCommand { get; }
     public ICommand LogoutCommand { get; }
+    public ICommand SendMessageCommand { get; }
 
     private async Task ExecuteStartConversationAsync()
     {
@@ -273,10 +288,42 @@ public class ChatViewModel : INotifyPropertyChanged
         await Shell.Current.GoToAsync("//LoginPage");
     }
 
+    private async Task SendMessageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentMessage))
+            return;
+
+        var userMessage = CurrentMessage.Trim();
+        Messages.Add($"You: {userMessage}");
+        CurrentMessage = string.Empty;
+
+        try
+        {
+            var response = await _mcpClient.ProcessPromptAsync(userMessage);
+            Messages.Add($"Agent: {response}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending message");
+            Messages.Add("Agent: Sorry, I couldn't process your message.");
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    // Add this helper method to your ChatViewModel class
+    protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(backingStore, value))
+            return false;
+
+        backingStore = value;
+        OnPropertyChanged(propertyName);
+        return true;
     }
 }

@@ -12,14 +12,14 @@
         Route="LoginPage" />
 
     <ShellContent
+        Title="Text Agent"
+        ContentTemplate="{DataTemplate local:ChatVapiPage}"
+        Route="ChatVapiPage" />
+
+    <ShellContent
         Title="AI Chat"
         ContentTemplate="{DataTemplate local:ChatAIPage}"
         Route="ChatAIPage" />
-
-    <ShellContent
-        Title="Voice Assistant"
-        ContentTemplate="{DataTemplate local:TestAgentPage}"
-        Route="TestAgentPage" />
 
     <ShellContent
         Title="Chat"

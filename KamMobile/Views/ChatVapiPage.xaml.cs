@@ -2,9 +2,9 @@ using KamMobile.ViewModels;
 
 namespace KamMobile.Views;
 
-public partial class ChatPage : ContentPage
+public partial class ChatVapiPage : ContentPage
 {
-    public ChatPage(ChatViewModel viewModel)
+    public ChatVapiPage(ChatVapiViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;

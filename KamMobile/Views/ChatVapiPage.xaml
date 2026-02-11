@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="KamMobile.Views.ChatVapiPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewModels="clr-namespace:KamMobile.ViewModels"
+    Title="VAPI Chat Assistant"
+    x:DataType="viewModels:ChatVapiViewModel">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Command="{Binding LogoutCommand}" Text="Logout" />
+    </ContentPage.ToolbarItems>
+
+    <Grid Padding="0" RowDefinitions="Auto,*,Auto,Auto">
+
+        <!--  Header  -->
+        <Frame
+            Grid.Row="0"
+            Padding="20,15"
+            BackgroundColor="#667eea"
+            CornerRadius="0"
+            HasShadow="False">
+            <VerticalStackLayout Spacing="5">
+                <Label
+                    FontAttributes="Bold"
+                    FontSize="24"
+                    HorizontalOptions="Center"
+                    Text="VAPI Chat Assistant"
+                    TextColor="White" />
+                <Label
+                    FontSize="14"
+                    HorizontalOptions="Center"
+                    Opacity="0.9"
+                    Text="Powered by SSE with Model Context Protocol"
+                    TextColor="White" />
+            </VerticalStackLayout>
+        </Frame>
+
+        <!--  Initialization Indicator  -->
+        <VerticalStackLayout
+            Grid.Row="1"
+            HorizontalOptions="Center"
+            IsVisible="{Binding IsInitializing}"
+            Spacing="15"
+            VerticalOptions="Center">
+            <ActivityIndicator
+                HeightRequest="50"
+                IsRunning="{Binding IsInitializing}"
+                WidthRequest="50"
+                Color="#667eea" />
+            <Label
+                FontSize="16"
+                HorizontalOptions="Center"
+                Text="{Binding StatusText}"
+                TextColor="#667eea" />
+        </VerticalStackLayout>
+
+        <!--  Chat Messages  -->
+        <CollectionView
+            Grid.Row="1"
+            Margin="10,10,10,0"
+            IsVisible="{Binding IsInitializing, Converter={StaticResource InvertedBoolConverter}}"
+            ItemsSource="{Binding Messages}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="viewModels:ChatMessage">
+                    <Grid Padding="5,5">
+                        <Frame
+                            Padding="12,10"
+                            BackgroundColor="{Binding IsUser, Converter={StaticResource MessageBackgroundConverter}}"
+                            BorderColor="Transparent"
+                            CornerRadius="15"
+                            HasShadow="False"
+                            HorizontalOptions="{Binding IsUser, Converter={StaticResource MessageAlignmentConverter}}">
+                            <VerticalStackLayout Spacing="5">
+                                <Label
+                                    FontAttributes="Bold"
+                                    FontSize="12"
+                                    Text="{Binding IsUser, Converter={StaticResource MessageLabelConverter}}"
+                                    TextColor="{Binding IsUser, Converter={StaticResource MessageLabelColorConverter}}" />
+                                <Label
+                                    FontSize="15"
+                                    LineBreakMode="WordWrap"
+                                    Text="{Binding Text}"
+                                    TextColor="{Binding IsUser, Converter={StaticResource MessageTextColorConverter}}" />
+                            </VerticalStackLayout>
+                        </Frame>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!--  Status Text  -->
+        <Label
+            Grid.Row="2"
+            Margin="15,5"
+            FontAttributes="Italic"
+            FontSize="14"
+            HorizontalOptions="Center"
+            IsVisible="{Binding IsSending}"
+            Text="{Binding StatusText}"
+            TextColor="#667eea" />
+
+        <!--  Input Area  -->
+        <Frame
+            Grid.Row="3"
+            Padding="15,10"
+            BackgroundColor="#f5f5f5"
+            CornerRadius="0"
+            HasShadow="False">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <Frame
+                    Grid.Column="0"
+                    Padding="0"
+                    BackgroundColor="White"
+                    BorderColor="#ddd"
+                    CornerRadius="20"
+                    HasShadow="False">
+                    <Editor
+                        BackgroundColor="Transparent"
+                        FontSize="16"
+                        HeightRequest="50"
+                        IsEnabled="{Binding IsInitializing, Converter={StaticResource InvertedBoolConverter}}"
+                        MaxLength="1000"
+                        Placeholder="Type your message here..."
+                        Text="{Binding MessageInput}"
+                        VerticalOptions="Center" />
+                </Frame>
+
+                <Button
+                    Grid.Column="1"
+                    Padding="15,0"
+                    BackgroundColor="#667eea"
+                    BorderColor="Transparent"
+                    Command="{Binding SendCommand}"
+                    CornerRadius="25"
+                    HeightRequest="50"
+                    Text="Send"
+                    TextColor="White"
+                    WidthRequest="80" />
+            </Grid>
+        </Frame>
+    </Grid>
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <!--  Converters  -->
+            <viewModels:MessageBackgroundConverter x:Key="MessageBackgroundConverter" />
+            <viewModels:MessageTextColorConverter x:Key="MessageTextColorConverter" />
+            <viewModels:MessageLabelConverter x:Key="MessageLabelConverter" />
+            <viewModels:MessageLabelColorConverter x:Key="MessageLabelColorConverter" />
+            <viewModels:MessageAlignmentConverter x:Key="MessageAlignmentConverter" />
+            <viewModels:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+</ContentPage>
