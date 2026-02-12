@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using KamHttp.Helpers;
 using KamHttp.Services;
+using KamMobile.Services;
 
 namespace KamMobile
 {
@@ -18,6 +19,21 @@ namespace KamMobile
             
             try
             {
+                // Restore authentication session if available
+                var authService = IPlatformApplication.Current!.Services.GetService<AuthenticationService>();
+                if (authService != null)
+                {
+                    var sessionRestored = await authService.RestoreSessionAsync();
+                    if (sessionRestored)
+                    {
+                        System.Diagnostics.Debug.WriteLine("✓ Authentication session restored");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("ℹ No previous authentication session found");
+                    }
+                }
+
                 // Initialize McpSseClient using the existing McpInitializationService
                 // Call StartAsync() to start the background service
                 var initService = IPlatformApplication.Current!.Services.GetService<McpInitializationService>();

@@ -79,12 +79,18 @@ public class LoginViewModel : INotifyPropertyChanged
 
             if (success)
             {
+                // Clear password after successful login
+                Password = string.Empty;
                 await Shell.Current.GoToAsync("//ChatVapiPage");
             }
             else
             {
                 ErrorMessage = "Invalid username or password";
             }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Login failed: {ex.Message}";
         }
         finally
         {

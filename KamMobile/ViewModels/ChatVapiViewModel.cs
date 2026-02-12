@@ -4,21 +4,24 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using KamHttp.Helpers;
 using KamHttp.Services;
+using KamMobile.Services;
 
 namespace KamMobile.ViewModels;
 
 public class ChatVapiViewModel : INotifyPropertyChanged
 {
     private readonly McpSseClient _mcpSseClient;
+    private readonly AuthenticationService _authService;
     private string _messageInput = string.Empty;
     private string _statusText = "Initializing VAPI assistant...";
     private bool _isSending = false;
     private bool _isInitialized = false;
     private bool _isInitializing = true;
 
-    public ChatVapiViewModel(McpSseClient mcpSseClient)
+    public ChatVapiViewModel(McpSseClient mcpSseClient, AuthenticationService authService)
     {
         _mcpSseClient = mcpSseClient;
+        _authService = authService;
         Messages = new ObservableCollection<ChatMessage>();
         SendCommand = new Command(async () => await ExecuteSendAsync(), () => CanSendMessage());
         LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
@@ -61,9 +64,10 @@ public class ChatVapiViewModel : INotifyPropertyChanged
             {
                 StatusText = string.Empty;
                 Messages.Clear();
+                var userName = _authService.CurrentUser?.FirstName ?? "User";
                 Messages.Add(new ChatMessage
                 {
-                    Text = "👋 Hello! I'm your VAPI assistant. Ask me anything!",
+                    Text = $"👋 Hello {userName}! I'm your VAPI assistant. Ask me anything!",
                     IsUser = false,
                     Timestamp = DateTime.Now
                 });
@@ -114,17 +118,6 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool IsSending
-    {
-        get => _isSending;
-        set
-        {
-            _isSending = value;
-            OnPropertyChanged();
-            ((Command)SendCommand).ChangeCanExecute();
-        }
-    }
-
     public bool IsInitializing
     {
         get => _isInitializing;
@@ -140,66 +133,78 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 
     private async Task ExecuteSendAsync()
     {
-        if (string.IsNullOrWhiteSpace(MessageInput) || !_isInitialized)
+        if (string.IsNullOrWhiteSpace(MessageInput) || _isSending)
             return;
 
         var userMessage = MessageInput.Trim();
         MessageInput = string.Empty;
-
-        Messages.Add(new ChatMessage
-        {
-            Text = userMessage,
-            IsUser = true,
-            Timestamp = DateTime.Now
-        });
-
-        IsSending = true;
-        StatusText = "VAPI is thinking...";
+        _isSending = true;
+        ((Command)SendCommand).ChangeCanExecute();
 
         try
         {
-            string userId = "2";
-            string role = "Admin";
-            string accessToken = string.Empty;
-
-            string prompt = $"{userMessage} with user_id = {userId} and user_role = '{role}' and token = '{accessToken}'";
-
-            System.Diagnostics.Debug.WriteLine($"Sending prompt: {userMessage}");
-            
-            var answer = await _mcpSseClient.ProcessPromptAsync(prompt);
-            
-            System.Diagnostics.Debug.WriteLine($"Received answer: {answer}");
-
-            Messages.Add(new ChatMessage
+            // Add user message to chat
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                Text = answer,
-                IsUser = false,
-                Timestamp = DateTime.Now
+                Messages.Add(new ChatMessage
+                {
+                    Text = userMessage,
+                    IsUser = true,
+                    Timestamp = DateTime.Now
+                });
             });
 
-            StatusText = string.Empty;
+            // Build prompt with authenticated user context (matching KamWeb Chat.cshtml.cs pattern)
+            var accessToken = _authService.AccessToken ?? string.Empty;
+            var userId = _authService.UserId ?? string.Empty;
+            var role = _authService.Role ?? string.Empty;
+
+            string prompt = userMessage + $" with user_id = {userId} and user_role = '{role}' and token = '{accessToken}'";
+
+            // Get response from MCP
+            var response = await _mcpSseClient.ProcessPromptAsync(prompt);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                Messages.Add(new ChatMessage
+                {
+                    Text = response,
+                    IsUser = false,
+                    Timestamp = DateTime.Now
+                });
+            });
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in ExecuteSendAsync: {ex.Message}");
-            Messages.Add(new ChatMessage
+            System.Diagnostics.Debug.WriteLine($"Error sending message: {ex.Message}");
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                Text = $"I'm sorry, I encountered an error: {ex.Message}",
-                IsUser = false,
-                Timestamp = DateTime.Now
+                Messages.Add(new ChatMessage
+                {
+                    Text = $"Error: {ex.Message}",
+                    IsUser = false,
+                    Timestamp = DateTime.Now
+                });
             });
-            StatusText = "Error occurred";
         }
         finally
         {
-            IsSending = false;
+            _isSending = false;
+            ((Command)SendCommand).ChangeCanExecute();
         }
     }
 
     private async Task ExecuteLogoutAsync()
     {
-        // await _initService.DisconnectAsync(); // Removed: method does not exist
-        await Shell.Current.GoToAsync("//LoginPage");
+        try
+        {
+            await _authService.LogoutAsync();
+            await Shell.Current.GoToAsync("//LoginPage");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Logout error: {ex.Message}");
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

@@ -2,6 +2,7 @@
 using CommunityToolkit.Maui.Media;
 using KamHttp.Helpers;
 using KamHttp.Services;
+using KamHttp.Interfaces;
 using KamMobile.Models;
 using KamMobile.Services;
 using KamMobile.ViewModels;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui;
 using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Net.Http.Headers;
 
 namespace KamMobile;
 
@@ -78,6 +80,23 @@ public static class MauiProgram
         builder.Services.Configure<VapiConfiguration>(builder.Configuration.GetSection("Vapi"));
         builder.Services.Configure<McpConfiguration>(builder.Configuration.GetSection("Mcp"));
         builder.Services.Configure<OpenAIConfiguration>(builder.Configuration.GetSection("OpenAI"));
+
+        // Get the base URL from configuration
+        var webApiBaseUrl = builder.Configuration.GetValue<string>("WebApi:BaseUrl");
+
+        // Register HttpClient for API communication (matches KamWeb pattern)
+        builder.Services.AddHttpClient("MyWebApi",
+            client =>
+            {
+                client.BaseAddress = new Uri(webApiBaseUrl ?? "https://mcpauth.kamfr.com/");
+                client.DefaultRequestHeaders.Add(HeaderNames.Accept, "application/vnd.github.v3+json");
+                client.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "KAM.Mobile");
+                client.Timeout = TimeSpan.FromSeconds(120);
+            });
+
+        // Register factory and services (matches KamWeb pattern)
+        builder.Services.AddSingleton<IFactoryHttpClient, FactoryHttpClient>();
+        builder.Services.AddScoped<IUserService, UserService>();
 
         // Register McpSseClient as singleton with logger
         builder.Services.AddSingleton<McpSseClient>(sp =>
