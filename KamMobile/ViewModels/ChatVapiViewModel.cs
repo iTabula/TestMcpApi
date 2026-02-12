@@ -17,6 +17,8 @@ public class ChatVapiViewModel : INotifyPropertyChanged
     private bool _isSending = false;
     private bool _isInitialized = false;
     private bool _isInitializing = true;
+    private bool _isSpeaking = false;
+    private CancellationTokenSource? _speechCts;
 
     public ChatVapiViewModel(McpSseClient mcpSseClient, AuthenticationService authService)
     {
@@ -25,6 +27,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         Messages = new ObservableCollection<ChatMessage>();
         SendCommand = new Command(async () => await ExecuteSendAsync(), () => CanSendMessage());
         LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
+        StopSpeakingCommand = new Command(StopSpeaking, () => _isSpeaking);
         
         Messages.Add(new ChatMessage
         {
@@ -38,7 +41,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 
     private bool CanSendMessage()
     {
-        return _isInitialized && !_isSending && !string.IsNullOrWhiteSpace(MessageInput);
+        return _isInitialized && !_isSending && !_isSpeaking && !string.IsNullOrWhiteSpace(MessageInput);
     }
 
     private async Task WaitForInitializationAsync()
@@ -128,12 +131,25 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsSpeaking
+    {
+        get => _isSpeaking;
+        set
+        {
+            _isSpeaking = value;
+            OnPropertyChanged();
+            ((Command)SendCommand).ChangeCanExecute();
+            ((Command)StopSpeakingCommand).ChangeCanExecute();
+        }
+    }
+
     public ICommand SendCommand { get; }
     public ICommand LogoutCommand { get; }
+    public ICommand StopSpeakingCommand { get; }
 
     private async Task ExecuteSendAsync()
     {
-        if (string.IsNullOrWhiteSpace(MessageInput) || _isSending)
+        if (string.IsNullOrWhiteSpace(MessageInput) || _isSending || _isSpeaking)
             return;
 
         var userMessage = MessageInput.Trim();
@@ -173,6 +189,9 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                     Timestamp = DateTime.Now
                 });
             });
+
+            // Speak the response
+            await SpeakAnswerAsync(response);
         }
         catch (Exception ex)
         {
@@ -194,10 +213,79 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task SpeakAnswerAsync(string text)
+    {
+        _isSending = false;
+        IsSpeaking = true;
+        StatusText = "Speaking response...";
+
+        try
+        {
+            _speechCts = new CancellationTokenSource();
+
+            var locales = await TextToSpeech.Default.GetLocalesAsync();
+            var selectedLocale = locales.FirstOrDefault();
+
+            var speechOptions = new SpeechOptions
+            {
+                Pitch = 1.0f,
+                Volume = 1.0f,
+                Locale = selectedLocale
+            };
+
+            await TextToSpeech.Default.SpeakAsync(text, speechOptions, _speechCts.Token);
+
+            if (!_speechCts.IsCancellationRequested)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    StatusText = string.Empty;
+                    IsSpeaking = false;
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                StatusText = "Speech stopped";
+                IsSpeaking = false;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error speaking: {ex.Message}");
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                StatusText = $"Error speaking: {ex.Message}";
+                IsSpeaking = false;
+            });
+        }
+        finally
+        {
+            _speechCts?.Dispose();
+            _speechCts = null;
+        }
+    }
+
+    private void StopSpeaking()
+    {
+        _speechCts?.Cancel();
+        TextToSpeech.Default.SpeakAsync(string.Empty);
+        StatusText = string.Empty;
+        IsSpeaking = false;
+    }
+
     private async Task ExecuteLogoutAsync()
     {
         try
         {
+            // Stop speaking if in progress
+            if (_isSpeaking)
+            {
+                StopSpeaking();
+            }
+
             await _authService.LogoutAsync();
             await Shell.Current.GoToAsync("//LoginPage");
         }
