@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using KamHttp.Helpers;
 using KamHttp.Services;
+using KamMobile.Interfaces;
 using KamMobile.Services;
 
 namespace KamMobile.ViewModels;
@@ -12,26 +13,30 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 {
     private readonly McpSseClient _mcpSseClient;
     private readonly AuthenticationService _authService;
+    private readonly ISpeechToTextService _speechService;
     private string _messageInput = string.Empty;
     private string _statusText = "Initializing VAPI assistant...";
     private bool _isSending = false;
     private bool _isInitialized = false;
     private bool _isInitializing = true;
     private bool _isSpeaking = false;
+    private bool _isListening = false;
     private CancellationTokenSource? _speechCts;
 
-    public ChatVapiViewModel(McpSseClient mcpSseClient, AuthenticationService authService)
+    public ChatVapiViewModel(McpSseClient mcpSseClient, AuthenticationService authService, ISpeechToTextService speechService)
     {
         _mcpSseClient = mcpSseClient;
         _authService = authService;
+        _speechService = speechService;
         Messages = new ObservableCollection<ChatMessage>();
         SendCommand = new Command(async () => await ExecuteSendAsync(), () => CanSendMessage());
         LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
         StopSpeakingCommand = new Command(StopSpeaking, () => _isSpeaking);
-        
+        ToggleListeningCommand = new Command(async () => await ExecuteToggleListeningAsync(), () => CanToggleListening());
+
         Messages.Add(new ChatMessage
         {
-            Text = "👋 Please wait while I initialize...",
+            Text = "?? Please wait while I initialize...",
             IsUser = false,
             Timestamp = DateTime.Now
         });
@@ -41,7 +46,12 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 
     private bool CanSendMessage()
     {
-        return _isInitialized && !_isSending && !_isSpeaking && !string.IsNullOrWhiteSpace(MessageInput);
+        return _isInitialized && !_isSending && !_isSpeaking && !_isListening && !string.IsNullOrWhiteSpace(MessageInput);
+    }
+
+    private bool CanToggleListening()
+    {
+        return _isInitialized && !_isSending && !_isSpeaking;
     }
 
     private async Task WaitForInitializationAsync()
@@ -50,7 +60,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         {
             // Connect to the MCP SSE server first
             await _mcpSseClient.ConnectAsync();
-            
+
             // Initialize and load tools
             await _mcpSseClient.InitializeAsync();
 
@@ -60,24 +70,53 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                 throw new TimeoutException("No tools were loaded after initialization");
             }
 
+            // Set initialization flags BEFORE UI updates to ensure state is correct
+            // even if UI update has threading issues
             _isInitialized = true;
             IsInitializing = false;
+            System.Diagnostics.Debug.WriteLine("ChatVapiViewModel initialization successful");
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            // Update UI - if this fails, the initialization state is still correct
+            try
             {
-                StatusText = string.Empty;
-                Messages.Clear();
-                var userName = _authService.CurrentUser?.FirstName ?? "User";
-                Messages.Add(new ChatMessage
+                await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    Text = $"👋 Hello {userName}! I'm your VAPI assistant. Ask me anything!",
-                    IsUser = false,
-                    Timestamp = DateTime.Now
+                    StatusText = string.Empty;
+                    Messages.Clear();
+                    var userName = _authService.CurrentUser?.FirstName ?? "User";
+                    Messages.Add(new ChatMessage
+                    {
+                        Text = $"?? Hello {userName}! I'm your VAPI assistant. Ask me anything!",
+                        IsUser = false,
+                        Timestamp = DateTime.Now
+                    });
+                    ((Command)SendCommand).ChangeCanExecute();
+                    ((Command)ToggleListeningCommand).ChangeCanExecute();
                 });
-                ((Command)SendCommand).ChangeCanExecute();
-            });
+                System.Diagnostics.Debug.WriteLine("ChatVapiViewModel UI updated successfully");
+            }
+            catch (Exception uiEx)
+            {
+                // Log UI update failure but don't fail initialization
+                System.Diagnostics.Debug.WriteLine($"UI update failed (initialization still successful): {uiEx.Message}");
 
-            System.Diagnostics.Debug.WriteLine("ChatVapiViewModel ready to process messages");
+                // Try a simpler UI update without clearing/rebuilding
+                try
+                {
+                    await Task.Delay(100); // Brief delay to let main thread catch up
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        StatusText = string.Empty;
+                        ((Command)SendCommand).ChangeCanExecute();
+                        ((Command)ToggleListeningCommand).ChangeCanExecute();
+                    });
+                }
+                catch
+                {
+                    // If even this fails, just ensure commands are updated on next interaction
+                    System.Diagnostics.Debug.WriteLine("Retry UI update also failed, but initialization is complete");
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -90,7 +129,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                 Messages.Clear();
                 Messages.Add(new ChatMessage
                 {
-                    Text = $"⚠️ Failed to initialize: {ex.Message}\n\nPlease restart the app.",
+                    Text = $"?? Failed to initialize: {ex.Message}\n\nPlease restart the app.",
                     IsUser = false,
                     Timestamp = DateTime.Now
                 });
@@ -118,6 +157,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         {
             _statusText = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsStatusVisible));
         }
     }
 
@@ -128,6 +168,8 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         {
             _isInitializing = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsStatusVisible));
+            ((Command)ToggleListeningCommand).ChangeCanExecute();
         }
     }
 
@@ -138,24 +180,46 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         {
             _isSpeaking = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsStatusVisible));
             ((Command)SendCommand).ChangeCanExecute();
             ((Command)StopSpeakingCommand).ChangeCanExecute();
+            ((Command)ToggleListeningCommand).ChangeCanExecute();
         }
     }
+
+    public bool IsListening
+    {
+        get => _isListening;
+        set
+        {
+            _isListening = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(MicButtonText));
+            ((Command)SendCommand).ChangeCanExecute();
+            ((Command)ToggleListeningCommand).ChangeCanExecute();
+        }
+    }
+
+    public bool IsStatusVisible => !_isInitializing && !string.IsNullOrWhiteSpace(StatusText);
+
+    public string MicButtonText => IsListening ? "?" : "??";
 
     public ICommand SendCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand StopSpeakingCommand { get; }
+    public ICommand ToggleListeningCommand { get; }
 
     private async Task ExecuteSendAsync()
     {
-        if (string.IsNullOrWhiteSpace(MessageInput) || _isSending || _isSpeaking)
+        if (string.IsNullOrWhiteSpace(MessageInput) || _isSending || _isSpeaking || _isListening)
             return;
 
         var userMessage = MessageInput.Trim();
         MessageInput = string.Empty;
         _isSending = true;
+        OnPropertyChanged(nameof(IsStatusVisible));
         ((Command)SendCommand).ChangeCanExecute();
+        ((Command)ToggleListeningCommand).ChangeCanExecute();
 
         try
         {
@@ -209,8 +273,68 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         finally
         {
             _isSending = false;
+            OnPropertyChanged(nameof(IsStatusVisible));
             ((Command)SendCommand).ChangeCanExecute();
+            ((Command)ToggleListeningCommand).ChangeCanExecute();
         }
+    }
+
+    private async Task ExecuteToggleListeningAsync()
+    {
+        if (IsListening)
+        {
+            await ExecuteStopListeningAsync();
+            return;
+        }
+
+        await ExecuteStartListeningAsync();
+    }
+
+    private async Task ExecuteStartListeningAsync()
+    {
+        if (_isListening || _isSending || _isSpeaking || !_isInitialized)
+            return;
+
+        IsListening = true;
+        StatusText = "Listening... Speak now";
+
+        await _speechService.StartListeningAsync(
+            result =>
+            {
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    IsListening = false;
+
+                    if (string.IsNullOrWhiteSpace(result))
+                    {
+                        StatusText = "No speech detected";
+                        return;
+                    }
+
+                    MessageInput = result.Trim();
+                    StatusText = string.Empty;
+                    await ExecuteSendAsync();
+                });
+            },
+            error =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    IsListening = false;
+                    StatusText = $"Speech error: {error}";
+                });
+            });
+    }
+
+    private async Task ExecuteStopListeningAsync()
+    {
+        if (!_isListening)
+            return;
+
+        StatusText = "Stopping...";
+        await _speechService.StopListeningAsync();
+        IsListening = false;
+        StatusText = string.Empty;
     }
 
     private async Task SpeakAnswerAsync(string text)
@@ -284,6 +408,11 @@ public class ChatVapiViewModel : INotifyPropertyChanged
             if (_isSpeaking)
             {
                 StopSpeaking();
+            }
+
+            if (_isListening)
+            {
+                await ExecuteStopListeningAsync();
             }
 
             await _authService.LogoutAsync();
