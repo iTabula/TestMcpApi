@@ -1,17 +1,18 @@
+using KamHttp.Helpers;
+using KamMobile.Interfaces;
+using KamMobile.Services;
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using KamHttp.Helpers;
-using KamMobile.Services;
-using Microsoft.Extensions.Logging;
 
 namespace KamMobile.ViewModels;
 
 public class ChatViewModel : INotifyPropertyChanged
 {
     private readonly McpSseClient _mcpClient;
-    private readonly ISpeechRecognitionService _speechRecognitionService;
+    private readonly ISpeechToTextService _speechService;
     private readonly ILogger<ChatViewModel> _logger;
     private string _questionText = "Waiting for your question...";
     private string _answerText = "Waiting for question...";
@@ -23,10 +24,10 @@ public class ChatViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _recognitionCts;
     private CancellationTokenSource? _speechCts;
 
-    public ChatViewModel(McpSseClient mcpClient, ISpeechRecognitionService speechRecognitionService, ILogger<ChatViewModel> logger)
+    public ChatViewModel(McpSseClient mcpClient, ISpeechToTextService speechService, ILogger<ChatViewModel> logger)
     {
         _mcpClient = mcpClient;
-        _speechRecognitionService = speechRecognitionService;
+        _speechService = speechService;
         _logger = logger;
         StartConversationCommand = new Command(async () => await ExecuteStartConversationAsync());
         LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
@@ -120,7 +121,7 @@ public class ChatViewModel : INotifyPropertyChanged
     {
         if (!IsListening && !IsProcessing && !IsSpeaking)
         {
-            await StartListeningAsync();
+            //await StartListeningAsync();
         }
         else if (IsListening)
         {
@@ -132,60 +133,60 @@ public class ChatViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task StartListeningAsync()
-    {
-        try
-        {
-            // Request microphone permissions
-            var status = await Permissions.RequestAsync<Permissions.Microphone>();
-            if (status != PermissionStatus.Granted)
-            {
-                StatusText = "Microphone permission denied";
-                return;
-            }
+    //private async Task StartListeningAsync()
+    //{
+    //    try
+    //    {
+    //        // Request microphone permissions
+    //        var status = await Permissions.RequestAsync<Permissions.Microphone>();
+    //        if (status != PermissionStatus.Granted)
+    //        {
+    //            StatusText = "Microphone permission denied";
+    //            return;
+    //        }
 
-            IsListening = true;
-            ButtonText = "Stop Listening";
-            StatusText = "Listening... Speak now";
-            QuestionText = "Listening...";
+    //        IsListening = true;
+    //        ButtonText = "Stop Listening";
+    //        StatusText = "Listening... Speak now";
+    //        QuestionText = "Listening...";
 
-            _recognitionCts = new CancellationTokenSource();
+    //        _recognitionCts = new CancellationTokenSource();
             
-            var recognizedText = await _speechRecognitionService.RecognizeSpeechAsync(
-                partialText =>
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        if (!string.IsNullOrWhiteSpace(partialText))
-                        {
-                            QuestionText = partialText;
-                        }
-                    });
-                },
-                _recognitionCts.Token);
+    //        var recognizedText = await _speechService.StartListeningAsync(
+    //            partialText =>
+    //            {
+    //                MainThread.BeginInvokeOnMainThread(() =>
+    //                {
+    //                    if (!string.IsNullOrWhiteSpace(partialText))
+    //                    {
+    //                        QuestionText = partialText;
+    //                    }
+    //                });
+    //            },
+    //            _recognitionCts.Token);
 
-            if (!string.IsNullOrWhiteSpace(recognizedText))
-            {
-                QuestionText = recognizedText;
-                await ProcessQuestionAsync(recognizedText);
-            }
-            else
-            {
-                StatusText = "No speech detected. Click to try again.";
-                ResetState();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            StatusText = "Listening cancelled";
-            ResetState();
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"Error: {ex.Message}";
-            ResetState();
-        }
-    }
+    //        if (!string.IsNullOrWhiteSpace(recognizedText))
+    //        {
+    //            QuestionText = recognizedText;
+    //            await ProcessQuestionAsync(recognizedText);
+    //        }
+    //        else
+    //        {
+    //            StatusText = "No speech detected. Click to try again.";
+    //            ResetState();
+    //        }
+    //    }
+    //    catch (OperationCanceledException)
+    //    {
+    //        StatusText = "Listening cancelled";
+    //        ResetState();
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        StatusText = $"Error: {ex.Message}";
+    //        ResetState();
+    //    }
+    //}
 
     private async Task StopListeningAsync()
     {

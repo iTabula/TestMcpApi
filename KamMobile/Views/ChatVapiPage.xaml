@@ -96,7 +96,7 @@
             FontAttributes="Italic"
             FontSize="14"
             HorizontalOptions="Center"
-            IsVisible="{Binding IsSending}"
+            IsVisible="{Binding IsStatusVisible}"
             Text="{Binding StatusText}"
             TextColor="#667eea" />
 
@@ -107,7 +107,7 @@
             BackgroundColor="#f5f5f5"
             CornerRadius="0"
             HasShadow="False">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                 <Frame
                     Grid.Column="0"
                     Padding="0"
@@ -128,6 +128,20 @@
 
                 <Button
                     Grid.Column="1"
+                    Padding="0"
+                    BackgroundColor="#667eea"
+                    BorderColor="Transparent"
+                    Command="{Binding ToggleListeningCommand}"
+                    CornerRadius="25"
+                    FontSize="20"
+                    HeightRequest="50"
+                    IsEnabled="{Binding IsInitializing, Converter={StaticResource InvertedBoolConverter}}"
+                    Text="{Binding MicButtonText}"
+                    TextColor="White"
+                    WidthRequest="50" />
+
+                <Button
+                    Grid.Column="2"
                     Padding="15,0"
                     BackgroundColor="#667eea"
                     BorderColor="Transparent"

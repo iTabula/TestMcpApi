@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Maui;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Net.Http.Headers;
+using KamMobile.Interfaces;
 
 namespace KamMobile;
 
@@ -166,7 +167,7 @@ public static class MauiProgram
 
         // Register Speech Recognition Service (platform-specific)
 #if ANDROID
-        builder.Services.AddSingleton<ISpeechRecognitionService, Platforms.Android.Services.AndroidSpeechRecognitionService>();
+        builder.Services.AddSingleton<ISpeechToTextService, SpeechToTextService>();
 #endif
 
         builder.Services.AddSingleton<AuthenticationService>();
