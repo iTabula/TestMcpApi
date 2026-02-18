@@ -70,10 +70,10 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                 throw new TimeoutException("No tools were loaded after initialization");
             }
 
-            // Set initialization flags BEFORE UI updates to ensure state is correct
-            // even if UI update has threading issues
+            // Set initialization flags BEFORE UI updates - use backing fields to avoid 
+            // triggering PropertyChanged on background thread
             _isInitialized = true;
-            IsInitializing = false;
+            _isInitializing = false;
             System.Diagnostics.Debug.WriteLine("ChatVapiViewModel initialization successful");
 
             // Update UI - if this fails, the initialization state is still correct
@@ -81,12 +81,16 @@ public class ChatVapiViewModel : INotifyPropertyChanged
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
+                    // Trigger property change notifications now that we're on main thread
+                    OnPropertyChanged(nameof(IsInitializing));
+                    OnPropertyChanged(nameof(IsStatusVisible));
+                    
                     StatusText = string.Empty;
                     Messages.Clear();
                     var userName = _authService.CurrentUser?.FirstName ?? "User";
                     Messages.Add(new ChatMessage
                     {
-                        Text = $"?? Hello {userName}! I'm your VAPI assistant. Ask me anything!",
+                        Text = $"Hello {userName}! I'm your VAPI assistant. Ask me anything!",
                         IsUser = false,
                         Timestamp = DateTime.Now
                     });
@@ -106,6 +110,8 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                     await Task.Delay(100); // Brief delay to let main thread catch up
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
+                        OnPropertyChanged(nameof(IsInitializing));
+                        OnPropertyChanged(nameof(IsStatusVisible));
                         StatusText = string.Empty;
                         ((Command)SendCommand).ChangeCanExecute();
                         ((Command)ToggleListeningCommand).ChangeCanExecute();
@@ -124,7 +130,9 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                IsInitializing = false;
+                _isInitializing = false;
+                OnPropertyChanged(nameof(IsInitializing));
+                OnPropertyChanged(nameof(IsStatusVisible));
                 StatusText = "Failed to initialize";
                 Messages.Clear();
                 Messages.Add(new ChatMessage
@@ -133,6 +141,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                     IsUser = false,
                     Timestamp = DateTime.Now
                 });
+                ((Command)ToggleListeningCommand).ChangeCanExecute();
             });
         }
     }
