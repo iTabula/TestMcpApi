@@ -36,7 +36,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 
         Messages.Add(new ChatMessage
         {
-            Text = "?? Please wait while I initialize...",
+            Text = "Please wait while I initialize...",
             IsUser = false,
             Timestamp = DateTime.Now
         });
@@ -137,7 +137,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                 Messages.Clear();
                 Messages.Add(new ChatMessage
                 {
-                    Text = $"?? Failed to initialize: {ex.Message}\n\nPlease restart the app.",
+                    Text = $"Failed to initialize: {ex.Message}\n\nPlease restart the app.",
                     IsUser = false,
                     Timestamp = DateTime.Now
                 });
@@ -178,6 +178,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
             _isInitializing = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsStatusVisible));
+            OnPropertyChanged(nameof(AreButtonsEnabled));
             ((Command)ToggleListeningCommand).ChangeCanExecute();
         }
     }
@@ -190,6 +191,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
             _isSpeaking = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsStatusVisible));
+            OnPropertyChanged(nameof(AreButtonsEnabled));
             ((Command)SendCommand).ChangeCanExecute();
             ((Command)StopSpeakingCommand).ChangeCanExecute();
             ((Command)ToggleListeningCommand).ChangeCanExecute();
@@ -204,6 +206,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
             _isListening = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(MicButtonText));
+            OnPropertyChanged(nameof(AreButtonsEnabled));
             ((Command)SendCommand).ChangeCanExecute();
             ((Command)ToggleListeningCommand).ChangeCanExecute();
         }
@@ -211,7 +214,9 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 
     public bool IsStatusVisible => !_isInitializing && !string.IsNullOrWhiteSpace(StatusText);
 
-    public string MicButtonText => IsListening ? "?" : "??";
+    public bool AreButtonsEnabled => !_isInitializing && !_isSpeaking && !_isListening && !_isSending;
+
+    public string MicButtonText => IsListening ? "Listening..." : "Tap to Speak";
 
     public ICommand SendCommand { get; }
     public ICommand LogoutCommand { get; }
@@ -226,7 +231,9 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         var userMessage = MessageInput.Trim();
         MessageInput = string.Empty;
         _isSending = true;
+        StatusText = "Thinking...";
         OnPropertyChanged(nameof(IsStatusVisible));
+        OnPropertyChanged(nameof(AreButtonsEnabled));
         ((Command)SendCommand).ChangeCanExecute();
         ((Command)ToggleListeningCommand).ChangeCanExecute();
 
@@ -261,6 +268,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                     IsUser = false,
                     Timestamp = DateTime.Now
                 });
+                StatusText = string.Empty;
             });
 
             // Speak the response
@@ -277,12 +285,14 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                     IsUser = false,
                     Timestamp = DateTime.Now
                 });
+                StatusText = string.Empty;
             });
         }
         finally
         {
             _isSending = false;
             OnPropertyChanged(nameof(IsStatusVisible));
+            OnPropertyChanged(nameof(AreButtonsEnabled));
             ((Command)SendCommand).ChangeCanExecute();
             ((Command)ToggleListeningCommand).ChangeCanExecute();
         }
@@ -351,6 +361,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         _isSending = false;
         IsSpeaking = true;
         StatusText = "Speaking response...";
+        OnPropertyChanged(nameof(AreButtonsEnabled));
 
         try
         {

@@ -4,7 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewModels="clr-namespace:KamMobile.ViewModels"
-    Title="VAPI Chat Assistant"
+    Title="KAM Chat Assistant"
     x:DataType="viewModels:ChatVapiViewModel">
 
     <ContentPage.ToolbarItems>
@@ -25,13 +25,13 @@
                     FontAttributes="Bold"
                     FontSize="24"
                     HorizontalOptions="Center"
-                    Text="VAPI Chat Assistant"
+                    Text="KAM Chat Assistant"
                     TextColor="White" />
                 <Label
                     FontSize="14"
                     HorizontalOptions="Center"
                     Opacity="0.9"
-                    Text="Powered by SSE with Model Context Protocol"
+                    Text="Speak or type to start a conversation with the KAM Agent"
                     TextColor="White" />
             </VerticalStackLayout>
         </Frame>
@@ -135,10 +135,19 @@
                     CornerRadius="25"
                     FontSize="20"
                     HeightRequest="50"
-                    IsEnabled="{Binding IsInitializing, Converter={StaticResource InvertedBoolConverter}}"
+                    IsEnabled="{Binding AreButtonsEnabled}"
                     Text="{Binding MicButtonText}"
                     TextColor="White"
-                    WidthRequest="50" />
+                    WidthRequest="50">
+                    <Button.Triggers>
+                        <DataTrigger
+                            Binding="{Binding AreButtonsEnabled}"
+                            TargetType="Button"
+                            Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
 
                 <Button
                     Grid.Column="2"
@@ -148,9 +157,19 @@
                     Command="{Binding SendCommand}"
                     CornerRadius="25"
                     HeightRequest="50"
+                    IsEnabled="{Binding AreButtonsEnabled}"
                     Text="Send"
                     TextColor="White"
-                    WidthRequest="80" />
+                    WidthRequest="80">
+                    <Button.Triggers>
+                        <DataTrigger
+                            Binding="{Binding AreButtonsEnabled}"
+                            TargetType="Button"
+                            Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
             </Grid>
         </Frame>
     </Grid>
