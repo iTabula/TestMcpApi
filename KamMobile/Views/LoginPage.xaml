@@ -20,7 +20,7 @@
                 FontAttributes="Bold"
                 FontSize="32"
                 HorizontalOptions="Center"
-                Text="Voice Assistant"
+                Text="KAM Assistant"
                 TextColor="#667eea" />
 
             <!--  Login Form  -->

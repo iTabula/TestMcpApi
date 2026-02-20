@@ -126,28 +126,27 @@
                         VerticalOptions="Center" />
                 </Frame>
 
-                <Button
+                <ImageButton
                     Grid.Column="1"
-                    Padding="0"
+                    Padding="10"
                     BackgroundColor="#667eea"
                     BorderColor="Transparent"
                     Command="{Binding ToggleListeningCommand}"
                     CornerRadius="25"
-                    FontSize="20"
                     HeightRequest="50"
                     IsEnabled="{Binding AreButtonsEnabled}"
-                    Text="{Binding MicButtonText}"
-                    TextColor="White"
+                    Source="microphone.svg"
+                    TintColor="White"
                     WidthRequest="50">
-                    <Button.Triggers>
+                    <ImageButton.Triggers>
                         <DataTrigger
                             Binding="{Binding AreButtonsEnabled}"
-                            TargetType="Button"
+                            TargetType="ImageButton"
                             Value="False">
                             <Setter Property="Opacity" Value="0.5" />
                         </DataTrigger>
-                    </Button.Triggers>
-                </Button>
+                    </ImageButton.Triggers>
+                </ImageButton>
 
                 <Button
                     Grid.Column="2"
