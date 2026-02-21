@@ -31,7 +31,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         Messages = new ObservableCollection<ChatMessage>();
         SendCommand = new Command(async () => await ExecuteSendAsync(), () => CanSendMessage());
         LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
-        StopSpeakingCommand = new Command(StopSpeaking, () => _isSpeaking);
+        StopSpeakingCommand = new Command(async () => await ExecuteStopSpeakingAsync(), () => _isSpeaking);
         ToggleListeningCommand = new Command(async () => await ExecuteToggleListeningAsync(), () => CanToggleListening());
 
         Messages.Add(new ChatMessage
@@ -230,12 +230,16 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 
         var userMessage = MessageInput.Trim();
         MessageInput = string.Empty;
-        _isSending = true;
-        StatusText = "Thinking...";
-        OnPropertyChanged(nameof(IsStatusVisible));
-        OnPropertyChanged(nameof(AreButtonsEnabled));
-        ((Command)SendCommand).ChangeCanExecute();
-        ((Command)ToggleListeningCommand).ChangeCanExecute();
+        
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _isSending = true;
+            StatusText = "Thinking...";
+            OnPropertyChanged(nameof(IsStatusVisible));
+            OnPropertyChanged(nameof(AreButtonsEnabled));
+            ((Command)SendCommand).ChangeCanExecute();
+            ((Command)ToggleListeningCommand).ChangeCanExecute();
+        });
 
         try
         {
@@ -290,11 +294,14 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         }
         finally
         {
-            _isSending = false;
-            OnPropertyChanged(nameof(IsStatusVisible));
-            OnPropertyChanged(nameof(AreButtonsEnabled));
-            ((Command)SendCommand).ChangeCanExecute();
-            ((Command)ToggleListeningCommand).ChangeCanExecute();
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                _isSending = false;
+                OnPropertyChanged(nameof(IsStatusVisible));
+                OnPropertyChanged(nameof(AreButtonsEnabled));
+                ((Command)SendCommand).ChangeCanExecute();
+                ((Command)ToggleListeningCommand).ChangeCanExecute();
+            });
         }
     }
 
@@ -358,13 +365,13 @@ public class ChatVapiViewModel : INotifyPropertyChanged
 
     private async Task SpeakAnswerAsync(string text)
     {
-        _isSending = false;
-        IsSpeaking = true;
-        StatusText = "Speaking response...";
-        OnPropertyChanged(nameof(AreButtonsEnabled));
-
         try
         {
+            _isSending = false;
+            IsSpeaking = true;
+            StatusText = "Speaking response...";
+            OnPropertyChanged(nameof(AreButtonsEnabled));
+
             _speechCts = new CancellationTokenSource();
 
             var locales = await TextToSpeech.Default.GetLocalesAsync();
@@ -377,7 +384,9 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                 Locale = selectedLocale
             };
 
+            System.Diagnostics.Debug.WriteLine($"Starting to speak: {text.Substring(0, Math.Min(50, text.Length))}...");
             await TextToSpeech.Default.SpeakAsync(text, speechOptions, _speechCts.Token);
+            System.Diagnostics.Debug.WriteLine("Speech completed normally");
 
             if (!_speechCts.IsCancellationRequested)
             {
@@ -390,6 +399,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         }
         catch (OperationCanceledException)
         {
+            System.Diagnostics.Debug.WriteLine("Speech was cancelled");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 StatusText = "Speech stopped";
@@ -412,12 +422,32 @@ public class ChatVapiViewModel : INotifyPropertyChanged
         }
     }
 
-    private void StopSpeaking()
+    private async Task ExecuteStopSpeakingAsync()
     {
-        _speechCts?.Cancel();
-        TextToSpeech.Default.SpeakAsync(string.Empty);
-        StatusText = string.Empty;
-        IsSpeaking = false;
+        System.Diagnostics.Debug.WriteLine("Stop speaking requested");
+        
+        try
+        {
+            _speechCts?.Cancel();
+            
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                StatusText = "Speech stopped";
+                IsSpeaking = false;
+            });
+
+            // Give a moment for the cancellation to process
+            await Task.Delay(100);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                StatusText = string.Empty;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error stopping speech: {ex.Message}");
+        }
     }
 
     private async Task ExecuteLogoutAsync()
@@ -427,7 +457,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
             // Stop speaking if in progress
             if (_isSpeaking)
             {
-                StopSpeaking();
+                await ExecuteStopSpeakingAsync();
             }
 
             if (_isListening)

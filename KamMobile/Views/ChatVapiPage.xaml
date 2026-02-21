@@ -107,7 +107,7 @@
             BackgroundColor="#f5f5f5"
             CornerRadius="0"
             HasShadow="False">
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
                 <Frame
                     Grid.Column="0"
                     Padding="0"
@@ -150,6 +150,19 @@
 
                 <Button
                     Grid.Column="2"
+                    Padding="10,0"
+                    BackgroundColor="#dc3545"
+                    BorderColor="Transparent"
+                    Command="{Binding StopSpeakingCommand}"
+                    CornerRadius="25"
+                    HeightRequest="50"
+                    IsVisible="{Binding IsSpeaking}"
+                    Text="Stop"
+                    TextColor="White"
+                    WidthRequest="70" />
+
+                <Button
+                    Grid.Column="3"
                     Padding="15,0"
                     BackgroundColor="#667eea"
                     BorderColor="Transparent"
