@@ -5,7 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewModels="clr-namespace:KamMobile.ViewModels"
     Title="KAM Chat Assistant"
-    x:DataType="viewModels:ChatVapiViewModel">
+    x:DataType="viewModels:ChatVapiViewModel"
+    BackgroundColor="#f8f9fa">
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Command="{Binding LogoutCommand}" Text="Logout" />
@@ -13,65 +14,83 @@
 
     <Grid Padding="0" RowDefinitions="Auto,*,Auto,Auto">
 
-        <!--  Header  -->
-        <Frame
-            Grid.Row="0"
-            Padding="20,15"
-            BackgroundColor="#667eea"
-            CornerRadius="0"
-            HasShadow="False">
-            <VerticalStackLayout Spacing="5">
+        <!--  Header with Gradient  -->
+        <Grid Grid.Row="0" HeightRequest="120">
+            <BoxView>
+                <BoxView.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Offset="0.0" Color="#667eea" />
+                        <GradientStop Offset="1.0" Color="#764ba2" />
+                    </LinearGradientBrush>
+                </BoxView.Background>
+            </BoxView>
+            <VerticalStackLayout
+                Padding="20,15"
+                Spacing="8"
+                VerticalOptions="Center">
                 <Label
                     FontAttributes="Bold"
-                    FontSize="24"
+                    FontSize="28"
                     HorizontalOptions="Center"
                     Text="KAM Chat Assistant"
                     TextColor="White" />
                 <Label
                     FontSize="14"
                     HorizontalOptions="Center"
-                    Opacity="0.9"
-                    Text="Speak or type to start a conversation with the KAM Agent"
+                    LineBreakMode="WordWrap"
+                    Opacity="0.95"
+                    Text="Speak or type to start a conversation"
                     TextColor="White" />
             </VerticalStackLayout>
-        </Frame>
+        </Grid>
 
         <!--  Initialization Indicator  -->
         <VerticalStackLayout
             Grid.Row="1"
             HorizontalOptions="Center"
             IsVisible="{Binding IsInitializing}"
-            Spacing="15"
+            Spacing="20"
             VerticalOptions="Center">
-            <ActivityIndicator
-                HeightRequest="50"
-                IsRunning="{Binding IsInitializing}"
-                WidthRequest="50"
-                Color="#667eea" />
-            <Label
-                FontSize="16"
-                HorizontalOptions="Center"
-                Text="{Binding StatusText}"
-                TextColor="#667eea" />
+            <Frame
+                Padding="30"
+                BackgroundColor="White"
+                CornerRadius="20"
+                HasShadow="True">
+                <VerticalStackLayout Spacing="15">
+                    <ActivityIndicator
+                        HeightRequest="50"
+                        IsRunning="{Binding IsInitializing}"
+                        WidthRequest="50"
+                        Color="#667eea" />
+                    <Label
+                        FontAttributes="Bold"
+                        FontSize="16"
+                        HorizontalOptions="Center"
+                        Text="{Binding StatusText}"
+                        TextColor="#667eea" />
+                </VerticalStackLayout>
+            </Frame>
         </VerticalStackLayout>
 
         <!--  Chat Messages  -->
         <CollectionView
             Grid.Row="1"
-            Margin="10,10,10,0"
+            Margin="15,15,15,5"
             IsVisible="{Binding IsInitializing, Converter={StaticResource InvertedBoolConverter}}"
-            ItemsSource="{Binding Messages}">
+            ItemsSource="{Binding Messages}"
+            VerticalScrollBarVisibility="Never">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="viewModels:ChatMessage">
-                    <Grid Padding="5,5">
+                    <Grid Padding="5,8">
                         <Frame
-                            Padding="12,10"
+                            Padding="15,12"
                             BackgroundColor="{Binding IsUser, Converter={StaticResource MessageBackgroundConverter}}"
                             BorderColor="Transparent"
-                            CornerRadius="15"
-                            HasShadow="False"
-                            HorizontalOptions="{Binding IsUser, Converter={StaticResource MessageAlignmentConverter}}">
-                            <VerticalStackLayout Spacing="5">
+                            CornerRadius="18"
+                            HasShadow="True"
+                            HorizontalOptions="{Binding IsUser, Converter={StaticResource MessageAlignmentConverter}}"
+                            MaximumWidthRequest="320">
+                            <VerticalStackLayout Spacing="6">
                                 <Label
                                     FontAttributes="Bold"
                                     FontSize="12"
@@ -90,30 +109,37 @@
         </CollectionView>
 
         <!--  Status Text  -->
-        <Label
+        <Frame
             Grid.Row="2"
             Margin="15,5"
-            FontAttributes="Italic"
-            FontSize="14"
+            Padding="12,8"
+            BackgroundColor="White"
+            BorderColor="#667eea"
+            CornerRadius="15"
+            HasShadow="False"
             HorizontalOptions="Center"
-            IsVisible="{Binding IsStatusVisible}"
-            Text="{Binding StatusText}"
-            TextColor="#667eea" />
+            IsVisible="{Binding IsStatusVisible}">
+            <Label
+                FontAttributes="Italic"
+                FontSize="14"
+                Text="{Binding StatusText}"
+                TextColor="#667eea" />
+        </Frame>
 
         <!--  Input Area  -->
         <Frame
             Grid.Row="3"
-            Padding="15,10"
-            BackgroundColor="#f5f5f5"
+            Padding="15,12"
+            BackgroundColor="White"
             CornerRadius="0"
-            HasShadow="False">
+            HasShadow="True">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
                 <Frame
                     Grid.Column="0"
-                    Padding="0"
-                    BackgroundColor="White"
-                    BorderColor="#ddd"
-                    CornerRadius="20"
+                    Padding="15,5"
+                    BackgroundColor="#f8f9fa"
+                    BorderColor="#e0e0e0"
+                    CornerRadius="25"
                     HasShadow="False">
                     <Editor
                         BackgroundColor="Transparent"
@@ -122,22 +148,22 @@
                         IsEnabled="{Binding IsInitializing, Converter={StaticResource InvertedBoolConverter}}"
                         MaxLength="1000"
                         Placeholder="Type your message here..."
+                        PlaceholderColor="#999"
                         Text="{Binding MessageInput}"
                         VerticalOptions="Center" />
                 </Frame>
 
                 <ImageButton
                     Grid.Column="1"
-                    Padding="10"
+                    Padding="12"
                     BackgroundColor="#667eea"
                     BorderColor="Transparent"
                     Command="{Binding ToggleListeningCommand}"
-                    CornerRadius="25"
-                    HeightRequest="50"
+                    CornerRadius="28"
+                    HeightRequest="56"
                     IsEnabled="{Binding AreButtonsEnabled}"
                     Source="microphone.svg"
-                    TintColor="White"
-                    WidthRequest="50">
+                    WidthRequest="56">
                     <ImageButton.Triggers>
                         <DataTrigger
                             Binding="{Binding AreButtonsEnabled}"
@@ -150,29 +176,33 @@
 
                 <Button
                     Grid.Column="2"
-                    Padding="10,0"
+                    Padding="15,0"
                     BackgroundColor="#dc3545"
                     BorderColor="Transparent"
                     Command="{Binding StopSpeakingCommand}"
-                    CornerRadius="25"
-                    HeightRequest="50"
+                    CornerRadius="28"
+                    FontAttributes="Bold"
+                    HeightRequest="56"
                     IsVisible="{Binding IsSpeaking}"
                     Text="Stop"
                     TextColor="White"
-                    WidthRequest="70" />
+                    WidthRequest="80">
+                </Button>
 
                 <Button
                     Grid.Column="3"
-                    Padding="15,0"
+                    Padding="18,0"
                     BackgroundColor="#667eea"
                     BorderColor="Transparent"
                     Command="{Binding SendCommand}"
-                    CornerRadius="25"
-                    HeightRequest="50"
+                    CornerRadius="28"
+                    FontAttributes="Bold"
+                    FontSize="16"
+                    HeightRequest="56"
                     IsEnabled="{Binding AreButtonsEnabled}"
                     Text="Send"
                     TextColor="White"
-                    WidthRequest="80">
+                    WidthRequest="85">
                     <Button.Triggers>
                         <DataTrigger
                             Binding="{Binding AreButtonsEnabled}"
