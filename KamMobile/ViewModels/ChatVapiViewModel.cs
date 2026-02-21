@@ -84,6 +84,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                     // Trigger property change notifications now that we're on main thread
                     OnPropertyChanged(nameof(IsInitializing));
                     OnPropertyChanged(nameof(IsStatusVisible));
+                    OnPropertyChanged(nameof(AreButtonsEnabled));
                     
                     StatusText = string.Empty;
                     Messages.Clear();
@@ -112,6 +113,7 @@ public class ChatVapiViewModel : INotifyPropertyChanged
                     {
                         OnPropertyChanged(nameof(IsInitializing));
                         OnPropertyChanged(nameof(IsStatusVisible));
+                        OnPropertyChanged(nameof(AreButtonsEnabled));
                         StatusText = string.Empty;
                         ((Command)SendCommand).ChangeCanExecute();
                         ((Command)ToggleListeningCommand).ChangeCanExecute();
