@@ -61,7 +61,10 @@
                         <label for="joinPhone">Phone Number</label>
                         <input id="joinPhone" name="phone" type="tel" required />
                     </div>
-                    <button id="joinKamSubmit" type="submit" class="send-button">Submit</button>
+                    <div class="join-kam-buttons">
+                        <button id="joinKamSubmit" type="submit" class="send-button">Submit</button>
+                        <button id="joinKamCancel" type="button" class="send-button cancel-button">Cancel</button>
+                    </div>
                 </form>
                 <p id="joinKamStatus" class="join-kam-status"></p>
             </div>
@@ -80,6 +83,7 @@
                     </select>
                     <button type="button" class="send-button" id="joinKamNext">Continue</button>
                 </div>
+                <button id="joinKamFollowUpCancel" type="button" class="send-button cancel-button" style="margin-top: 12px;">Cancel</button>
                 <p id="joinKamFollowUpStatus" class="join-kam-status"></p>
             </div>
         </div>
@@ -424,6 +428,21 @@
         font-weight: 500;
     }
 
+    .join-kam-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .cancel-button {
+        background-color: #dc3545;
+        color: white;
+    }
+
+        .cancel-button:hover:not(:disabled) {
+            background-color: #c82333;
+        }
+
     @@media (max-width: 768px) {
         .assistant-section {
             padding: 20px;
@@ -480,6 +499,8 @@
     const joinKamSelect = document.getElementById('joinKamSelect');
     const joinKamNext = document.getElementById('joinKamNext');
     const joinKamFollowUpStatus = document.getElementById('joinKamFollowUpStatus');
+    const joinKamCancel = document.getElementById('joinKamCancel');
+    const joinKamFollowUpCancel = document.getElementById('joinKamFollowUpCancel');
 
     let joinKamFormData = null;
     let joinKamQuestionIndex = 0;
@@ -603,6 +624,16 @@
 
         joinKamAnswers[question.key] = selectedValue;
         advanceJoinKamQuestion();
+    });
+
+    joinKamCancel.addEventListener('click', () => {
+        hideJoinKamForm();
+        status.textContent = 'Click to start';
+    });
+
+    joinKamFollowUpCancel.addEventListener('click', () => {
+        hideJoinKamForm();
+        status.textContent = 'Click to start';
     });
 
     // Get anti-forgery token
@@ -848,6 +879,16 @@
         }
 
         startJoinKamQuestions(payload);
+    });
+
+    joinKamCancel.addEventListener('click', () => {
+        hideJoinKamForm();
+        status.textContent = 'Click to start';
+    });
+
+    joinKamFollowUpCancel.addEventListener('click', () => {
+        hideJoinKamForm();
+        status.textContent = 'Click to start';
     });
 </script>
 
