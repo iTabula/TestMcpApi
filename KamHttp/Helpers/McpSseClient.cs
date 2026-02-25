@@ -259,10 +259,10 @@ namespace KamHttp.Helpers
 
         public async Task<string> ProcessPromptAsync(string prompt)
         {
-            if (_tools.Count == 0)
-            {
-                return "No tools available from MCP server.";
-            }
+            //if (_tools.Count == 0)
+            //{
+            //    return "No tools available from MCP server.";
+            //}
 
             if (_vapiClient == null || string.IsNullOrEmpty(_vapiAssistantId))
             {
