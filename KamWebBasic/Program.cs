@@ -75,6 +75,10 @@ builder.Services.AddSingleton<McpSseClient>(sp =>
 
 var app = builder.Build();
 
+// Initialize MCP client on startup
+var mcpClient = app.Services.GetRequiredService<McpSseClient>();
+await mcpClient.ConnectAsync();
+await mcpClient.InitializeAsync();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

@@ -12,10 +12,12 @@ namespace KamWebBasic.Pages
     {
         private static readonly ConcurrentBag<JoinKamRequest> JoinKamRequests = new();
         private readonly ILogger<IndexModel> _logger;
+        private readonly McpSseClient _mcpClient;
 
-        public IndexModel(ILogger<IndexModel> logger)
+        public IndexModel(ILogger<IndexModel> logger, McpSseClient mcpClient)
         {
             _logger = logger;
+            _mcpClient = mcpClient;
         }
 
         public void OnGetAsync()
@@ -35,10 +37,10 @@ namespace KamWebBasic.Pages
 
                 _logger.LogInformation("Processing question: {Question}", request.Question);
 
-                string prompt = request.Question.Trim();
-                var answer = "Your question was: " + prompt;
+                // Use VAPI agent to process the question
+                var answer = await _mcpClient.ProcessPromptAsync(request.Question.Trim());
 
-                _logger.LogInformation("Answer generated successfully");
+                _logger.LogInformation("Answer generated successfully from VAPI agent");
 
                 return new JsonResult(new { answer });
             }
