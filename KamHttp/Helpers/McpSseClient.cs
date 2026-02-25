@@ -23,6 +23,7 @@ namespace KamHttp.Helpers
         private readonly List<VapiMessage> _conversationHistory = [];
 
         private readonly ILogger<McpSseClient>? _logger;
+        public int ToolCount => _tools.Count;
 
         public McpSseClient(string sseEndpoint, ILogger<McpSseClient>? logger = null)
         {
@@ -258,10 +259,10 @@ namespace KamHttp.Helpers
 
         public async Task<string> ProcessPromptAsync(string prompt)
         {
-            if (_tools.Count == 0)
-            {
-                return "No tools available from MCP server.";
-            }
+            //if (_tools.Count == 0)
+            //{
+            //    return "No tools available from MCP server.";
+            //}
 
             if (_vapiClient == null || string.IsNullOrEmpty(_vapiAssistantId))
             {

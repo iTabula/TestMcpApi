@@ -4,7 +4,8 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-	</PropertyGroup>
+	  <UserSecretsId>6d6664d8-c39e-45fd-b9b1-51045fe540f0</UserSecretsId>
+  </PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Azure.AI.OpenAI" Version="2.8.0-beta.1" />
@@ -12,11 +13,7 @@
 		<PackageReference Include="Azure.Identity" Version="1.18.0-beta.2" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
-		<PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Services\" />
+		<PackageReference Include="ModelContextProtocol" Version="0.7.0-preview.1" />
 	</ItemGroup>
 
 	<ItemGroup>

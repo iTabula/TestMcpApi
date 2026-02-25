@@ -4,152 +4,172 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewModels="clr-namespace:KamMobile.ViewModels"
-    Title="Voice Assistant"
-    x:DataType="viewModels:ChatViewModel">
-
+    Title="Chat">
     <ContentPage.ToolbarItems>
         <ToolbarItem Command="{Binding LogoutCommand}" Text="Logout" />
     </ContentPage.ToolbarItems>
 
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="20">
+    <ContentPage.Content>
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
 
-            <!--  Header  -->
-            <Label
-                FontAttributes="Bold"
-                FontSize="28"
-                HorizontalOptions="Center"
-                Text="Voice Assistant"
-                TextColor="#333" />
+                <!--  Header  -->
+                <Label
+                    FontAttributes="Bold"
+                    FontSize="28"
+                    HorizontalOptions="Center"
+                    Text="Voice Assistant"
+                    TextColor="#333" />
 
-            <Label
-                Margin="0,0,0,20"
-                FontSize="14"
-                HorizontalOptions="Center"
-                Text="Ask me a question by clicking the microphone"
-                TextColor="#666" />
+                <Label
+                    Margin="0,0,0,20"
+                    FontSize="14"
+                    HorizontalOptions="Center"
+                    Text="Ask me a question by clicking the microphone"
+                    TextColor="#666" />
 
-            <!--  Assistant Section  -->
-            <Frame
-                Padding="30"
-                BackgroundColor="#667eea"
-                CornerRadius="15"
-                HasShadow="True">
-                <VerticalStackLayout Spacing="20">
+                <!--  Assistant Section  -->
+                <Frame
+                    Padding="30"
+                    BackgroundColor="#667eea"
+                    CornerRadius="15"
+                    HasShadow="True">
+                    <VerticalStackLayout Spacing="20">
 
-                    <!--  Microphone Icon with Animation  -->
-                    <Frame
-                        x:Name="MicrophoneFrame"
-                        Padding="15"
-                        BackgroundColor="Transparent"
-                        BorderColor="White"
-                        CornerRadius="50"
-                        HasShadow="False"
-                        HeightRequest="100"
-                        HorizontalOptions="Center"
-                        WidthRequest="100">
-                        <Grid>
-                            <!--  SVG Microphone Icon (matching web app)  -->
-                            <Path
-                                Aspect="Uniform"
-                                Data="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
-                                Fill="White"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center" />
-                            <Grid.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding StartConversationCommand}" />
-                            </Grid.GestureRecognizers>
-                        </Grid>
-                    </Frame>
+                        <!--  Microphone Icon with Animation  -->
+                        <Frame
+                            x:Name="MicrophoneFrame"
+                            Padding="15"
+                            BackgroundColor="Transparent"
+                            BorderColor="White"
+                            CornerRadius="50"
+                            HasShadow="False"
+                            HeightRequest="100"
+                            HorizontalOptions="Center"
+                            WidthRequest="100">
+                            <Grid>
+                                <!--  SVG Microphone Icon (matching web app)  -->
+                                <Path
+                                    Aspect="Uniform"
+                                    Data="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+                                    Fill="White"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding StartConversationCommand}" />
+                                </Grid.GestureRecognizers>
+                            </Grid>
+                        </Frame>
 
-                    <!--  Start Button  -->
-                    <Button
-                        BackgroundColor="White"
-                        Command="{Binding StartConversationCommand}"
-                        CornerRadius="25"
-                        FontAttributes="Bold"
-                        FontSize="18"
-                        HeightRequest="50"
-                        Text="{Binding ButtonText}"
-                        TextColor="#667eea" />
+                        <!--  Start Button  -->
+                        <Button
+                            BackgroundColor="White"
+                            Command="{Binding StartConversationCommand}"
+                            CornerRadius="25"
+                            FontAttributes="Bold"
+                            FontSize="18"
+                            HeightRequest="50"
+                            Text="{Binding ButtonText}"
+                            TextColor="#667eea" />
 
-                    <!--  Status  -->
-                    <Label
-                        FontAttributes="Bold"
-                        FontSize="16"
-                        HorizontalOptions="Center"
-                        MinimumHeightRequest="24"
-                        Text="{Binding StatusText}"
-                        TextColor="White" />
-
-                </VerticalStackLayout>
-            </Frame>
-
-            <!--  Question Section  -->
-            <Frame
-                Padding="20"
-                BackgroundColor="White"
-                CornerRadius="10"
-                HasShadow="True">
-                <VerticalStackLayout Spacing="10">
-                    <Label
-                        FontAttributes="Bold"
-                        FontSize="18"
-                        Text="Your Question:"
-                        TextColor="#667eea" />
-                    <Frame
-                        Padding="15"
-                        BackgroundColor="#f0f4ff"
-                        CornerRadius="8"
-                        HasShadow="False">
+                        <!--  Status  -->
                         <Label
+                            FontAttributes="Bold"
                             FontSize="16"
-                            LineBreakMode="WordWrap"
-                            Text="{Binding QuestionText}"
-                            TextColor="#333" />
-                    </Frame>
-                </VerticalStackLayout>
-            </Frame>
+                            HorizontalOptions="Center"
+                            MinimumHeightRequest="24"
+                            Text="{Binding StatusText}"
+                            TextColor="White" />
 
-            <!--  Answer Section  -->
-            <Frame
-                Padding="20"
-                BackgroundColor="White"
-                CornerRadius="10"
-                HasShadow="True">
-                <VerticalStackLayout Spacing="10">
-                    <HorizontalStackLayout Spacing="10">
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!--  Question Section  -->
+                <Frame
+                    Padding="20"
+                    BackgroundColor="White"
+                    CornerRadius="10"
+                    HasShadow="True">
+                    <VerticalStackLayout Spacing="10">
                         <Label
                             FontAttributes="Bold"
                             FontSize="18"
-                            Text="My Answer:"
-                            TextColor="#28a745"
-                            VerticalOptions="Center" />
-                        <!--  SVG Speaker Icon (matching web app)  -->
-                        <Path
-                            Aspect="Uniform"
-                            Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
-                            Fill="#28a745"
-                            HeightRequest="24"
-                            IsVisible="{Binding IsSpeaking}"
-                            VerticalOptions="Center"
-                            WidthRequest="24" />
-                    </HorizontalStackLayout>
-                    <Frame
-                        Padding="15"
-                        BackgroundColor="#f0fff4"
-                        CornerRadius="8"
-                        HasShadow="False">
-                        <Label
-                            FontSize="16"
-                            LineBreakMode="WordWrap"
-                            Text="{Binding AnswerText}"
-                            TextColor="#333" />
-                    </Frame>
-                </VerticalStackLayout>
-            </Frame>
+                            Text="Your Question:"
+                            TextColor="#667eea" />
+                        <Frame
+                            Padding="15"
+                            BackgroundColor="#f0f4ff"
+                            CornerRadius="8"
+                            HasShadow="False">
+                            <Label
+                                FontSize="16"
+                                LineBreakMode="WordWrap"
+                                Text="{Binding QuestionText}"
+                                TextColor="#333" />
+                        </Frame>
+                    </VerticalStackLayout>
+                </Frame>
 
-        </VerticalStackLayout>
-    </ScrollView>
+                <!--  Answer Section  -->
+                <Frame
+                    Padding="20"
+                    BackgroundColor="White"
+                    CornerRadius="10"
+                    HasShadow="True">
+                    <VerticalStackLayout Spacing="10">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                Text="My Answer:"
+                                TextColor="#28a745"
+                                VerticalOptions="Center" />
+                            <!--  SVG Speaker Icon (matching web app)  -->
+                            <Path
+                                Aspect="Uniform"
+                                Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+                                Fill="#28a745"
+                                HeightRequest="24"
+                                IsVisible="{Binding IsSpeaking}"
+                                VerticalOptions="Center"
+                                WidthRequest="24" />
+                        </HorizontalStackLayout>
+                        <Frame
+                            Padding="15"
+                            BackgroundColor="#f0fff4"
+                            CornerRadius="8"
+                            HasShadow="False">
+                            <Label
+                                FontSize="16"
+                                LineBreakMode="WordWrap"
+                                Text="{Binding AnswerText}"
+                                TextColor="#333" />
+                        </Frame>
+                    </VerticalStackLayout>
+                </Frame>
 
+                <!--  Chat Messages Section  -->
+                <CollectionView Margin="0,0,0,10" ItemsSource="{Binding Messages}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Label Margin="0,5" Text="{Binding}" />
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!--  Message Input Section  -->
+                <HorizontalStackLayout Spacing="10">
+                    <Entry
+                        x:Name="MessageEntry"
+                        Placeholder="Type your message here..."
+                        Text="{Binding CurrentMessage}" />
+                    <Button
+                        Command="{Binding SendMessageCommand}"
+                        HorizontalOptions="End"
+                        Text="Send" />
+                </HorizontalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </ContentPage.Content>
 </ContentPage>
