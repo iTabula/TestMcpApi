@@ -594,7 +594,9 @@
             joinKamFollowUpStatus.textContent = data.message;
             hideJoinKamForm();
             answerText.textContent = data.message;
-            status.textContent = 'Thanks for your interest in KAM!';
+            const thankYouMessage = 'Thanks for your interest in KAM! We will follow up soon.';
+            status.textContent = thankYouMessage;
+            speakAnswerImmediately(thankYouMessage);
         } catch (error) {
             console.error('Error:', error);
             joinKamFollowUpStatus.textContent = 'Sorry, I could not save your request. Please try again.';

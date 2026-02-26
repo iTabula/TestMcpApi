@@ -68,7 +68,7 @@ namespace KamWebBasic.Pages
             JoinKamRequests.Add(request);
             _logger.LogInformation("Join KAM request received from {Email}", request.Email);
 
-            return new JsonResult(new { message = "Thanks for your interest! We'll follow up soon." });
+            return new JsonResult(new { message = "Thanks for your interest in KAM! We will follow up soon." });
         }
     }
 }
