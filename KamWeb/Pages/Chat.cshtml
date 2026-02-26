@@ -68,6 +68,51 @@
                     <em>Waiting for question...</em>
                 </div>
             </div>
+
+            <div id="joinKamForm" class="join-kam-form" hidden>
+                <h3>Join KAM</h3>
+                <form id="joinKamFormElement" class="join-kam-fields">
+                    <div class="form-row">
+                        <label for="joinFirstName">First Name</label>
+                        <input id="joinFirstName" name="firstName" type="text" required />
+                    </div>
+                    <div class="form-row">
+                        <label for="joinLastName">Last Name</label>
+                        <input id="joinLastName" name="lastName" type="text" required />
+                    </div>
+                    <div class="form-row">
+                        <label for="joinEmail">Email Address</label>
+                        <input id="joinEmail" name="email" type="email" required />
+                    </div>
+                    <div class="form-row">
+                        <label for="joinPhone">Phone Number</label>
+                        <input id="joinPhone" name="phone" type="tel" required />
+                    </div>
+                    <div class="join-kam-buttons">
+                        <button id="joinKamSubmit" type="submit" class="send-button">Submit</button>
+                        <button id="joinKamCancel" type="button" class="send-button cancel-button">Cancel</button>
+                    </div>
+                </form>
+                <p id="joinKamStatus" class="join-kam-status"></p>
+            </div>
+
+            <div id="joinKamFollowUp" class="join-kam-form" hidden>
+                <h3>Join KAM</h3>
+                <div class="join-kam-question" id="joinKamQuestionText"></div>
+                <div id="joinKamYesNo" class="join-kam-options" hidden>
+                    <button type="button" class="send-button" id="joinKamYes">Yes</button>
+                    <button type="button" class="send-button" id="joinKamNo">No</button>
+                </div>
+                <div id="joinKamSelectContainer" class="join-kam-select" hidden>
+                    <label for="joinKamSelect">Choose one</label>
+                    <select id="joinKamSelect" class="join-kam-dropdown">
+                        <option value="" disabled selected>Select an option</option>
+                    </select>
+                    <button type="button" class="send-button" id="joinKamNext">Continue</button>
+                </div>
+                <button id="joinKamFollowUpCancel" type="button" class="send-button cancel-button" style="margin-top: 12px;">Cancel</button>
+                <p id="joinKamFollowUpStatus" class="join-kam-status"></p>
+            </div>
         </div>
     </div>
 </div>
@@ -338,6 +383,93 @@
         color: #999;
     }
 
+    .join-kam-form {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        display: grid;
+        gap: 16px;
+    }
+
+    .join-kam-form h3 {
+        color: #667eea;
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .join-kam-fields {
+        display: grid;
+        gap: 12px;
+    }
+
+    .join-kam-fields .form-row {
+        display: grid;
+        gap: 6px;
+    }
+
+    .join-kam-fields label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .join-kam-fields input {
+        padding: 12px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    .join-kam-question {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .join-kam-options {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .join-kam-select {
+        display: grid;
+        gap: 10px;
+    }
+
+    .join-kam-select label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .join-kam-dropdown {
+        padding: 12px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    .join-kam-status {
+        margin: 0;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .join-kam-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .cancel-button {
+        background-color: #dc3545;
+        color: white;
+    }
+
+        .cancel-button:hover:not(:disabled) {
+            background-color: #c82333;
+        }
+
     @@media (max-width: 768px) {
         .assistant-section {
             padding: 20px;
@@ -362,6 +494,20 @@
             width: 100%;
             justify-content: center;
         }
+
+        .join-kam-form {
+            padding: 15px;
+        }
+
+        .form-row input {
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .send-button, .cancel-button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
     }
 </style>
 
@@ -381,6 +527,163 @@
     const answerText = document.getElementById('answerText');
     const micIcon = document.getElementById('micIcon');
     const speakerIcon = document.getElementById('speakerIcon');
+    const joinKamForm = document.getElementById('joinKamForm');
+    const joinKamFormElement = document.getElementById('joinKamFormElement');
+    const joinKamStatus = document.getElementById('joinKamStatus');
+    const joinFirstName = document.getElementById('joinFirstName');
+    const joinLastName = document.getElementById('joinLastName');
+    const joinEmail = document.getElementById('joinEmail');
+    const joinPhone = document.getElementById('joinPhone');
+    const joinKamFollowUp = document.getElementById('joinKamFollowUp');
+    const joinKamQuestionText = document.getElementById('joinKamQuestionText');
+    const joinKamYesNo = document.getElementById('joinKamYesNo');
+    const joinKamYes = document.getElementById('joinKamYes');
+    const joinKamNo = document.getElementById('joinKamNo');
+    const joinKamSelectContainer = document.getElementById('joinKamSelectContainer');
+    const joinKamSelect = document.getElementById('joinKamSelect');
+    const joinKamNext = document.getElementById('joinKamNext');
+    const joinKamFollowUpStatus = document.getElementById('joinKamFollowUpStatus');
+    const joinKamCancel = document.getElementById('joinKamCancel');
+    const joinKamFollowUpCancel = document.getElementById('joinKamFollowUpCancel');
+
+    let joinKamFormData = null;
+    let joinKamQuestionIndex = 0;
+    let joinKamAnswers = {};
+
+    const joinKamQuestions = [
+        {
+            key: 'licensedByCaBre',
+            type: 'yesno',
+            text: 'Are you licensed by CA Bureau of Real Estate?'
+        },
+        {
+            key: 'licensedByNmls',
+            type: 'yesno',
+            text: 'Are you Licensed by the NMLS?'
+        },
+        {
+            key: 'heardAbout',
+            type: 'select',
+            text: 'How did you hear about KAM?',
+            options: ['Craiglist Ads', 'Postcard', 'Letter', 'Referral', 'Internet', 'Search']
+        }
+    ];
+
+    function renderJoinKamQuestion() {
+        const question = joinKamQuestions[joinKamQuestionIndex];
+        joinKamQuestionText.textContent = question.text;
+        joinKamFollowUpStatus.textContent = '';
+
+        if (question.type === 'yesno') {
+            joinKamYesNo.hidden = false;
+            joinKamSelectContainer.hidden = true;
+        } else {
+            joinKamYesNo.hidden = true;
+            joinKamSelectContainer.hidden = false;
+            joinKamSelect.innerHTML = '<option value="" disabled selected>Select an option</option>';
+            question.options.forEach((option) => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                joinKamSelect.appendChild(optionElement);
+            });
+        }
+    }
+
+    function startJoinKamQuestions(payload) {
+        joinKamFormData = payload;
+        joinKamQuestionIndex = 0;
+        joinKamAnswers = {};
+        joinKamForm.hidden = true;
+        joinKamFollowUp.hidden = false;
+        renderJoinKamQuestion();
+    }
+
+    function advanceJoinKamQuestion() {
+        if (joinKamQuestionIndex < joinKamQuestions.length - 1) {
+            joinKamQuestionIndex += 1;
+            renderJoinKamQuestion();
+            return;
+        }
+
+        submitJoinKam();
+    }
+
+    async function submitJoinKam() {
+        const token = getAntiForgeryToken();
+        const payload = {
+            ...joinKamFormData,
+            licensedByCaBre: joinKamAnswers.licensedByCaBre,
+            licensedByNmls: joinKamAnswers.licensedByNmls,
+            heardAbout: joinKamAnswers.heardAbout
+        };
+
+        try {
+            const response = await fetch('/Chat?handler=JoinKam', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error:', errorText);
+                throw new Error(`Server responded with status ${response.status}`);
+            }
+
+            const data = await response.json();
+            joinKamFollowUpStatus.textContent = data.message;
+            hideJoinKamForm();
+            answerText.textContent = data.message;
+            status.textContent = 'Thanks for your interest in KAM!';
+        } catch (error) {
+            console.error('Error:', error);
+            joinKamFollowUpStatus.textContent = 'Sorry, I could not save your request. Please try again.';
+        }
+    }
+
+    joinKamYes.addEventListener('click', () => {
+        const question = joinKamQuestions[joinKamQuestionIndex];
+        joinKamAnswers[question.key] = true;
+        advanceJoinKamQuestion();
+    });
+
+    joinKamNo.addEventListener('click', () => {
+        const question = joinKamQuestions[joinKamQuestionIndex];
+        joinKamAnswers[question.key] = false;
+        advanceJoinKamQuestion();
+    });
+
+    joinKamNext.addEventListener('click', () => {
+        const question = joinKamQuestions[joinKamQuestionIndex];
+        const selectedValue = joinKamSelect.value;
+
+        if (!selectedValue) {
+            joinKamFollowUpStatus.textContent = 'Please select an option to continue.';
+            return;
+        }
+
+        joinKamAnswers[question.key] = selectedValue;
+        advanceJoinKamQuestion();
+    });
+
+    joinKamCancel.addEventListener('click', () => {
+        hideJoinKamForm();
+        status.textContent = currentMode === 'voice' ? 'Click to start' : 'Type your question and click Send';
+    });
+
+    joinKamFollowUpCancel.addEventListener('click', () => {
+        hideJoinKamForm();
+        status.textContent = currentMode === 'voice' ? 'Click to start' : 'Type your question and click Send';
+    });
+
+    // Get anti-forgery token
+    function getAntiForgeryToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    }
 
     // Mode switching
     function switchMode(mode) {
@@ -413,16 +716,22 @@
         }
     }
 
-    // Get anti-forgery token
-    function getAntiForgeryToken() {
-        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-    }
-
     // Text mode: Send button handler
     sendBtn.addEventListener('click', () => {
         const question = textInput.value.trim();
         if (question && !isProcessing && !isSpeaking) {
             questionText.textContent = question;
+            
+            if (isJoinKamIntent(question)) {
+                const kamMessage = 'To join KAM, you must be licensed by both the CA Bureau of Real Estate and the NMLS. Please complete the form below and your information will be sent to a KAM agent.';
+                answerText.textContent = kamMessage;
+                showJoinKamForm();
+                speakAnswerImmediately(kamMessage);
+                textInput.value = '';
+                return;
+            }
+            
+            hideJoinKamForm();
             processQuestion(question);
             textInput.value = '';
         }
@@ -492,6 +801,16 @@
 
             if (finalTranscript) {
                 questionText.textContent = finalTranscript;
+
+                if (isJoinKamIntent(finalTranscript)) {
+                    const kamMessage = 'To join KAM, you must be licensed by both the CA Bureau of Real Estate and the NMLS. Please complete the form below and your information will be sent to a KAM agent.';
+                    answerText.textContent = kamMessage;
+                    showJoinKamForm();
+                    speakAnswerImmediately(kamMessage);
+                    return;
+                }
+
+                hideJoinKamForm();
                 processQuestion(finalTranscript);
             }
         };
@@ -639,6 +958,57 @@
             startBtn.disabled = true;
         }
     }
+
+    function isJoinKamIntent(text) {
+        if (!text) {
+            return false;
+        }
+
+        const normalized = text.toLowerCase();
+        return normalized.includes('join') ||
+            (normalized.includes('join') && normalized.includes('kam')) ||
+            normalized.includes('joing kam') ||
+            normalized.includes('i want to join') ||
+            normalized.includes('how do i join');
+    }
+
+    function showJoinKamForm() {
+        joinKamForm.hidden = false;
+        joinKamFollowUp.hidden = true;
+        joinKamStatus.textContent = '';
+        joinKamFollowUpStatus.textContent = '';
+        joinFirstName.focus();
+    }
+
+    function hideJoinKamForm() {
+        joinKamForm.hidden = true;
+        joinKamFollowUp.hidden = true;
+        joinKamStatus.textContent = '';
+        joinKamFollowUpStatus.textContent = '';
+        joinKamFormElement.reset();
+        joinKamFormData = null;
+        joinKamAnswers = {};
+    }
+
+    joinKamFormElement.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        joinKamStatus.textContent = '';
+
+        const payload = {
+            firstName: joinFirstName.value.trim(),
+            lastName: joinLastName.value.trim(),
+            email: joinEmail.value.trim(),
+            phone: joinPhone.value.trim()
+        };
+
+        if (!payload.firstName || !payload.lastName || !payload.email || !payload.phone) {
+            joinKamStatus.textContent = 'Please complete all fields.';
+            return;
+        }
+
+        startJoinKamQuestions(payload);
+    });
 </script>
 
 @* Anti-forgery token for AJAX calls *@
