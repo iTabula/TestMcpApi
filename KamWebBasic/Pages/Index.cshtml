@@ -699,10 +699,10 @@
                 questionText.textContent = finalTranscript;
 
                 if (isJoinKamIntent(finalTranscript)) {
-                    status.textContent = 'To Join KAM, You must be both licensed by CA Bureau of Real estate and the NMLS. Please complete the form below and your information will be sent to a KAM agent.';
-                    answerText.textContent = 'Sure! To Join KAM, You must be both licensed by CA Bureau of Real estate and the NMLS. Please complete the form below and your information will be sent to a KAM agent.';
+                    const kamMessage = 'To join KAM, you must be licensed by both the CA Bureau of Real Estate and the NMLS. Please complete the form below and your information will be sent to a KAM agent.';
+                    answerText.textContent = kamMessage;
                     showJoinKamForm();
-                    resetState();
+                    speakAnswerImmediately(kamMessage);
                     return;
                 }
 
