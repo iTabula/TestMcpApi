@@ -42,7 +42,7 @@ public class GeneralController : ControllerBase
 
     [McpServerTool]
     [Description("Explains the end-to-end KAM workflow from approval and setup through submission, funding, and payment. " +
-        "Use this when the user asks how KAM works, what the process is, or what steps are required. " +
+        "Use this when the user asks how does KAM work, what do I need to know about the kam process, how KAM works, what the process is, or what steps are required. " +
         "Highlights licensing prerequisites and the operational milestones for agents and loan officers.")]
     [HttpGet("/general/kam-process")]
     public string GetKamProcess()
