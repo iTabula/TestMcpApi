@@ -518,6 +518,7 @@
     let isProcessing = false;
     let isSpeaking = false;
     let currentMode = 'voice';
+    let userStoppedSpeaking = false;
 
     const startBtn = document.getElementById('startBtn');
     const sendBtn = document.getElementById('sendBtn');
@@ -926,7 +927,10 @@
         };
 
         utterance.onerror = (event) => {
-            status.textContent = 'Error speaking: ' + event.error;
+            if (!userStoppedSpeaking) {
+                status.textContent = 'Error speaking: ' + event.error;
+            }
+            userStoppedSpeaking = false;
             resetState();
         };
 
@@ -935,6 +939,7 @@
     }
 
     function stopSpeaking() {
+        userStoppedSpeaking = true;
         synth.cancel();
         status.textContent = currentMode === 'voice' ? 'Stopped. Click to ask another question.' : 'Stopped. Type another question.';
         resetState();
@@ -1019,4 +1024,4 @@
 </script>
 
 @* Anti-forgery token for AJAX calls *@
-@Html.AntiForgeryToken()
+@Html.AntiForgeryToken()@Html.AntiForgeryToken()
