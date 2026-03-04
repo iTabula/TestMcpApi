@@ -485,7 +485,7 @@ public class LoansController : ControllerBase
             // Step 3: Get user related to phonetic results
             if (matchedUser != null)
             {
-                name = matchedUser.Name ?? name;
+                name = matchedUser.Name;
                 user_role = matchedUser.Role ?? user_role;
             }
         }
@@ -1382,7 +1382,7 @@ public class LoansController : ControllerBase
             
             if (matchedUser != null)
             {
-                name = matchedUser.Name ?? name;
+                name = matchedUser.Name;
                 user_role = matchedUser.Role ?? user_role;
             }
         }
@@ -1585,5 +1585,31 @@ public class LoansController : ControllerBase
         return key;
     }
 
-   
+    //Fallback tool for unmatched queries
+    [McpServerTool]
+    [Description("Use this tool when no other loans tool matches the user's request. " +
+    "Handles general loan questions, clarification requests, or unrecognized queries. " +
+    "Provides helpful guidance and suggests rephrasing the question. " +
+    "This is a fallback tool for questions that cannot be answered by other loan tools.")]
+    [HttpGet("/loans/help")]
+    public string HandleUnmatchedLoansQuery(
+    [Description("The user's original question or request")] string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return "I didn't receive a question. Please ask me something about loan transactions, agents, or lenders.";
+        }
+
+        return $"I'm not able to answer '{query}' with the available tools. " +
+               "I can help you with: " +
+               "- Loan transactions by agent " +
+               "- Agent contact information and performance " +
+               "- Top agents, cities, and escrow companies " +
+               "- Open and active loans " +
+               "- Loan type and property type statistics " +
+               "- Lender information and statistics " +
+               "- Property and address information " +
+               "- Agent earnings and 1099 information. " +
+               "\nCould you please rephrase your question or try asking about one of these topics?";
+    }
 }

@@ -180,19 +180,24 @@ public class UsersController : ControllerBase
     [McpServerTool]
     [Description("Use this tool when no other tool matches the user's request. " +
     "Handles general questions, clarification requests, or unrecognized queries. " +
-    "Provides helpful guidance to the user.")]
+    "Provides helpful guidance to the user and suggests rephrasing their question. " +
+    "This is a fallback tool for questions that cannot be answered by other available tools.")]
     [HttpGet("/users/help")]
     public string HandleUnmatchedQuery(
     [Description("The user's original question or request")] string query)
     {
-        return $"I'm not sure how to help with '{query}'. " +
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return "I didn't receive a question. Please ask me something about agents, transactions, loans, or property information.";
+        }
+
+        return $"I'm not able to answer '{query}' with the available tools. " +
                "I can help you with: " +
-               "- Agent transactions and statistics " +
-               "- Loan information and analytics " +
-               "- Top agents and performance data " +
-               "- Escrow and title company information " +
-               "- Property details and loan statistics. " +
-               "Could you please rephrase your question?";
+               "- Agent information and contact details " +
+               "- Customer lookup by phone number " +
+               "- Agent phone and email lookup " +
+               "- General KAM company information. " +
+               "\nCould you please rephrase your question or try asking about one of these topics?";
     }
 
 }

@@ -1253,9 +1253,12 @@ public class RealsController : ControllerBase
         // Step 6: Present data
         string transactions = data.Select(r =>
             $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, " +
-            $"Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount?.ToString("C") ?? "N/A"}, " +
-            $"Closed: {r.ActualClosedDate?.ToShortDateString() ?? "N/A"}")
-            .Aggregate((a, b) => a + "; " + b);
+            $"Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {(r.RealAmount?.ToString("C") ?? "N/A")}, " +
+            $"Closed: {(r.ActualClosedDate?.ToShortDateString() ?? "N/A")}, " +
+            $"Lender: {r.LenderName ?? "N/A"}, Title Company: {r.TitleCompanyName ?? "N/A"}, " +
+            $"Term: {(r.RealTerm?.ToString() ?? "N/A")}, " +
+            $"Appraised Value: {(r.AppraisedValue?.ToString("C") ?? "N/A")}"
+        ).Aggregate((a, b) => a + "; " + b);
 
         return $"The top {top} transactions for {fieldName} '{type}'{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
     }
@@ -1355,8 +1358,12 @@ public class RealsController : ControllerBase
 
         // Step 6: Present data
         string transactions = data.Select(r =>
-            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {r.RealAmount}, Closed: {r.ActualClosedDate?.ToShortDateString()}")
-            .Aggregate((a, b) => a + ", " + b);
+            $"Transaction #{r.RealTransID}, Client: {r.ClientFullName}, Agent: {r.AgentName}, Address: {r.SubjectAddress}, Type: {r.TransactionType}, Amount: {(r.RealAmount?.ToString("C") ?? "N/A")}, " +
+            $"Closed: {(r.ActualClosedDate?.ToShortDateString() ?? "N/A")}, " +
+            $"Lender: {r.LenderName ?? "N/A"}, Title Company: {r.TitleCompanyName ?? "N/A"}, " +
+            $"Term: {(r.RealTerm?.ToString() ?? "N/A")}, " +
+            $"Appraised Value: {(r.AppraisedValue?.ToString("C") ?? "N/A")}"
+        ).Aggregate((a, b) => a + ", " + b);
 
         return $"The top {top} transactions for NMLS number {nmlsNumber}{(agent != null ? $" for agent {agent}" : "")} are: {transactions}";
     }
@@ -1695,7 +1702,7 @@ public class RealsController : ControllerBase
         "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
         "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
         "When agent filter is applied, only transactions for that agent are analyzed. " +
-        "When year filter is applied, only transactions closed in that specific year are included. " +
+        "When year filter is applied, only transactions closed in that specific year are counted. " +
         "When date range filters are applied, only transactions closed within the from/to date range are included. " +
         "Use this when the user asks about LTV statistics, loan-to-value analytics, or lending ratio metrics. " +
         "Relevant for questions like: what are the LTV statistics, show me average loan-to-value ratios, what's the LTV range, or give me lending ratio analytics.")]
@@ -1725,7 +1732,7 @@ public class RealsController : ControllerBase
             // Step 3: Get user related to phonetic results
             if (matchedAgent != null)
             {
-                agent = matchedAgent.AgentName;
+                agent = matchedAgent.AgentName ?? agent;
             }
         }
 
@@ -1777,7 +1784,7 @@ public class RealsController : ControllerBase
         "Supports fuzzy name matching and phonetic search for agent identification when agent filter is used. " +
         "Supports optional filtering by agent name, year (specific year), and date range (from/to dates by closed date). " +
         "When agent filter is applied, only transactions for that agent are analyzed. " +
-        "When year filter is applied, only transactions closed in that specific year are included. " +
+        "When year filter is applied, only transactions closed in that specific year are counted. " +
         "When date range filters are applied, only transactions closed within the from/to date range are included. " +
         "Use this when the user asks about interest rate statistics, rate analytics, or lending rate metrics. " +
         "Relevant for questions like: what are the interest rate statistics, show me average interest rates, what's the rate range, or give me interest rate analytics.")]
@@ -1807,7 +1814,7 @@ public class RealsController : ControllerBase
             // Step 3: Get user related to phonetic results
             if (matchedAgent != null)
             {
-                agent = matchedAgent.AgentName;
+                agent = matchedAgent.AgentName ?? agent;
             }
         }
 
@@ -1890,7 +1897,7 @@ public class RealsController : ControllerBase
             // Step 3: Get user related to phonetic results
             if (matchedAgent != null)
             {
-                agent = matchedAgent.AgentName;
+                agent = matchedAgent.AgentName ?? agent;
             }
         }
 
@@ -1992,24 +1999,42 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var transaction = svc.GetByPropertyAddress(subjectAddress);
+        var transaction = svc.GetRealTransactions().Result
+                            .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.SubjectAddress) &&
+                                                 string.Equals(t.SubjectAddress, subjectAddress, StringComparison.OrdinalIgnoreCase));
 
         if (transaction == null)
-            return $"No real estate transaction found for the property address: {subjectAddress}.";
+            return $"No real estate transaction was found for the property address {subjectAddress}.";
 
-        var info = new HomeInspectionInfo
+        var result = new RealTransactionDto
         {
-            Name = transaction.HomeInspectionName ?? "N/A",
-            Done = transaction.HomeInspectionDone ?? "N/A",
-            Phone = transaction.HomeInspectionPhone ?? "N/A",
-            Email = transaction.HomeInspectionEmail ?? "N/A",
-            Notes = transaction.HomeInspectionNotes ?? "N/A"
+            RealTransID = transaction.RealTransID,
+            ClientFullName = $"{transaction.ClientFirstName} {transaction.ClientLastName}".Trim(),
+            AgentName = transaction.AgentName,
+            SubjectAddress = transaction.SubjectAddress,
+            TransactionType = transaction.TransactionType ?? transaction.TransType,
+            RealAmount = transaction.RealAmount ?? transaction.PurchasePrice,
+            ActualClosedDate = transaction.ActualClosedDate,
+            LenderName = transaction.LenderName,
+            TitleCompanyName = transaction.TitleCompany,
+            RealTerm = transaction.RealTerm.ToString(),
+            AppraisedValue = transaction.AppraisedValue,
+            PropertyAddress = transaction.SubjectAddress,
+            City = transaction.SubjectCity,
+            State = transaction.SubjectState
         };
 
         // Step 6: Present data
-        return $"Home Inspection Info for {subjectAddress}: Name: {info.Name}, Done: {info.Done}, " +
-               $"Phone: {info.Phone}, Email: {info.Email}, Notes: {info.Notes}";
+        return $"Transaction #{result.RealTransID} for property {result.SubjectAddress}, " +
+               $"City: {result.City ?? "N/A"}, State: {result.State ?? "N/A"}, " +
+               $"handled by agent {result.AgentName}, client {result.ClientFullName}, " +
+               $"type: {result.TransactionType}, amount: {(result.RealAmount?.ToString("C") ?? "N/A")}, " +
+               $"closed on: {(result.ActualClosedDate?.ToShortDateString() ?? "N/A")}, " +
+               $"lender: {result.LenderName ?? "N/A"}, title company: {result.TitleCompanyName ?? "N/A"}, " +
+               $"term: {(result.RealTerm?.ToString() ?? "N/A")}, " +
+               $"appraised value: {(result.AppraisedValue?.ToString("C") ?? "N/A")}";
     }
+
 
     [McpServerTool]
     [Description("Retrieves pest inspection information for a specific property by address. " +
@@ -2067,10 +2092,12 @@ public class RealsController : ControllerBase
             return "The real estate transactions data is not available right now.";
         }
 
-        var transaction = svc.GetByPropertyAddress(subjectAddress);
+        var transaction = svc.GetRealTransactions().Result
+                            .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.SubjectAddress) &&
+                                                 string.Equals(t.SubjectAddress, subjectAddress, StringComparison.OrdinalIgnoreCase));
 
         if (transaction == null)
-            return $"No real estate transaction found for the property address: {subjectAddress}.";
+            return $"No real estate transaction was found for the property address {subjectAddress}.";
 
         var info = new PestInspectionInfo
         {
@@ -2095,7 +2122,7 @@ public class RealsController : ControllerBase
         "Relevant for questions like: what's the escrow information for this address, who is the escrow officer, what's the escrow number, or show me escrow details.")]
     [HttpGet("/reals/escrow-info/{subjectAddress}")]
     public string GetEscrowInfo(
-        [Description("Property address to look up escrow information for (supports fuzzy and phonetic matching)")]
+        [Description("Property address to lookup escrow information for (supports fuzzy and phonetic matching)")]
         string subjectAddress,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
@@ -2586,5 +2613,30 @@ public class RealsController : ControllerBase
                       .FirstOrDefault()?.Key ?? "N/A";
 
         return key;
+    }
+
+    [McpServerTool]
+    [Description("Use this tool when no other real estate tool matches the user's request. " +
+    "Handles general real estate questions, clarification requests, or unrecognized queries. " +
+    "Provides helpful guidance and suggests rephrasing the question. " +
+    "This is a fallback tool for questions that cannot be answered by other real estate tools.")]
+    [HttpGet("/reals/help")]
+    public string HandleUnmatchedRealQuery(
+    [Description("The user's original question or request")] string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return "I didn't receive a question. Please ask me something about real estate transactions, agents, or properties.";
+        }
+
+        return $"I'm not able to answer '{query}' with the available tools. " +
+               "I can help you with: " +
+               "- Real estate transactions by agent, title company, or escrow company " +
+               "- Property information and details " +
+               "- Agent performance and rankings " +
+               "- ZIP codes and cities with most transactions " +
+               "- Transaction statistics and analytics " +
+               "- Home/pest inspection, escrow, and payment information. " +
+               "\nCould you please rephrase your question or try asking about one of these topics?";
     }
 }
