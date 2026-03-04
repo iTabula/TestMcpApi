@@ -519,6 +519,8 @@
     let isSpeaking = false;
     let currentMode = 'voice';
     let userStoppedSpeaking = false;
+    let pendingUtterance = null; // Hold utterance for iOS Safari
+    let speechUnlocked = false; // Track if speech has been unlocked for iOS
 
     const startBtn = document.getElementById('startBtn');
     const sendBtn = document.getElementById('sendBtn');
@@ -719,8 +721,22 @@
         }
     }
 
+    // iOS Safari fix: Unlock speech synthesis on first user interaction
+    function unlockSpeechSynthesis() {
+        if (speechUnlocked) return;
+        
+        // Speak a silent utterance to unlock audio on iOS Safari
+        const utterance = new SpeechSynthesisUtterance('');
+        utterance.volume = 0;
+        synth.speak(utterance);
+        speechUnlocked = true;
+    }
+
     // Text mode: Send button handler
     sendBtn.addEventListener('click', () => {
+        // Unlock speech synthesis for iOS Safari
+        unlockSpeechSynthesis();
+        
         // If currently speaking, stop the speech
         if (isSpeaking) {
             stopSpeaking();
@@ -764,6 +780,9 @@
         recognition.lang = 'en-US';
 
         startBtn.addEventListener('click', () => {
+            // Unlock speech synthesis for iOS Safari
+            unlockSpeechSynthesis();
+            
             if (!isListening && !isProcessing && !isSpeaking) {
                 startListening();
             } else if (isListening) {
@@ -915,7 +934,12 @@
         // Cancel any ongoing speech first
         synth.cancel();
 
-        // Create and speak utterance immediately
+        // iOS Safari fix: Ensure speech synthesis is ready
+        if (!speechUnlocked) {
+            unlockSpeechSynthesis();
+        }
+
+        // Create utterance
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
@@ -928,14 +952,17 @@
 
         utterance.onerror = (event) => {
             if (!userStoppedSpeaking) {
+                console.error('Speech error:', event.error);
                 status.textContent = 'Error speaking: ' + event.error;
             }
             userStoppedSpeaking = false;
             resetState();
         };
 
-        // Speak immediately
-        synth.speak(utterance);
+        // iOS Safari: Add a small delay to ensure synthesis is ready
+        setTimeout(() => {
+            synth.speak(utterance);
+        }, 50);
     }
 
     function stopSpeaking() {
