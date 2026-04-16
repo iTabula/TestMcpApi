@@ -137,7 +137,10 @@ public class UsersController : ControllerBase
         {
             if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
             {
-                return "Access denied. Only users with Admin role can access this information.";
+                if (result.UserID != user_id)
+                {
+                    return "Access denied. You do not have permission to access this information.";
+                }
             }
         }
         else

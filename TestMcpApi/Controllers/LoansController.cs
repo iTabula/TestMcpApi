@@ -138,7 +138,11 @@ public class LoansController : ControllerBase
         {
             if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
             {
-                return "Access denied. Only users with Admin role can access this information.";
+                var targetAgentId = int.TryParse(result.AgentID?.ToString(), out var parsedAgentId) ? parsedAgentId : 0;
+                if (targetAgentId == 0 || targetAgentId != user_id)
+                {
+                    return "Access denied. You do not have permissions to lookup transactions for another Agent!";
+                }
             }
         }
         else
@@ -708,7 +712,7 @@ public class LoansController : ControllerBase
             
             if (matchedUser != null)
             {
-                name = matchedUser.Name ?? name;
+                name = matchedUser.Name;
                 user_role = matchedUser.Role ?? user_role;
             }
         }

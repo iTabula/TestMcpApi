@@ -113,24 +113,49 @@ namespace TestMcpApi.Helpers
             return null; // Authorization passed
         }
 
+        private static bool IsUnknownName(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) || value.Equals("unknown", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string ResolveUserName(int userId, string? providedName)
+        {
+            if (!IsUnknownName(providedName))
+                return providedName!;
+
+            if (userId <= 0)
+                return providedName ?? "unknown";
+
+            var user = new UserService().GetUsers().Result
+                .FirstOrDefault(u => u.UserID == userId);
+
+            return user?.Name ?? user?.FullName ?? providedName ?? "unknown";
+        }
+
         // HELPER METHOD FOR AGENT-SPECIFIC AUTHORIZATION
         public static string? CheckSpecificAuthorization(IHttpContextAccessor _httpContextAccessor, string? agent, string name, int user_id, string user_role, string token, out string effectiveAgent)
         {
-            effectiveAgent = agent ?? name;
+            var requesterName = ResolveUserName(user_id, name);
+            effectiveAgent = agent ?? requesterName;
 
             // Check if call coming from Web/Mobile app
             if (user_id != 0 && user_role != "unknown" && token != "unknown")
             {
                 if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
                 {
+                    if (IsUnknownName(requesterName))
+                    {
+                        return "Access denied. You do not have permission to access this information.";
+                    }
+
                     // If agent is specified and doesn't match user's name, deny access
-                    if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(name), StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(requesterName), StringComparison.OrdinalIgnoreCase))
                     {
                         return "Access denied. You do not have permission to access this information.";
                     }
 
                     // Filter by user's name
-                    effectiveAgent = name;
+                    effectiveAgent = requesterName;
                 }
             }
             else
@@ -151,7 +176,19 @@ namespace TestMcpApi.Helpers
                         // If not admin, must query their own data
                         if (vapiCall.UserRole.ToLower().Trim() != "admin")
                         {
-                            effectiveAgent = name;
+                            requesterName = ResolveUserName(vapiCall.UserId ?? 0, name);
+
+                            if (IsUnknownName(requesterName))
+                            {
+                                return "Access denied. You do not have permission to access this information.";
+                            }
+
+                            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(requesterName), StringComparison.OrdinalIgnoreCase))
+                            {
+                                return "Access denied. You do not have permission to access this information.";
+                            }
+
+                            effectiveAgent = requesterName;
                         }
                     }
                     else
