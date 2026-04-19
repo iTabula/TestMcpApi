@@ -113,12 +113,21 @@ namespace TestMcpApi.Helpers
             return null; // Authorization passed
         }
 
-        private static bool IsUnknownName(string? value)
+        public static bool IsSelfReference(string? value)
         {
-            return string.IsNullOrWhiteSpace(value) || value.Equals("unknown", StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            var normalized = Normalize(value);
+            return normalized is "my" or "me" or "mine" or "myself" or "i" or "current user" or "currentuser" or "logged in user" or "logged-in user";
         }
 
-        private static string ResolveUserName(int userId, string? providedName)
+        public static bool IsUnspecifiedOrSelfReference(string? value)
+        {
+            return IsUnknownName(value) || IsSelfReference(value);
+        }
+
+        public static string ResolveRequesterName(int userId, string? providedName = "unknown")
         {
             if (!IsUnknownName(providedName))
                 return providedName!;
@@ -132,11 +141,17 @@ namespace TestMcpApi.Helpers
             return user?.Name ?? user?.FullName ?? providedName ?? "unknown";
         }
 
+        private static bool IsUnknownName(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) || value.Equals("unknown", StringComparison.OrdinalIgnoreCase);
+        }
+
         // HELPER METHOD FOR AGENT-SPECIFIC AUTHORIZATION
         public static string? CheckSpecificAuthorization(IHttpContextAccessor _httpContextAccessor, string? agent, string name, int user_id, string user_role, string token, out string effectiveAgent)
         {
-            var requesterName = ResolveUserName(user_id, name);
-            effectiveAgent = agent ?? requesterName;
+            var requesterName = ResolveRequesterName(user_id, name);
+            var requestedAgent = IsUnspecifiedOrSelfReference(agent) ? requesterName : agent;
+            effectiveAgent = requestedAgent ?? requesterName;
 
             // Check if call coming from Web/Mobile app
             if (user_id != 0 && user_role != "unknown" && token != "unknown")
@@ -149,7 +164,7 @@ namespace TestMcpApi.Helpers
                     }
 
                     // If agent is specified and doesn't match user's name, deny access
-                    if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(requesterName), StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrEmpty(requestedAgent) && !Normalize(requestedAgent).Equals(Normalize(requesterName), StringComparison.OrdinalIgnoreCase))
                     {
                         return "Access denied. You do not have permission to access this information.";
                     }
@@ -176,14 +191,15 @@ namespace TestMcpApi.Helpers
                         // If not admin, must query their own data
                         if (vapiCall.UserRole.ToLower().Trim() != "admin")
                         {
-                            requesterName = ResolveUserName(vapiCall.UserId ?? 0, name);
+                            requesterName = ResolveRequesterName(vapiCall.UserId ?? 0, name);
+                            requestedAgent = IsUnspecifiedOrSelfReference(agent) ? requesterName : agent;
 
                             if (IsUnknownName(requesterName))
                             {
                                 return "Access denied. You do not have permission to access this information.";
                             }
 
-                            if (!string.IsNullOrEmpty(agent) && !Normalize(agent).Equals(Normalize(requesterName), StringComparison.OrdinalIgnoreCase))
+                            if (!string.IsNullOrEmpty(requestedAgent) && !Normalize(requestedAgent).Equals(Normalize(requesterName), StringComparison.OrdinalIgnoreCase))
                             {
                                 return "Access denied. You do not have permission to access this information.";
                             }

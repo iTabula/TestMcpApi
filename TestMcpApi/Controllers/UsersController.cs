@@ -95,6 +95,21 @@ public class UsersController : ControllerBase
         if (data == null || data.Count() == 0)
             return "There are no agent available for this name.";
 
+        if (Common.IsUnspecifiedOrSelfReference(agent_name))
+        {
+            if (user_id != 0 && user_role != "unknown" && token != "unknown")
+            {
+                var ownUser = data.FirstOrDefault(x => x.UserID == user_id);
+                if (ownUser != null)
+                {
+                    string ownPhone = Common.FormatPhoneNumber(ownUser.Phone);
+                    return $"{ownUser.Name} phone number {ownPhone} and email {ownUser.Email}";
+                }
+            }
+
+            agent_name = Common.ResolveRequesterName(user_id, agent_name);
+        }
+
         //Try to find the name based on input
         var doubleMetaphone = new DoubleMetaphone();
         string searchKey = doubleMetaphone.BuildKey(agent_name);

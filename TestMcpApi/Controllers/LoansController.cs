@@ -95,6 +95,21 @@ public class LoansController : ControllerBase
         if (agentCounts.Count() == 0)
             return "There are no agent transactions available for the selected filters.";
 
+        // Resolve self-reference requests before fuzzy matching
+        if (Common.IsUnspecifiedOrSelfReference(agent_name))
+        {
+            if (user_id != 0 && user_role != "unknown" && token != "unknown")
+            {
+                var ownResult = agentCounts.FirstOrDefault(x => int.TryParse(x.AgentID?.ToString(), out var parsedId) && parsedId == user_id);
+                if (ownResult != null)
+                {
+                    return $"{ownResult.AgentName} has {ownResult.Count} transactions";
+                }
+            }
+
+            agent_name = Common.ResolveRequesterName(user_id, agent_name);
+        }
+
         //Try to find the name based on input
         var result = agentCounts
             .OrderBy(x => Common.CalculateLevenshteinDistance(agent_name, x.AgentName))
@@ -1128,7 +1143,7 @@ public class LoansController : ControllerBase
     [HttpGet("/loans/1099/{agent}/{year}")]
     public string GetAgent1099(
         [Description("Name of the agent whose 1099 to retrieve (supports fuzzy and phonetic matching)")] string agent,
-        [Description("Tax year for the 1099 calculation (e.g., 2024, 2025)")] int year,
+        [Description("Tax year for the 1099 calculation (e.g., 2024, 2025")] int year,
         [Description("user_id")] int user_id = 0,
         [Description("user_role")] string user_role = "unknown",
         [Description("token")] string token = "unknown",
@@ -1164,9 +1179,11 @@ public class LoansController : ControllerBase
         }
 
         // Step 4: Authorization
-        var authError = Common.CheckAdminAuthorization(_httpContextAccessor, user_id, user_role, token);
+        var authError = Common.CheckSpecificAuthorization(_httpContextAccessor, agent, name, user_id, user_role, token, out string effectiveAgent);
         if (authError != null)
             return authError;
+
+        agent = effectiveAgent;
 
         // Step 5: Get data if authorized
         string resultText = "";
@@ -1465,7 +1482,7 @@ public class LoansController : ControllerBase
 
         // Step 2: Match phonetics for agent
         var matchedAgent = Common.MatchPhonetic(allAgents, agent, a => a.AgentName ?? string.Empty);
-
+        
         // Step 3: Get user related to phonetic results
         if (matchedAgent != null)
         {
