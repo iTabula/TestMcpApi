@@ -30,12 +30,17 @@ public class UsersController : ControllerBase
     }
 
     [McpServerTool]
-    [Description("Look up a customer's record using their phone number.")]
+    [Description("Authenticate a phone caller by their explicit phone number. Use this only for phone-call authentication flows where a real number is provided (for example +15551234567). Do not use this for web chat questions like 'my contact info'.")]
     [HttpGet("/users/customer_phone")]
     public async Task<string> GetCustomerDetails(
       [Description("The customer's phone number in E.164 format.")]
         string phoneNumber)
     {
+        if (string.IsNullOrWhiteSpace(phoneNumber) || phoneNumber.Contains("{{customer.number}}", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Phone authentication requires a real phone number. For profile/contact questions in web chat, use the agent contact tools.";
+        }
+
         //Clean up the phone number
         if (phoneNumber.Length > 10)
         {

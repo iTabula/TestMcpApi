@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Security.Claims;
+using System.Text.RegularExpressions;
 using TestMcpApi.Models;
 using TestMcpApi.Services;
 using Phonix;
@@ -81,9 +82,20 @@ namespace TestMcpApi.Helpers
             }
             else
             {
-                // Coming from a live call to VAPI phone number
                 var context = _httpContextAccessor.HttpContext;
 
+                // Fallback for web claim-based context
+                if (TryGetUserContextFromClaims(context, out var claimUserId, out var claimRole))
+                {
+                    if (!string.Equals(claimRole, "Admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "Access denied. Only users with Admin role can access this information.";
+                    }
+
+                    return null;
+                }
+
+                // Coming from a live call to VAPI phone number
                 if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
                 {
                     VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
@@ -106,7 +118,7 @@ namespace TestMcpApi.Helpers
                 }
                 else
                 {
-                    return "Access denied. Call ID not found in request headers!";
+                    return "Access denied. Call details not found!";
                 }
             }
 
@@ -129,7 +141,7 @@ namespace TestMcpApi.Helpers
 
         public static string ResolveRequesterName(int userId, string? providedName = "unknown")
         {
-            if (!IsUnknownName(providedName))
+            if (!IsUnknownName(providedName) && !IsSelfReference(providedName))
                 return providedName!;
 
             if (userId <= 0)
@@ -146,6 +158,24 @@ namespace TestMcpApi.Helpers
             return string.IsNullOrWhiteSpace(value) || value.Equals("unknown", StringComparison.OrdinalIgnoreCase);
         }
 
+        private static bool TryGetUserContextFromClaims(HttpContext? context, out int userId, out string userRole)
+        {
+            userId = 0;
+            userRole = "unknown";
+
+            if (context?.User?.Identity?.IsAuthenticated != true)
+                return false;
+
+            var userIdValue = context.User.FindFirst(ClaimTypes.PrimarySid)?.Value;
+            var roleValue = context.User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (!int.TryParse(userIdValue, out userId))
+                userId = 0;
+
+            userRole = string.IsNullOrWhiteSpace(roleValue) ? "unknown" : roleValue;
+            return userId > 0 || !string.Equals(userRole, "unknown", StringComparison.OrdinalIgnoreCase);
+        }
+
         // HELPER METHOD FOR AGENT-SPECIFIC AUTHORIZATION
         public static string? CheckSpecificAuthorization(IHttpContextAccessor _httpContextAccessor, string? agent, string name, int user_id, string user_role, string token, out string effectiveAgent)
         {
@@ -158,26 +188,52 @@ namespace TestMcpApi.Helpers
             {
                 if (!user_role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (IsUnknownName(requesterName))
+                    if (IsUnknownName(requesterName) || IsSelfReference(requesterName))
                     {
                         return "Access denied. You do not have permission to access this information.";
                     }
 
-                    // If agent is specified and doesn't match user's name, deny access
                     if (!string.IsNullOrEmpty(requestedAgent) && !Normalize(requestedAgent).Equals(Normalize(requesterName), StringComparison.OrdinalIgnoreCase))
                     {
                         return "Access denied. You do not have permission to access this information.";
                     }
 
-                    // Filter by user's name
                     effectiveAgent = requesterName;
                 }
             }
             else
             {
-                // Coming from a live call to VAPI phone number
                 var context = _httpContextAccessor.HttpContext;
 
+                // Fallback for web claim-based context
+                if (TryGetUserContextFromClaims(context, out var claimUserId, out var claimRole))
+                {
+                    requesterName = ResolveRequesterName(claimUserId, name);
+                    requestedAgent = IsUnspecifiedOrSelfReference(agent) ? requesterName : agent;
+
+                    if (!string.Equals(claimRole, "Admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (IsUnknownName(requesterName) || IsSelfReference(requesterName))
+                        {
+                            return "Access denied. You do not have permission to access this information.";
+                        }
+
+                        if (!string.IsNullOrEmpty(requestedAgent) && !Normalize(requestedAgent).Equals(Normalize(requesterName), StringComparison.OrdinalIgnoreCase))
+                        {
+                            return "Access denied. You do not have permission to access this information.";
+                        }
+
+                        effectiveAgent = requesterName;
+                    }
+                    else
+                    {
+                        effectiveAgent = requestedAgent ?? requesterName;
+                    }
+
+                    return null;
+                }
+
+                // Coming from a live call to VAPI phone number
                 if (context != null && context.Request.Headers.TryGetValue("X-Call-Id", out var callId))
                 {
                     VapiCall vapiCall = new UserService().GetCurrentVapiCallAsync(CallId: callId).Result;
@@ -188,13 +244,12 @@ namespace TestMcpApi.Helpers
                             return "Access denied. You are not authenticated yet!";
                         }
 
-                        // If not admin, must query their own data
                         if (vapiCall.UserRole.ToLower().Trim() != "admin")
                         {
                             requesterName = ResolveRequesterName(vapiCall.UserId ?? 0, name);
                             requestedAgent = IsUnspecifiedOrSelfReference(agent) ? requesterName : agent;
 
-                            if (IsUnknownName(requesterName))
+                            if (IsUnknownName(requesterName) || IsSelfReference(requesterName))
                             {
                                 return "Access denied. You do not have permission to access this information.";
                             }
@@ -214,7 +269,7 @@ namespace TestMcpApi.Helpers
                 }
                 else
                 {
-                    return "Access denied. Call ID not found in request headers!";
+                    return "Access denied. Call details not found!";
                 }
             }
 
